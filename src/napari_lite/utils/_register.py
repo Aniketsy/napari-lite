@@ -75,7 +75,7 @@ def create_func(cls, name=None, doc=None):
         cls_name=cls_name,
     )
 
-    execdict = {cls_name: cls, 'napari': sys.modules.get('napari')}
+    execdict = {cls_name: cls, 'napari_lite': sys.modules.get('napari_lite')}
     code = compile(src, filename=tmpl_path, mode='exec')
     exec(code, execdict)
     func = execdict[name]
