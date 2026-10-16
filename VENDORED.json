@@ -35,7 +35,7 @@
   "modules_total": 555,
   "modules_copied": 255,
   "lines_copied": 76342,
-  "tests_copied": 166,
+  "tests_copied": 169,
   "tests_skipped": {
     "napari._qt._tests.test_plugin_widgets": [
       "napari._qt._qplugins._qnpe2"
@@ -124,9 +124,6 @@
     ],
     "napari._qt.widgets._tests.test_shortcut_editor_widget": [
       "napari._qt.widgets.qt_keyboard_settings"
-    ],
-    "napari.components._tests.test_viewer_model": [
-      "napari.layers.shapes._tests.conftest"
     ],
     "napari.layers._tests.test_layer_actions": [
       "napari.layers._layer_actions"
@@ -976,6 +973,7 @@
     "napari._qt.dialogs._tests",
     "napari._qt.dialogs._tests.test_qt_modal",
     "napari._qt.widgets._tests",
+    "napari._qt.widgets._tests.conftest",
     "napari._qt.widgets._tests.test_qt_dims",
     "napari._qt.widgets._tests.test_qt_dims_2",
     "napari._qt.widgets._tests.test_qt_dims_slider",
@@ -1027,6 +1025,7 @@
     "napari.components._tests.test_text_overlay",
     "napari.components._tests.test_viewer_keybindings",
     "napari.components._tests.test_viewer_labels_io",
+    "napari.components._tests.test_viewer_model",
     "napari.components._tests.test_viewer_mouse_bindings",
     "napari.components._tests.test_world_coordinates",
     "napari.components._tests.test_zoom",
@@ -1059,6 +1058,7 @@
     "napari.layers.points._tests.test_points_utils",
     "napari.layers.shapes._shapes_models._tests.test_rasterize",
     "napari.layers.shapes._shapes_models._tests.test_shapes_models",
+    "napari.layers.shapes._tests.conftest",
     "napari.layers.shapes._tests.test_shape_list",
     "napari.layers.shapes._tests.test_shapes",
     "napari.layers.shapes._tests.test_shapes_key_bindings",
