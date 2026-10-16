@@ -18,6 +18,7 @@ from qtpy.QtWidgets import QApplication
 
 from napari_lite._qt.qthreading import wait_for_workers_to_quit
 from napari_lite._qt.utils import _maybe_allow_interrupt, use_tabular_numerals
+from napari_lite._wayland_fix import _nvidia_driver_loaded
 from napari_lite.utils.notifications import (
     notification_manager,
     show_console_notification,
@@ -80,6 +81,24 @@ def get_qapp(
             warn(
                 'QApplication already existed, these arguments to '
                 f"'get_qapp' were ignored: {set_values}",
+                stacklevel=2,
+            )
+        if (
+            sys.platform == 'linux'
+            and app.platformName() == 'wayland'
+            and _nvidia_driver_loaded()
+        ):
+            # A QApplication created before napari-lite was imported (e.g.
+            # via IPython's "%gui qt") locks the Qt platform plugin to
+            # Wayland before _wayland_fix.py could run.  Gated on Nvidia
+            # since that is the only setup the workaround helps.
+            warn(
+                'A Qt application was already running on the Wayland '
+                'platform before napari-lite was imported, so the Wayland '
+                'startup workaround could not be applied. If the viewer '
+                'fails to launch or throws repeated rendering errors, see '
+                'https://napari.org/stable/troubleshooting.html#wayland-and-nvidia '
+                'for the workaround.',
                 stacklevel=2,
             )
     else:

@@ -25,9 +25,12 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
           cache: pip
-      - name: Install Qt system libraries (Linux)
-        if: runner.os == 'Linux'
-        uses: tlambert03/setup-qt-libs@v1
+      # a display with OpenGL on every OS: the Qt "offscreen" platform has no
+      # OpenGL on Windows and macOS, and the vispy tests need a GL context
+      - name: Setup headless display
+        uses: pyvista/setup-headless-display-action@v4
+        with:
+          qt: true
       - name: Install
         run: |
           python -m pip install -U pip
@@ -39,10 +42,8 @@ jobs:
             echo "napari is installed; napari-lite must be tested without it" >&2
             exit 1
           fi
-      - name: Test
-        env:
-          QT_QPA_PLATFORM: offscreen
-        run: python -m pytest tests -v
+      - name: Test (own tests and the copied napari tests)
+        run: python -m pytest tests src/napari_lite
 
   lint:
     runs-on: ubuntu-latest

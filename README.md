@@ -36,6 +36,27 @@ How to resync is written in [SYNC.md](SYNC.md). The current copy is listed
 in [VENDORED.json](VENDORED.json): which napari commit, which modules, and
 which imports cross into app modules that napari-lite must provide.
 
+## Status (2026-10-17)
+
+Milestones M0 (repo and copy) and M1 (imports without napari) of the
+[backlog](docs/backlog.md) are done:
+
+- `import napari_lite` takes about 0.05 s and loads no numpy, Qt, vispy or
+  pydantic; `napari_lite.components` imports with napari blocked and all seven
+  layer types (Image, Labels, Points, Shapes, Vectors, Surface, Tracks) work
+  in a `ViewerModel`.
+- napari's settings, theme, action manager, plugins, magicgui hooks and
+  app-model are replaced by small own modules at the same import paths
+  (`src/napari_lite/settings/`, `utils/theme.py`, `utils/action_manager.py`,
+  `plugins/`, `utils/_magicgui.py`, `_app_model/`).
+- The copied napari tests run from `src/napari_lite/**/_tests` with the
+  fixtures in `src/napari_lite/conftest.py`; tests that need a `Viewer`
+  window, plugins or app-model are skipped with that reason until the
+  corresponding issue lands.
+
+There is no `Viewer`, no window and no canvas widget yet: that is
+milestone M2 (`QtCanvas`, `napari_lite.Viewer`, `imshow`).
+
 ## Layout
 
 ```
@@ -58,8 +79,14 @@ M3 fast and small, M4 full feature set, M5 sync and share.
 
 ```
 pip install -e .[dev,pyqt6]
-QT_QPA_PLATFORM=offscreen pytest tests
+pytest tests src/napari_lite        # own tests, then the copied napari tests
+python spikes/spike_core.py         # smoke check with napari blocked
 ```
+
+On Linux without a display, run the tests under `xvfb-run` or with
+`QT_QPA_PLATFORM=offscreen`. On Windows and macOS run them as they are: the
+Qt offscreen platform has no OpenGL there and the vispy tests need a GL
+context (napari's own tests behave the same).
 
 The napari checkout used for vendoring is separate from this repo:
 

@@ -10,7 +10,9 @@ import pandas as pd
 import pytest
 from numpy.typing import DTypeLike
 
-from napari_lite import Viewer
+# napari-lite: the add_* methods live on ViewerModel; napari looks them up
+# on Viewer, which napari-lite gets with issue 13.
+from napari_lite.components import ViewerModel
 from napari_lite.layers import (
     Image,
     Labels,
@@ -109,7 +111,7 @@ with suppress(ModuleNotFoundError):
 classes = [Labels, Points, Vectors, Shapes, Surface, Tracks, Image]
 names = [cls.__name__.lower() for cls in classes]
 layer2addmethod = {
-    cls: getattr(Viewer, 'add_' + name)
+    cls: getattr(ViewerModel, 'add_' + name)
     for cls, name in zip(classes, names, strict=False)
 }
 

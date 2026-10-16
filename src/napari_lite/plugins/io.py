@@ -5,12 +5,14 @@ from __future__ import annotations
 
 from typing import Any
 
-from napari_lite.plugins import NO_READERS, NO_WRITERS
+from napari_lite.plugins import NO_READERS, NO_WRITERS, no_plugins
 
 
-def read_data_with_plugins(*args: Any, **kwargs: Any) -> Any:
-    raise NotImplementedError(NO_READERS)
+def read_data_with_plugins(paths: Any = (), *args: Any, **kwargs: Any) -> Any:
+    raise no_plugins(
+        NO_READERS, *(paths if isinstance(paths, list) else [paths])
+    )
 
 
-def save_layers(*args: Any, **kwargs: Any) -> Any:
-    raise NotImplementedError(NO_WRITERS)
+def save_layers(path: Any = None, *args: Any, **kwargs: Any) -> Any:
+    raise no_plugins(NO_WRITERS, path)

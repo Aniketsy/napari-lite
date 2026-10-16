@@ -50,11 +50,11 @@ def test_canvas_background_follows_viewer_theme() -> None:
     viewer = ViewerModel()
     viewer.theme = 'light'
     np.testing.assert_allclose(
-        viewer._canvas.background_color, [1.0, 1.0, 1.0, 1.0]
+        viewer.canvas.background_color, [1.0, 1.0, 1.0, 1.0]
     )
     viewer.theme = 'dark'
     np.testing.assert_allclose(
-        viewer._canvas.background_color, [0.0, 0.0, 0.0, 1.0]
+        viewer.canvas.background_color, [0.0, 0.0, 0.0, 1.0]
     )
     with pytest.raises(ValueError, match='not found'):
         viewer.theme = 'solarized'

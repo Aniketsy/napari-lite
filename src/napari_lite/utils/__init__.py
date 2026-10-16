@@ -10,7 +10,17 @@ not provided (a notebook helper returns with issue 15).
 
 from lazy_loader import attach as _attach
 
-__getattr__, __dir__, __all__ = _attach(
+# ``progress`` is both a submodule and a class: once anything imports the
+# submodule, the package attribute is the module and a lazy lookup would
+# never run.  So, as in napari, the class is bound eagerly (the module is
+# small: tqdm and the events package).
+from napari_lite.utils.progress import (
+    cancelable_progress,
+    progrange,
+    progress,
+)
+
+__getattr__, __dir__, _lazy_all = _attach(
     __name__,
     submod_attrs={
         '_check_numpy_version': ['NUMPY_VERSION_IS_THREADSAFE'],
@@ -20,7 +30,7 @@ __getattr__, __dir__, __all__ = _attach(
             'CyclicLabelColormap',
             'DirectLabelColormap',
         ],
-        'progress': ['cancelable_progress', 'progrange', 'progress'],
     },
 )
-del _attach
+__all__ = [*_lazy_all, 'cancelable_progress', 'progrange', 'progress']
+del _attach, _lazy_all

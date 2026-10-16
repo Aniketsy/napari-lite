@@ -104,15 +104,33 @@ napari_lite = [
 
 [tool.pytest.ini_options]
 minversion = "8"
-addopts = ["-ra", "--strict-markers", "--strict-config"]
-testpaths = ["tests"]
+addopts = ["-ra", "--strict-markers", "--strict-config", "--durations=10"]
+# own tests, then the copied napari tests (configured by src/napari_lite/conftest.py)
+testpaths = ["tests", "src/napari_lite"]
 xfail_strict = true
 filterwarnings = [
     "error:::napari_lite",
     "error:::test_.*",
+    "ignore:data shape .* exceeds GL_MAX_TEXTURE_SIZE:UserWarning",
+    "ignore:For best performance with Dask arrays in napari:UserWarning:",
+    "ignore:numpy.ufunc size changed:RuntimeWarning",
+    "ignore:Multiscale rendering is only supported in 2D. In 3D, only the lowest resolution scale is displayed",
+    "ignore:Alternative shading modes are only available in 3D, defaulting to none",
+    "ignore:There is no current event loop:DeprecationWarning:",
+    "ignore:__array__ implementation doesn't accept a copy keyword, so passing copy=False failed.",
 ]
+# same markers as napari, so the copied tests collect
 markers = [
+    "examples: Test of examples",
+    "disable_qthread_start: Disable thread start in this Test",
+    "disable_qthread_pool_start: Disable strarting QRunnable using QThreadPool start in this Test",
+    "disable_qtimer_start: Disable timer start in this Test",
+    "disable_qanimation_start: Disable animation start in this Test",
+    "allow_animation_thread: Allow animation thread to run in this Test (normally disabled to prevent segfaults)",
+    "enable_console: Don't mock the IPython console (in QtConsole) in this Test",
     "slow: mark a test as slow",
+    "key_bindings: Test of keybindings",
+    "show_qt_viewer: Show the QtViewer in this Test",
 ]
 
 [tool.ruff]

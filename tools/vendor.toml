@@ -94,3 +94,7 @@ data = [
 # utils/_register.py hands the package to the generated add_* methods under
 # its own name; the generic rewrite leaves bare 'napari' strings alone.
 "'napari': sys.modules.get('napari')" = "'napari_lite': sys.modules.get('napari_lite')"
+# utils/events/event.py runs the package's own callbacks before user
+# callbacks; it recognizes them by module prefix.
+"self._is_core_callback(c, 'napari')" = "self._is_core_callback(c, 'napari_lite')"
+"self._is_core_callback(callback, 'napari')" = "self._is_core_callback(callback, 'napari_lite')"
