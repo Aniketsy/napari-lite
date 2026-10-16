@@ -79,6 +79,7 @@ dev = [
     "pytest>=8.3.5",
     "pytest-qt>=4.4.0",
     "hypothesis>=6.8.0",
+    "docstring_parser>=0.15",  # copied napari tests (utils/_test_utils.py)
     "ruff",
 ]
 
