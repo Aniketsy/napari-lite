@@ -94,6 +94,7 @@ namespaces = false
 
 [tool.setuptools.package-data]
 napari_lite = [
+    "utils/*.py_tmpl",
     "resources/icons/*.svg",
     "resources/*.gif",
     "resources/*.ico",

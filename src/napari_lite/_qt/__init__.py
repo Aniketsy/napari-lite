@@ -11,7 +11,7 @@ from __future__ import annotations
 
 try:
     from qtpy import API_NAME, QtCore
-except Exception as e:  # noqa: BLE001
+except Exception as e:
     if 'No Qt bindings could be found' in str(e):
         from inspect import cleandoc
 
