@@ -15,7 +15,6 @@ roots = [
     "napari._qt.widgets.qt_dims",
     "napari._qt.qthreading",
     "napari.types",
-    "napari.utils",
     "napari.utils.io",
     "napari.utils.key_bindings",
     "napari.utils.colormaps",
@@ -25,6 +24,8 @@ roots = [
     "napari.utils._dask_utils",
     # default shortcut table, used by the settings shim
     "napari.utils.shortcuts",
+    # Qt bindings detection, used by the own _qt/__init__.py error message
+    "napari.utils._env_detection",
 ]
 
 # Not copied.  napari-lite writes its own module at the same import path
