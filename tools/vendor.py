@@ -392,10 +392,11 @@ def rewrite(text: str, literal: dict[str, str]) -> str:
 
 
 def is_own_code(path: Path) -> bool:
-    if not path.exists():
+    """True if ``path`` is a file whose first line is the own-code marker."""
+    if not path.is_file():
         return False
-    with path.open(encoding='utf-8') as fh:
-        return fh.readline().rstrip() == OWN_CODE_MARKER
+    with path.open('rb') as fh:  # bytes: binary files must not raise
+        return fh.readline().rstrip() == OWN_CODE_MARKER.encode()
 
 
 def write_tree(
@@ -457,6 +458,8 @@ def write_tree(
             shutil.copy2(path, target)
             written.append(rel.as_posix())
     # remove copied files that are no longer wanted (never own code)
+    for cache in sorted(dst.rglob('__pycache__')):
+        shutil.rmtree(cache)
     for path in sorted(dst.rglob('*')):
         if path.is_dir() or path in wanted or is_own_code(path):
             continue
