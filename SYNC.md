@@ -17,8 +17,11 @@ merge between napari's changes and ours.
    `literal_rewrites` in `vendor.toml` so it is reapplied on every resync.
 4. **Own files start with `# napari-lite: own code`** on the first line. The
    tool never overwrites them. If an own file replaces a *copied* path (for
-   example `utils/__init__.py`), also add its module name to `own_modules` in
-   `vendor.toml`, so the tool stops copying napari's version.
+   example `utils/__init__.py`), do it in this order so the merge stays clean:
+   add the module name to `own_modules` in `vendor.toml` on `main`, run the
+   routine below (the copied file disappears from `vendor` and, after the
+   merge, from `main`), then add the own file on `main`. Doing it the other
+   way round gives a modify/delete conflict once.
 5. `tools/vendor.toml` and `tools/vendor.py` are developed on `main` like any
    other code; the routine copies them onto `vendor` before running.
 
