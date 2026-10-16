@@ -50,9 +50,14 @@ Milestones M0 (repo and copy) and M1 (imports without napari) of the
   (`src/napari_lite/settings/`, `utils/theme.py`, `utils/action_manager.py`,
   `plugins/`, `utils/_magicgui.py`, `_app_model/`).
 - The copied napari tests run from `src/napari_lite/**/_tests` with the
-  fixtures in `src/napari_lite/conftest.py`; tests that need a `Viewer`
-  window, plugins or app-model are skipped with that reason until the
-  corresponding issue lands.
+  fixtures in `src/napari_lite/conftest.py`. Of napari's test files for the
+  copied modules, 169 are copied (37 are not, because they import
+  application modules; the list is in `VENDORED.json`) and 6 of those are
+  not collected (they import the `Viewer`, app-model actions or
+  `utils.info`; see `collect_ignore` in the conftest). Last full run,
+  own tests included: 3977 passed, 179 skipped, 0 failed; 47 skips wait for
+  the `Viewer` (issue 13), 5 for plugins, the rest are napari's own
+  optional-dependency and platform skips.
 
 There is no `Viewer`, no window and no canvas widget yet: that is
 milestone M2 (`QtCanvas`, `napari_lite.Viewer`, `imshow`).

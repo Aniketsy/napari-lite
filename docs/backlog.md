@@ -1,5 +1,8 @@
 # napari-lite — issue backlog (standalone project)
 
+> Progress 2026-10-17: issues 00–11 (milestones M0 and M1) are done on `main`;
+> see the Status section of the README for the numbers. Next: issue 12.
+
 Each `## NN · Title` section is one GitHub issue; `tools/create_issues.py` files them in order and
 turns `{{NN}}` into real issue numbers. Facts below were measured on napari ebfc4a0
 (2026-10-16), Linux, Python 3.13, PyQt6.
