@@ -91,3 +91,6 @@ data = [
 # Plain text substitutions applied after the ``napari`` -> ``napari_lite``
 # rewrite.  Issue 17 maps ``from app_model.types import`` to a local module.
 [literal_rewrites]
+# utils/_register.py hands the package to the generated add_* methods under
+# its own name; the generic rewrite leaves bare 'napari' strings alone.
+"'napari': sys.modules.get('napari')" = "'napari_lite': sys.modules.get('napari_lite')"
