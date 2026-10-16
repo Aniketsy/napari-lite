@@ -12,7 +12,6 @@ from superqt.utils import _qthreading
 
 from napari_lite.utils.progress import progress
 from napari_lite.utils.task_status import Status
-from napari_lite.viewer import current_viewer
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -185,7 +184,11 @@ def create_worker(
         worker.pbar = pbar
 
     # signals connection for status handling
-    if viewer := current_viewer():
+    # napari-lite: imported here so that thread workers do not import the
+    # viewer module (and Qt windows) at module import time.
+    from napari_lite.viewer import current_viewer
+
+    if (viewer := current_viewer()) and hasattr(viewer, 'window'):
         window = viewer.window
         worker_status_id = window._register_task_status(
             'napari-worker',
