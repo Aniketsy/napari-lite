@@ -74,6 +74,7 @@ class Module:
     type_only_imports: set[str] = field(default_factory=set)
     lazy_imports: set[str] = field(default_factory=set)  # inside a function
     third_party: set[str] = field(default_factory=set)
+    missing: set[str] = field(default_factory=set)  # napari.* that is no file
     lines: int = 0
 
 
@@ -202,12 +203,15 @@ def parse_module(mod: Module, all_names: set[str]) -> None:
     def _record(name: str, type_only: bool, lazy: bool) -> None:
         top = name.split('.')[0]
         if top == SRC_PKG:
-            resolved = _resolve(name, all_names)
-            if type_only:
-                mod.type_only_imports.add(resolved)
+            if name not in all_names:
+                # e.g. napari._version, generated at build time by
+                # setuptools_scm and absent from a checkout
+                mod.missing.add(name)
+            elif type_only:
+                mod.type_only_imports.add(name)
             else:
-                mod.imports.add(resolved)
-                (mod.lazy_imports if lazy else eager_imports).add(resolved)
+                mod.imports.add(name)
+                (mod.lazy_imports if lazy else eager_imports).add(name)
         elif top and not type_only:
             mod.third_party.add(top)
 
@@ -235,14 +239,6 @@ def _is_type_checking(test: ast.AST) -> bool:
     if isinstance(test, ast.Attribute):
         return test.attr == 'TYPE_CHECKING'
     return False
-
-
-def _resolve(name: str, all_names: set[str]) -> str:
-    """``napari.a.b.C`` -> longest prefix that is a real module."""
-    parts = name.split('.')
-    while parts and '.'.join(parts) not in all_names:
-        parts.pop()
-    return '.'.join(parts) if parts else name
 
 
 # --------------------------------------------------------------------------
@@ -296,6 +292,8 @@ def crawl(modules: dict[str, Module], cfg: Config) -> Result:
             continue
         mod = modules[name]
         copied[name] = mod
+        for dep in sorted(mod.missing - set(cfg.own_modules)):
+            missing[dep].append(name)
         for dep in sorted(mod.imports | mod.type_only_imports):
             if dep in mod.type_only_imports:
                 kind = 'type'

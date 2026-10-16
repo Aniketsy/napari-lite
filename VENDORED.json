@@ -3,6 +3,7 @@
   "pin": "ebfc4a0a",
   "roots": [
     "napari.components",
+    "napari._wayland_fix",
     "napari.layers",
     "napari._vispy",
     "napari._qt.widgets.qt_dims",
@@ -33,8 +34,8 @@
     "napari._event_loop"
   ],
   "modules_total": 555,
-  "modules_copied": 255,
-  "lines_copied": 76342,
+  "modules_copied": 254,
+  "lines_copied": 76231,
   "tests_copied": 169,
   "tests_skipped": {
     "napari._qt._tests.test_plugin_widgets": [
@@ -336,7 +337,6 @@
   },
   "third_party_imports": {
     "numpy": [
-      "napari",
       "napari._check_numpy_version",
       "napari._qt.utils",
       "napari._qt.widgets.qt_dims",
@@ -669,9 +669,6 @@
     "imageio": [
       "napari.utils.io"
     ],
-    "lazy_loader": [
-      "napari"
-    ],
     "psutil": [
       "napari.utils._dask_utils"
     ],
@@ -700,9 +697,12 @@
       "napari.utils._xarray_utils"
     ]
   },
-  "missing_modules": {},
+  "missing_modules": {
+    "napari.components.experimental.chunk._commands": [
+      "napari.components.experimental.commands"
+    ]
+  },
   "copied_modules": [
-    "napari",
     "napari._check_numpy_version",
     "napari._pydantic_util",
     "napari._qt",
