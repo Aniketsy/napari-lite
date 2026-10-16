@@ -1,0 +1,403 @@
+from __future__ import annotations
+
+import logging
+import os
+import sys
+import threading
+import warnings
+from collections.abc import Callable, Sequence
+from datetime import datetime
+from enum import auto
+from typing import TYPE_CHECKING, Any, Self, TextIO
+
+from napari_lite.utils.events import Event, EventEmitter
+from napari_lite.utils.misc import StringEnum
+
+if TYPE_CHECKING:
+    from types import TracebackType
+
+name2num = {
+    'error': 40,
+    'warning': 30,
+    'info': 20,
+    'debug': 10,
+    'none': 0,
+}
+
+__all__ = [
+    'ErrorNotification',
+    'Notification',
+    'NotificationManager',
+    'NotificationSeverity',
+    'WarningNotification',
+    'show_console_notification',
+    'show_debug',
+    'show_error',
+    'show_info',
+    'show_warning',
+]
+
+
+class NotificationSeverity(StringEnum):
+    """Severity levels for the notification dialog.  Along with icons for each."""
+
+    ERROR = auto()
+    WARNING = auto()
+    INFO = auto()
+    DEBUG = auto()
+    NONE = auto()
+
+    def as_icon(self) -> str:
+        return {
+            self.ERROR: 'ⓧ',
+            self.WARNING: '⚠️',
+            self.INFO: 'ⓘ',
+            self.DEBUG: '🐛',
+            self.NONE: '',
+        }[self]
+
+    def __lt__(self, other: NotificationSeverity | str) -> bool:
+        return name2num[str(self)] < name2num[str(other)]
+
+    def __le__(self, other: NotificationSeverity | str) -> bool:
+        return name2num[str(self)] <= name2num[str(other)]
+
+    def __gt__(self, other: NotificationSeverity | str) -> bool:
+        return name2num[str(self)] > name2num[str(other)]
+
+    def __ge__(self, other: NotificationSeverity | str) -> bool:
+        return name2num[str(self)] >= name2num[str(other)]
+
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, (NotificationSeverity, str)) and str(
+            self
+        ) == str(other)
+
+    def __hash__(self) -> int:
+        return hash(self.value)
+
+
+ActionSequence = Sequence[tuple[str, Callable[[], None]]]
+
+
+class Notification(Event):
+    """A Notifcation event.  Usually created by :class:`NotificationManager`.
+
+    Parameters
+    ----------
+    message : str
+        The main message/payload of the notification.
+    severity : str or NotificationSeverity, optional
+        The severity of the notification, by default
+        `NotificationSeverity.WARNING`.
+    actions : sequence of tuple, optional
+        Where each tuple is a `(str, callable)` 2-tuple where the first item
+        is a name for the action (which may, for example, be put on a button),
+        and the callable is a callback to perform when the action is triggered.
+        (for example, one might show a traceback dialog). by default ()
+    """
+
+    def __init__(
+        self,
+        message: str,
+        severity: str | NotificationSeverity = NotificationSeverity.WARNING,
+        actions: ActionSequence = (),
+        **kwargs: Any,
+    ) -> None:
+        self.severity = NotificationSeverity(severity)
+        super().__init__(type_name=str(self.severity).lower(), **kwargs)
+        self._message = message
+        self.actions = actions
+
+        # let's store when the object was created;
+        self.date = datetime.now()
+
+    @property
+    def message(self) -> str:
+        return self._message
+
+    @message.setter
+    def message(self, value: str) -> None:
+        self._message = value
+
+    @classmethod
+    def from_exception(cls, exc: BaseException, **kwargs: Any) -> Notification:
+        return ErrorNotification(exc, **kwargs)
+
+    @classmethod
+    def from_warning(cls, warning: Warning, **kwargs: Any) -> Notification:
+        return WarningNotification(warning, **kwargs)
+
+    def __str__(self) -> str:
+        return f'{str(self.severity).upper()}: {self.message}'
+
+
+class ErrorNotification(Notification):
+    """
+    Notification at an Error severity level.
+    """
+
+    exception: BaseException
+
+    def __init__(
+        self, exception: BaseException, *args: Any, **kwargs: Any
+    ) -> None:
+        msg = getattr(exception, 'message', str(exception))
+        actions = getattr(exception, 'actions', ())
+        super().__init__(msg, NotificationSeverity.ERROR, actions)
+        self.exception = exception
+
+    def as_html(self) -> str:
+        from napari_lite.utils._tracebacks import get_tb_formatter
+
+        fmt = get_tb_formatter()
+        exc_info = (
+            self.exception.__class__,
+            self.exception,
+            self.exception.__traceback__,
+        )
+        return fmt(exc_info, as_html=True)  # pyrefly: ignore [bad-argument-count, bad-argument-type, unexpected-keyword]
+
+    def as_text(self) -> str:
+        from napari_lite.utils._tracebacks import get_tb_formatter
+
+        fmt = get_tb_formatter()
+        exc_info = (
+            self.exception.__class__,
+            self.exception,
+            self.exception.__traceback__,
+        )
+        return fmt(exc_info, as_html=False, color='NoColor')  # pyrefly: ignore [bad-argument-count, bad-argument-type, unexpected-keyword]
+
+    def __str__(self) -> str:
+        from napari_lite.utils._tracebacks import get_tb_formatter
+
+        fmt = get_tb_formatter()
+        exc_info = (
+            self.exception.__class__,
+            self.exception,
+            self.exception.__traceback__,
+        )
+        return fmt(exc_info, as_html=False)  # pyrefly: ignore [bad-argument-count, bad-argument-type, unexpected-keyword]
+
+
+class WarningNotification(Notification):
+    """
+    Notification at a Warning severity level.
+    """
+
+    warning: Warning
+
+    def __init__(
+        self,
+        warning: Warning,
+        filename: str | None = None,
+        lineno: int | None = None,
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
+        msg = getattr(warning, 'message', str(warning))
+        actions = getattr(warning, 'actions', ())
+        super().__init__(msg, NotificationSeverity.WARNING, actions)
+        self.warning = warning
+        self.filename = filename
+        self.lineno = lineno
+
+    def __str__(self) -> str:
+        category = type(self.warning).__name__
+        return f'{self.filename}:{self.lineno}: {category}: {self.warning}!'
+
+
+class NotificationManager:
+    """
+    A notification manager, to route all notifications through.
+
+    Only one instance is in general available through napari; as we need
+    notification to all flow to a single location that is registered with the
+    sys.except_hook  and showwarning hook.
+
+    This can and should be used a context manager; the context manager will
+    properly re-entered, and install/remove hooks and keep them in a stack to
+    restore them.
+
+    While it might seem unnecessary to make it re-entrant; or to make the
+    re-entrancy no-op; one need to consider that this could be used inside
+    another context manager that modify except_hook and showwarning.
+
+    Currently the original except and show warnings hooks are not called; but
+    this could be changed in the future; this poses some questions with the
+    re-entrency of the hooks themselves.
+    """
+
+    records: list[Notification]
+    _instance: NotificationManager | None = None
+
+    def __init__(self) -> None:
+        self.records: list[Notification] = []
+        self.exit_on_error = os.getenv('NAPARI_EXIT_ON_ERROR') in ('1', 'True')
+        self.catch_error = os.getenv('NAPARI_CATCH_ERRORS') not in (
+            '0',
+            'False',
+        )
+        self.notification_ready = self.changed = EventEmitter(
+            source=self, event_class=Notification
+        )
+        self._originals_except_hooks: list[Callable] = []
+        self._original_showwarnings_hooks: list[Callable] = []
+        self._originals_thread_except_hooks: list[Callable] = []
+        self._seen_warnings: set[tuple[str, type, str, int]] = set()
+
+    def __enter__(self) -> Self:
+        self.install_hooks()
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        self.restore_hooks()
+
+    def install_hooks(self) -> None:
+        """
+        Install a `sys.excepthook`, a `showwarning` hook and a
+        threading.excepthook to display any message in the UI,
+        storing the previous hooks to be restored if necessary.
+        """
+        # TODO: we might want to display the additional thread information
+        self._originals_thread_except_hooks.append(threading.excepthook)
+        threading.excepthook = self.receive_thread_error  # pyrefly: ignore [bad-assignment]
+
+        self._originals_except_hooks.append(sys.excepthook)
+        self._original_showwarnings_hooks.append(warnings.showwarning)
+
+        sys.excepthook = self.receive_error
+        warnings.showwarning = self.receive_warning  # pyrefly: ignore [bad-assignment]
+
+    def restore_hooks(self) -> None:
+        """
+        Remove hooks installed by `install_hooks` and restore previous hooks.
+        """
+        threading.excepthook = self._originals_thread_except_hooks.pop()
+
+        sys.excepthook = self._originals_except_hooks.pop()
+        warnings.showwarning = self._original_showwarnings_hooks.pop()
+
+    def dispatch(self, notification: Notification) -> None:
+        self.records.append(notification)
+        self.notification_ready(notification)
+
+    def receive_thread_error(
+        self,
+        args: tuple[
+            type[BaseException],
+            BaseException,
+            TracebackType | None,
+            threading.Thread | None,
+        ],
+    ) -> None:
+        self.receive_error(*args)
+
+    def receive_error(
+        self,
+        exctype: type[BaseException],
+        value: BaseException,
+        traceback: TracebackType | None = None,
+        thread: threading.Thread | None = None,
+    ) -> None:
+        if isinstance(value, KeyboardInterrupt):
+            sys.exit('Closed by KeyboardInterrupt')
+
+        if self.exit_on_error:
+            sys.__excepthook__(exctype, value, traceback)
+            sys.exit('Exit on error')
+        if not self.catch_error:
+            sys.__excepthook__(exctype, value, traceback)
+            return
+        self.dispatch(Notification.from_exception(value))
+
+    def receive_warning(
+        self,
+        message: Warning,
+        category: type[Warning],
+        filename: str,
+        lineno: int,
+        file: TextIO | None = None,
+        line: str | None = None,
+    ) -> None:
+        msg = message if isinstance(message, str) else message.args[0]
+        if (msg, category, filename, lineno) in self._seen_warnings:
+            return
+        self._seen_warnings.add((msg, category, filename, lineno))
+        self.dispatch(
+            Notification.from_warning(
+                message, filename=filename, lineno=lineno
+            )
+        )
+
+    def receive_info(self, message: str) -> None:
+        self.dispatch(Notification(message, 'INFO'))
+
+
+notification_manager = NotificationManager()
+
+
+def show_debug(message: str) -> None:
+    """
+    Show a debug message in the notification manager.
+    """
+    notification_manager.dispatch(
+        Notification(message, severity=NotificationSeverity.DEBUG)
+    )
+
+
+def show_info(message: str) -> None:
+    """
+    Show an info message in the notification manager.
+    """
+    notification_manager.dispatch(
+        Notification(message, severity=NotificationSeverity.INFO)
+    )
+
+
+def show_warning(message: str) -> None:
+    """
+    Show a warning in the notification manager.
+    """
+    notification_manager.dispatch(
+        Notification(message, severity=NotificationSeverity.WARNING)
+    )
+
+
+def show_error(message: str) -> None:
+    """
+    Show an error in the notification manager.
+    """
+    notification_manager.dispatch(
+        Notification(message, severity=NotificationSeverity.ERROR)
+    )
+
+
+def show_console_notification(notification: Notification) -> None:
+    """
+    Show a notification in the console.
+    """
+    try:
+        from napari_lite.settings import get_settings
+
+        if (
+            notification.severity
+            < get_settings().application.console_notification_level
+        ):
+            return
+
+        print(notification)  # noqa: T201
+    except Exception:
+        logging.getLogger('napari').exception(
+            'An error occurred while trying to format an error and show it in console.\n'
+            'You can try to uninstall IPython to disable rich traceback formatting\n'
+            'And/or report a bug to napari'
+        )
+        # this will likely get silenced by QT.
+        raise

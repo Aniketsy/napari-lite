@@ -1,0 +1,131 @@
+from typing import Literal
+
+import numpy as np
+
+from napari_lite.layers.shapes._shapes_models.shape import Shape
+from napari_lite.layers.shapes._shapes_utils import (
+    center_radii_to_corners,
+    rectangle_to_box,
+    triangulate_edge,
+    triangulate_ellipse,
+)
+
+
+class Ellipse(Shape):
+    """Class for a single ellipse
+
+    Parameters
+    ----------
+    data : (4, D) array or (2, 2) array.
+        Either a (2, 2) array specifying the center and radii of an axis
+        aligned ellipse, or a (4, D) array specifying the four corners of a
+        bounding box that contains the ellipse. These need not be axis aligned.
+    edge_width : float
+        thickness of lines and edges.
+    opacity : float
+        Opacity of the shape, must be between 0 and 1.
+    z_index : int
+        Specifier of z order priority. Shapes with higher z order are displayed
+        ontop of others.
+    dims_order : (D,) list
+        Order that the dimensions are to be rendered in.
+    """
+
+    def __init__(
+        self,
+        data,
+        *,
+        edge_width=1,
+        opacity=1.0,
+        z_index=0,
+        dims_order=None,
+        ndisplay=2,
+    ) -> None:
+        super().__init__(
+            edge_width=edge_width,
+            z_index=z_index,
+            dims_order=dims_order,
+            ndisplay=ndisplay,
+        )
+
+        self._closed = True
+        self.data = data
+        self.name = 'ellipse'
+
+    @property
+    def data(
+        self,
+    ) -> np.ndarray[tuple[Literal[4], int], np.dtype[np.float32]]:
+        """(4, D) array: ellipse vertices."""
+        return self._data
+
+    @data.setter
+    def data(self, data) -> None:
+        data = np.array(data).astype(np.float32)
+
+        if len(self.dims_order) != data.shape[1]:
+            self._dims_order = list(range(data.shape[1]))
+
+        if len(data) == 2 and data.shape[1] == 2:
+            data = center_radii_to_corners(data[0], data[1])
+
+        if len(data) != 4:
+            raise ValueError(
+                f'Data shape does not match a ellipse. Ellipse expects four corner vertices, {len(data)} provided.'
+            )
+
+        self._data = data
+        self._bounding_box = np.round(
+            [
+                np.min(data, axis=0),
+                np.max(data, axis=0),
+            ]
+        )
+        self._update_displayed_data()
+
+    def _vertices_for_mask(self, plane) -> np.ndarray:
+        return triangulate_ellipse(self.data[:, plane])[0]
+
+    def _update_displayed_data(self) -> None:
+        """Update the data that is to be displayed."""
+        # Build boundary vertices with num_segments
+        self._clean_cache()
+        vertices, triangles = triangulate_ellipse(self.data_displayed)
+        self._set_meshes(vertices[1:-1], face=False)
+        self._face_vertices = vertices
+        self._face_triangles = triangles
+        # The data displayed are in this case the four corners
+        self._box = rectangle_to_box(self.data_displayed)  # pyrefly: ignore [bad-argument-type]
+
+        self.slice_key = self._slice_key_of(self.dims_not_displayed)
+
+    def transform(self, transform) -> None:
+        """Performs a linear transform on the shape
+
+        Parameters
+        ----------
+        transform : np.ndarray
+            2x2 array specifying linear transform.
+        """
+        self._box = self._box @ transform.T
+        self._data[:, self.dims_displayed] = (
+            self._data[:, self.dims_displayed] @ transform.T
+        )
+        self._face_vertices = self._face_vertices @ transform.T
+
+        points = self._face_vertices[1:-1]
+
+        centers, offsets, triangles = triangulate_edge(
+            points,
+            closed=self._closed,
+        )
+        self._edge_vertices = centers
+        self._edge_offsets = offsets
+        self._edge_triangles = triangles
+        self._bounding_box = np.array(
+            [
+                np.min(self._data, axis=0),
+                np.max(self._data, axis=0),
+            ]
+        )
+        self._clean_cache()

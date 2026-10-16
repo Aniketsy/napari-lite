@@ -1,0 +1,81 @@
+from typing import Literal
+
+import numpy as np
+
+from napari_lite.layers.shapes._shapes_models.shape import Shape
+from napari_lite.layers.shapes._shapes_utils import create_box
+
+
+class Line(Shape):
+    """Class for a single line segment
+
+    Parameters
+    ----------
+    data : (2, D) array
+        Line vertices.
+    edge_width : float
+        thickness of lines and edges.
+    z_index : int
+        Specifier of z order priority. Shapes with higher z order are displayed
+        ontop of others.
+    dims_order : (D,) list
+        Order that the dimensions are to be rendered in.
+    """
+
+    def __init__(
+        self,
+        data,
+        *,
+        edge_width=1,
+        z_index=0,
+        dims_order=None,
+        ndisplay=2,
+    ) -> None:
+        super().__init__(
+            edge_width=edge_width,
+            z_index=z_index,
+            dims_order=dims_order,
+            ndisplay=ndisplay,
+        )
+        self._filled = False
+        self.data = data
+        self.name = 'line'
+
+    @property
+    def data(
+        self,
+    ) -> np.ndarray[tuple[Literal[2], int], np.dtype[np.float32]]:
+        """(2, D) array: line vertices."""
+        return self._data
+
+    @data.setter
+    def data(self, data) -> None:
+        data = np.array(data).astype(np.float32)
+
+        if len(self.dims_order) != data.shape[1]:
+            self._dims_order = list(range(data.shape[1]))
+
+        if len(data) != 2:
+            raise ValueError(
+                f'Data shape does not match a line. A line expects two end vertices, {len(data)} provided.'
+            )
+
+        self._data = data
+        self._bounding_box = np.array(
+            [
+                np.min(data, axis=0),
+                np.max(data, axis=0),
+            ]
+        )
+
+        self._update_displayed_data()
+
+    def _update_displayed_data(self) -> None:
+        """Update the data that is to be displayed."""
+        # For path connect every all data
+        self._clean_cache()
+        self._set_meshes(self.data_displayed, face=False, closed=False)
+        # in this case we have only 2D data (based on docstring)
+        self._box = create_box(self.data_displayed)  # pyrefly: ignore [bad-argument-type]
+
+        self.slice_key = self._slice_key_of(self.dims_not_displayed)
