@@ -318,8 +318,9 @@ def crawl(modules: dict[str, Module], cfg: Config) -> Result:
                 queue.append(dep)
 
     # Test files of copied packages.  Helper modules inside ``_tests``
-    # folders (``utils.py``, ``__init__.py``) go first so the test files
-    # that import them are not counted as blocked.
+    # folders (``utils.py``, ``conftest.py``, ``__init__.py``) go first so
+    # the test files that import them are not counted as blocked.  napari's
+    # top-level conftest.py is not in a ``_tests`` folder and stays out.
     tests: dict[str, Module] = {}
     skipped_tests: dict[str, list[str]] = {}
     copied_packages = {
@@ -329,7 +330,6 @@ def crawl(modules: dict[str, Module], cfg: Config) -> Result:
         (name, mod)
         for name, mod in modules.items()
         if is_test_module(name)
-        and not name.endswith('.conftest')
         and name not in copied
         and name.rsplit('._tests', 1)[0] in copied_packages
         and not matches(name, cfg.skip_modules)
@@ -577,6 +577,50 @@ def print_report(info: dict) -> None:
             print(f'    {pkg}: {", ".join(users)}')
 
 
+def diff_manifest(info: dict, result: Result, sha: str) -> int:
+    """Print what changed since VENDORED.json; return 1 if anything did."""
+    path = REPO / 'VENDORED.json'
+    if not path.exists():
+        print(f'{path} does not exist; run without --diff first')
+        return 1
+    old = json.loads(path.read_text(encoding='utf-8'))
+    print(f'VENDORED.json: napari {old["napari_commit"][:12]}')
+    print(f'checkout:      napari {sha[:12]}')
+    changed = False
+
+    def show(title: str, before: set[str], after: set[str]) -> None:
+        nonlocal changed
+        added, removed = sorted(after - before), sorted(before - after)
+        if added or removed:
+            changed = True
+            print(title)
+            for name in added:
+                print(f'  + {name}')
+            for name in removed:
+                print(f'  - {name}')
+
+    show(
+        'copied modules:',
+        set(old['copied_modules']),
+        set(result.copied),
+    )
+    show('copied tests:', set(old['copied_tests']), set(result.tests))
+    show(
+        'app modules with crossings:',
+        set(old['crossings']),
+        set(info['crossings']),
+    )
+    for app in sorted(set(old['crossings']) | set(info['crossings'])):
+        show(
+            f'crossings into {app}:',
+            set(old['crossings'].get(app, {})),
+            set(info['crossings'].get(app, {})),
+        )
+    if not changed:
+        print('no change in copied modules, tests or crossings')
+    return int(changed)
+
+
 # --------------------------------------------------------------------------
 # main
 # --------------------------------------------------------------------------
@@ -592,6 +636,12 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         '--report', action='store_true', help='print the report, write nothing'
+    )
+    parser.add_argument(
+        '--diff',
+        action='store_true',
+        help='compare modules and crossings with VENDORED.json; exit 1 if '
+        'they differ (writes nothing, ignores the pin)',
     )
     parser.add_argument(
         '--check',
@@ -624,7 +674,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.check:
         print(f'napari at {sha[:12]}, pin {cfg.pin}')
         return 0 if pinned else 1
-    read_only = args.report or bool(args.why)
+    read_only = args.report or args.diff or bool(args.why)
     if not pinned and not read_only and not args.allow_unpinned:
         sys.exit(
             f'napari checkout is at {sha[:12]} but vendor.toml pins {cfg.pin}.\n'
@@ -643,6 +693,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.report:
         print_report(info)
         return 0
+    if args.diff:
+        return diff_manifest(info, result, sha)
 
     written, kept = write_tree(src, args.dest, result, cfg)
     manifest = {

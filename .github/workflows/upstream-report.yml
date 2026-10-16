@@ -1,0 +1,59 @@
+name: Upstream report
+
+# Every Monday: run the vendoring tool against napari's main in report mode
+# and open an issue if the copied-module list or the crossing list changed
+# compared with VENDORED.json.  Nothing is merged automatically.
+
+on:
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: napari/napari
+          path: napari-src
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Compare with VENDORED.json
+        id: diff
+        shell: bash
+        run: |
+          set +e
+          python tools/vendor.py --napari napari-src --diff > diff.txt
+          echo "changed=$?" >> "$GITHUB_OUTPUT"
+          cat diff.txt
+      - name: Open an issue
+        if: steps.diff.outputs.changed == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          sha=$(git -C napari-src rev-parse --short HEAD)
+          title="Upstream report: crossings changed at napari $sha"
+          {
+            echo "\`vendor.py --diff\` against napari \`$sha\` (main) differs from \`VENDORED.json\`."
+            echo
+            echo '```'
+            cat diff.txt
+            echo '```'
+            echo
+            echo "See SYNC.md for the resync routine."
+          } > body.md
+          existing=$(gh issue list --search "in:title \"$title\"" --state open --json number -q '.[0].number')
+          if [ -z "$existing" ]; then
+            gh issue create --title "$title" --body-file body.md --label tooling
+          else
+            echo "issue #$existing already open"
+          fi

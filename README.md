@@ -32,7 +32,9 @@ path.
   `git merge vendor`.
 - Own files start with `# napari-lite: own code`; the tool never overwrites them.
 
-How to resync is written in `SYNC.md`.
+How to resync is written in [SYNC.md](SYNC.md). The current copy is listed
+in [VENDORED.json](VENDORED.json): which napari commit, which modules, and
+which imports cross into app modules that napari-lite must provide.
 
 ## Layout
 
