@@ -1,0 +1,342 @@
+{
+  "napari_version": "0.9.3.dev42+gd6a4ccb8c",
+  "sections": {
+    "config_path": null,
+    "env_settings": {},
+    "config_file_settings": {},
+    "schema_version": "0.9.0",
+    "application": {
+      "first_time": true,
+      "ipy_interactive": true,
+      "save_window_geometry": true,
+      "save_window_state": false,
+      "window_position": null,
+      "window_size": null,
+      "window_maximized": false,
+      "window_fullscreen": false,
+      "window_state": null,
+      "window_statusbar": true,
+      "preferences_size": null,
+      "gui_notification_level": "info",
+      "console_notification_level": "none",
+      "open_history": [],
+      "save_history": [],
+      "playback_fps": 10,
+      "playback_mode": "loop",
+      "depth_axis_orientation": "towards",
+      "vertical_axis_orientation": "down",
+      "horizontal_axis_orientation": "right",
+      "synced_camera": true,
+      "grid_stride": 1,
+      "grid_width": -1,
+      "grid_height": -1,
+      "grid_spacing": 0.0,
+      "float_display_precision": 3,
+      "confirm_close_window": true,
+      "hold_button_delay": 0.5,
+      "brush_size_on_mouse_move_modifiers": "Alt",
+      "dask": {
+        "enabled": true,
+        "cache": 3.186139136
+      },
+      "new_labels_dtype": "uint8",
+      "plugin_widget_positions": {},
+      "startup_script": "."
+    },
+    "appearance": {
+      "theme": "dark",
+      "logo": "auto",
+      "font_size": 9,
+      "highlight": {
+        "highlight_thickness": 1,
+        "highlight_color": [
+          0.0,
+          0.6,
+          1.0,
+          1.0
+        ]
+      },
+      "layer_tooltip_visibility": false,
+      "update_status_based_on_layer": true
+    },
+    "plugins": {
+      "disabled_plugins": [],
+      "extension2reader": {},
+      "extension2writer": {}
+    },
+    "shortcuts": {
+      "shortcuts": {
+        "napari:toggle_console_visibility": [
+          "Ctrl+Shift+C"
+        ],
+        "napari:toggle_ndisplay": [
+          "Ctrl+Y"
+        ],
+        "napari:toggle_theme": [
+          "Ctrl+Shift+T"
+        ],
+        "napari:reset_view": [
+          "Ctrl+R"
+        ],
+        "napari:delete_selected_layers": [
+          "Ctrl+Delete",
+          "Ctrl+Backspace"
+        ],
+        "napari:show_shortcuts": [
+          "Ctrl+Alt+/"
+        ],
+        "napari:increment_dims_left": [
+          "Left"
+        ],
+        "napari:increment_dims_right": [
+          "Right"
+        ],
+        "napari:focus_axes_up": [
+          "Alt+Up"
+        ],
+        "napari:focus_axes_down": [
+          "Alt+Down"
+        ],
+        "napari:roll_axes": [
+          "Ctrl+E"
+        ],
+        "napari:transpose_axes": [
+          "Ctrl+T"
+        ],
+        "napari:rotate_layers": [
+          "Ctrl+Alt+T"
+        ],
+        "napari:toggle_grid": [
+          "Ctrl+G"
+        ],
+        "napari:toggle_selected_visibility": [
+          "V"
+        ],
+        "napari:toggle_unselected_visibility": [
+          "Shift+V"
+        ],
+        "napari:select_layer_above": [
+          "Ctrl+Up"
+        ],
+        "napari:select_layer_below": [
+          "Ctrl+Down"
+        ],
+        "napari:show_only_layer_above": [
+          "Shift+Alt+Up"
+        ],
+        "napari:show_only_layer_below": [
+          "Shift+Alt+Down"
+        ],
+        "napari:hold_for_pan_zoom": [
+          "Space"
+        ],
+        "napari:activate_labels_erase_mode": [
+          "1",
+          "E"
+        ],
+        "napari:activate_labels_paint_mode": [
+          "2",
+          "P"
+        ],
+        "napari:activate_labels_polygon_mode": [
+          "3"
+        ],
+        "napari:activate_labels_fill_mode": [
+          "4",
+          "F"
+        ],
+        "napari:activate_labels_picker_mode": [
+          "5",
+          "L"
+        ],
+        "napari:activate_labels_pan_zoom_mode": [
+          "6",
+          "Z"
+        ],
+        "napari:activate_labels_transform_mode": [
+          "7"
+        ],
+        "napari:new_label": [
+          "M"
+        ],
+        "napari:swap_selected_and_background_labels": [
+          "X"
+        ],
+        "napari:decrease_label_id": [
+          "-"
+        ],
+        "napari:increase_label_id": [
+          "="
+        ],
+        "napari:decrease_brush_size": [
+          "["
+        ],
+        "napari:increase_brush_size": [
+          "]"
+        ],
+        "napari:toggle_preserve_labels": [
+          "B"
+        ],
+        "napari:reset_polygon": [
+          "Escape"
+        ],
+        "napari:complete_polygon": [
+          "Enter"
+        ],
+        "napari:activate_points_add_mode": [
+          "2",
+          "P"
+        ],
+        "napari:activate_points_select_mode": [
+          "3",
+          "S"
+        ],
+        "napari:activate_points_pan_zoom_mode": [
+          "4",
+          "Z"
+        ],
+        "napari:activate_points_transform_mode": [
+          "5"
+        ],
+        "napari:select_all_in_slice": [
+          "A"
+        ],
+        "napari:select_append_all_in_slice": [
+          "Shift+A"
+        ],
+        "napari:select_all_data": [
+          "Ctrl+A"
+        ],
+        "napari:delete_selected_points": [
+          "1",
+          "Delete",
+          "Backspace"
+        ],
+        "napari:activate_add_rectangle_mode": [
+          "R"
+        ],
+        "napari:activate_add_ellipse_mode": [
+          "E"
+        ],
+        "napari:activate_add_line_mode": [
+          "L"
+        ],
+        "napari:activate_add_path_mode": [
+          "T"
+        ],
+        "napari:activate_add_polyline_mode": [
+          "Shift+L"
+        ],
+        "napari:activate_add_polygon_mode": [
+          "P"
+        ],
+        "napari:activate_add_polygon_lasso_mode": [
+          "Shift+P"
+        ],
+        "napari:activate_direct_mode": [
+          "4",
+          "D"
+        ],
+        "napari:activate_select_mode": [
+          "5",
+          "S"
+        ],
+        "napari:activate_shapes_pan_zoom_mode": [
+          "6",
+          "Z"
+        ],
+        "napari:activate_shapes_transform_mode": [
+          "7"
+        ],
+        "napari:activate_vertex_insert_mode": [
+          "2",
+          "I"
+        ],
+        "napari:activate_vertex_remove_mode": [
+          "1",
+          "X"
+        ],
+        "napari:copy_selected_shapes": [
+          "Ctrl+C"
+        ],
+        "napari:paste_shape": [
+          "Ctrl+V"
+        ],
+        "napari:move_shapes_selection_to_front": [
+          "F"
+        ],
+        "napari:move_shapes_selection_to_back": [
+          "B"
+        ],
+        "napari:select_shapes_in_slice": [
+          "A",
+          "Ctrl+A"
+        ],
+        "napari:delete_selected_shapes": [
+          "3",
+          "Delete",
+          "Backspace"
+        ],
+        "napari:finish_drawing_shape": [
+          "Enter",
+          "Escape"
+        ],
+        "napari:orient_plane_normal_along_x": [
+          "X"
+        ],
+        "napari:orient_plane_normal_along_y": [
+          "Y"
+        ],
+        "napari:orient_plane_normal_along_z": [
+          "Z"
+        ],
+        "napari:orient_plane_normal_along_view_direction": [
+          "O"
+        ],
+        "napari:auto_contrast_once": [
+          "C"
+        ],
+        "napari:activate_image_pan_zoom_mode": [
+          "1"
+        ],
+        "napari:activate_image_transform_mode": [
+          "2"
+        ],
+        "napari:activate_vectors_pan_zoom_mode": [
+          "1"
+        ],
+        "napari:activate_vectors_transform_mode": [
+          "2"
+        ],
+        "napari:activate_tracks_pan_zoom_mode": [
+          "1"
+        ],
+        "napari:activate_tracks_transform_mode": [
+          "2"
+        ],
+        "napari:activate_surface_pan_zoom_mode": [
+          "1"
+        ],
+        "napari:activate_surface_transform_mode": [
+          "2"
+        ]
+      }
+    },
+    "advanced": {
+      "multisampling": false,
+      "autoswap_buffers": false
+    },
+    "experimental": {
+      "async_": false,
+      "rdp_epsilon": 0.5,
+      "lasso_vertex_distance": 10,
+      "completion_radius": -1,
+      "triangulation_backend": "Fastest available",
+      "colormap_backend": "Fastest available",
+      "compiled_triangulation": false,
+      "command_palette_fuzzy_search": "Enabled if available",
+      "command_palette_fuzzy_search_threshold": 60,
+      "dynamic_layer_controls": false
+    }
+  }
+}
