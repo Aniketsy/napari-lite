@@ -278,18 +278,21 @@ def crawl(modules: dict[str, Module], cfg: Config) -> Result:
     crossings: dict[str, list[tuple[str, str]]] = defaultdict(list)
     missing: dict[str, list[str]] = defaultdict(list)
     queue = [*cfg.roots, *cfg.extra_modules]
+    explicit = set(queue)  # named in vendor.toml: copied whatever they are
     for name in queue:
         if name not in modules:
             sys.exit(f'vendor.toml names an unknown module: {name}')
 
     while queue:
         name = queue.pop()
-        if name in copied or is_test_module(name):
+        if name in copied:
             continue
-        if matches(name, cfg.skip_modules) or name in cfg.own_modules:
-            continue
-        app = matches(name, cfg.app_modules)
-        if app and name not in cfg.roots and name not in cfg.extra_modules:
+        if name not in explicit and (
+            is_test_module(name)
+            or matches(name, cfg.skip_modules)
+            or name in cfg.own_modules
+            or matches(name, cfg.app_modules)
+        ):
             continue
         mod = modules[name]
         copied[name] = mod
@@ -314,31 +317,42 @@ def crawl(modules: dict[str, Module], cfg: Config) -> Result:
             if dep not in copied:
                 queue.append(dep)
 
+    # Test files of copied packages.  Helper modules inside ``_tests``
+    # folders (``utils.py``, ``__init__.py``) go first so the test files
+    # that import them are not counted as blocked.
     tests: dict[str, Module] = {}
     skipped_tests: dict[str, list[str]] = {}
     copied_packages = {
         name for name in copied if modules[name].path.name == '__init__.py'
     }
-    for name, mod in modules.items():
-        if not is_test_module(name) or name.endswith('.conftest'):
-            continue
-        package = name.rsplit('._tests', 1)[0]
-        if package not in copied_packages:
-            continue
-        if any(matches(name, [t]) for t in cfg.skip_modules):
-            continue
+    candidates = [
+        (name, mod)
+        for name, mod in modules.items()
+        if is_test_module(name)
+        and not name.endswith('.conftest')
+        and name not in copied
+        and name.rsplit('._tests', 1)[0] in copied_packages
+        and not matches(name, cfg.skip_modules)
+    ]
+    candidates.sort(
+        key=lambda nm: nm[0].rsplit('.', 1)[-1].startswith('test_')
+    )
+    for name, mod in candidates:
         blockers = sorted(
             dep
             for dep in mod.imports
             if dep not in copied
+            and dep not in tests
             and dep not in cfg.own_modules
             and not matches(dep, cfg.app_modules)
-            and not dep.startswith(f'{package}._tests')
         )
         if blockers:
             skipped_tests[name] = blockers
         else:
             tests[name] = mod
+    # test modules named explicitly in vendor.toml count as tests, not core
+    for name in [n for n in copied if is_test_module(n)]:
+        tests[name] = copied.pop(name)
     return Result(copied, dict(crossings), tests, skipped_tests, dict(missing))
 
 
@@ -378,10 +392,11 @@ def rewrite(text: str, literal: dict[str, str]) -> str:
 
 
 def is_own_code(path: Path) -> bool:
-    if not path.exists():
+    """True if ``path`` is a file whose first line is the own-code marker."""
+    if not path.is_file():
         return False
-    with path.open(encoding='utf-8') as fh:
-        return fh.readline().rstrip() == OWN_CODE_MARKER
+    with path.open('rb') as fh:  # bytes: binary files must not raise
+        return fh.readline().rstrip() == OWN_CODE_MARKER.encode()
 
 
 def write_tree(
@@ -443,6 +458,8 @@ def write_tree(
             shutil.copy2(path, target)
             written.append(rel.as_posix())
     # remove copied files that are no longer wanted (never own code)
+    for cache in sorted(dst.rglob('__pycache__')):
+        shutil.rmtree(cache)
     for path in sorted(dst.rglob('*')):
         if path.is_dir() or path in wanted or is_own_code(path):
             continue

@@ -42,8 +42,12 @@ app_modules = [
 ]
 
 # Copied in addition to what the crawl reaches (issue 21 adds the layer
-# list and layer controls here).
-extra_modules = []
+# list and layer controls here).  The two test helpers are shared by the
+# copied tests; ``napari._tests.utils`` needs ``Viewer`` (issue 13).
+extra_modules = [
+    "napari._tests.utils",
+    "napari.utils._test_utils",
+]
 
 # Never copied, never reported.  ``napari._tests`` holds napari's
 # application-level tests (Viewer, Window, examples).

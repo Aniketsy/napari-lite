@@ -1,0 +1,1133 @@
+{
+  "napari_commit": "ebfc4a0a1e5386f41582761204f416fffe6cd0b6",
+  "pin": "ebfc4a0a",
+  "roots": [
+    "napari.components",
+    "napari.layers",
+    "napari._vispy",
+    "napari._qt.widgets.qt_dims",
+    "napari._qt.qthreading",
+    "napari.types",
+    "napari.utils",
+    "napari.utils.io",
+    "napari.utils.key_bindings",
+    "napari.utils.colormaps",
+    "napari.utils.transforms"
+  ],
+  "app_modules": [
+    "napari.settings",
+    "napari.plugins",
+    "napari._app_model",
+    "napari.utils.theme",
+    "napari.utils.action_manager",
+    "napari.utils._magicgui",
+    "napari.utils.info",
+    "napari.utils.notebook_display",
+    "napari._qt._qapp_model",
+    "napari._qt.qt_main_window",
+    "napari._qt.qt_event_loop",
+    "napari._qt.perf",
+    "napari.viewer",
+    "napari.window",
+    "napari.view_layers",
+    "napari._event_loop"
+  ],
+  "modules_total": 555,
+  "modules_copied": 255,
+  "lines_copied": 76342,
+  "tests_copied": 166,
+  "tests_skipped": {
+    "napari._qt._tests.test_plugin_widgets": [
+      "napari._qt._qplugins._qnpe2"
+    ],
+    "napari._qt._tests.test_qt_event_filters": [
+      "napari._qt.qt_event_filters"
+    ],
+    "napari._qt._tests.test_qt_notifications": [
+      "napari._qt.dialogs.qt_notification"
+    ],
+    "napari._qt._tests.test_qt_public_imports": [
+      "napari.qt",
+      "napari.qt.threading"
+    ],
+    "napari._qt._tests.test_qt_viewer": [
+      "napari._qt.qt_viewer"
+    ],
+    "napari._qt._tests.test_qt_window": [
+      "napari._qt.widgets.qt_viewer_status_bar"
+    ],
+    "napari._qt._tests.test_threading_progress": [
+      "napari._qt.widgets.qt_progress_bar"
+    ],
+    "napari._qt._tests.test_threads": [
+      "napari._qt.threads.status_checker"
+    ],
+    "napari._qt._tests.test_viewer_qt_integration": [
+      "napari._qt._tests.test_qt_viewer"
+    ],
+    "napari._qt.dialogs._tests.test_about": [
+      "napari._qt.dialogs.qt_about"
+    ],
+    "napari._qt.dialogs._tests.test_activity_dialog": [
+      "napari._qt.widgets.qt_progress_bar"
+    ],
+    "napari._qt.dialogs._tests.test_confirm_close_dialog": [
+      "napari._qt.dialogs.confirm_close_dialog"
+    ],
+    "napari._qt.dialogs._tests.test_preferences_dialog": [
+      "napari._qt.dialogs.preferences_dialog",
+      "napari._vendor.qt_json_builder.qt_jsonschema_form.widgets"
+    ],
+    "napari._qt.dialogs._tests.test_reader_dialog": [
+      "napari._qt.dialogs.qt_reader_dialog"
+    ],
+    "napari._qt.dialogs._tests.test_screenshot_dialog": [
+      "napari._qt.dialogs.screenshot_dialog"
+    ],
+    "napari._qt.widgets._tests.test_qt_buttons": [
+      "napari._qt.widgets.qt_mode_buttons"
+    ],
+    "napari._qt.widgets._tests.test_qt_color_swatch": [
+      "napari._qt.widgets.qt_color_swatch"
+    ],
+    "napari._qt.widgets._tests.test_qt_command_palette": [
+      "napari._qt.widgets.qt_command_palette"
+    ],
+    "napari._qt.widgets._tests.test_qt_dims_sorter": [
+      "napari._qt.widgets.qt_dims_sorter"
+    ],
+    "napari._qt.widgets._tests.test_qt_dock_widget": [
+      "napari._qt.widgets.qt_viewer_dock_widget"
+    ],
+    "napari._qt.widgets._tests.test_qt_extension2reader": [
+      "napari._qt.widgets.qt_extension2reader"
+    ],
+    "napari._qt.widgets._tests.test_qt_highlight_preview": [
+      "napari._qt.widgets.qt_highlight_preview"
+    ],
+    "napari._qt.widgets._tests.test_qt_histogram": [
+      "napari._qt.widgets.qt_histogram",
+      "napari._qt.widgets.qt_histogram_content",
+      "napari._qt.widgets.qt_histogram_settings"
+    ],
+    "napari._qt.widgets._tests.test_qt_logger": [
+      "napari._qt.widgets.qt_logger"
+    ],
+    "napari._qt.widgets._tests.test_qt_progress_bar": [
+      "napari._qt.widgets.qt_progress_bar"
+    ],
+    "napari._qt.widgets._tests.test_qt_tooltip": [
+      "napari._qt.widgets.qt_tooltip"
+    ],
+    "napari._qt.widgets._tests.test_qt_viewer_buttons": [
+      "napari._qt.widgets.qt_viewer_buttons"
+    ],
+    "napari._qt.widgets._tests.test_shortcut_editor_widget": [
+      "napari._qt.widgets.qt_keyboard_settings"
+    ],
+    "napari.components._tests.test_viewer_model": [
+      "napari.layers.shapes._tests.conftest"
+    ],
+    "napari.layers._tests.test_layer_actions": [
+      "napari.layers._layer_actions"
+    ],
+    "napari.layers.base._tests.test_base": [
+      "napari.layers.base._test_util_sample_layer"
+    ],
+    "napari.utils._tests.test_appdirs": [
+      "napari.utils._platformdirs"
+    ],
+    "napari.utils._tests.test_history": [
+      "napari.utils.history"
+    ],
+    "napari.utils._tests.test_logging": [
+      "napari.utils._logging"
+    ],
+    "napari.utils._tests.test_startup_script": [
+      "napari.utils._startup_script"
+    ],
+    "napari.utils._tests.test_theme": [
+      "napari.resources._icons"
+    ],
+    "napari.utils._tests.test_tips": [
+      "napari.utils.tips"
+    ],
+    "napari.utils.events._tests.test_event_migrations": [
+      "napari.utils.events.migrations"
+    ]
+  },
+  "crossings_total": 45,
+  "app_modules_hit": 12,
+  "crossings": {
+    "napari.settings": {
+      "napari._qt.widgets.qt_dims": "eager",
+      "napari._qt.widgets.qt_dims_slider": "eager",
+      "napari._vispy.canvas": "eager",
+      "napari._vispy.layers.points": "eager",
+      "napari._vispy.layers.shapes": "eager",
+      "napari._vispy.overlays.labels_polygon": "eager",
+      "napari._vispy.overlays.zoom": "eager",
+      "napari.components._layer_slicer": "eager",
+      "napari.components.canvas": "eager",
+      "napari.components.grid": "eager",
+      "napari.components.viewer_model": "eager",
+      "napari.layers.base.base": "eager",
+      "napari.layers.labels._labels_mouse_bindings": "eager",
+      "napari.layers.points._points_key_bindings": "eager",
+      "napari.layers.shapes._shapes_mouse_bindings": "eager",
+      "napari.layers.shapes.shapes": "eager",
+      "napari.utils.key_bindings": "lazy",
+      "napari.utils.notifications": "lazy"
+    },
+    "napari.utils.action_manager": {
+      "napari.components._viewer_key_bindings": "eager",
+      "napari.components.viewer_model": "eager",
+      "napari.layers.image._image_key_bindings": "eager",
+      "napari.layers.utils.layer_utils": "eager",
+      "napari.utils.key_bindings": "lazy"
+    },
+    "napari.utils.theme": {
+      "napari._vispy.overlays.canvas_axes": "eager",
+      "napari._vispy.overlays.scene_axes": "eager",
+      "napari.components._viewer_key_bindings": "eager",
+      "napari.components.canvas": "eager",
+      "napari.components.viewer_model": "eager"
+    },
+    "napari.plugins": {
+      "napari.components.layerlist": "lazy",
+      "napari.components.viewer_model": "eager",
+      "napari.layers.base.base": "lazy"
+    },
+    "napari.utils._magicgui": {
+      "napari._qt.qthreading": "lazy",
+      "napari.layers.base.base": "eager",
+      "napari.types": "lazy"
+    },
+    "napari._app_model": {
+      "napari._qt.qthreading": "lazy",
+      "napari.components.layerlist": "lazy"
+    },
+    "napari._qt.qt_event_loop": {
+      "napari._qt": "eager",
+      "napari.utils.io": "lazy"
+    },
+    "napari._qt.qt_main_window": {
+      "napari._qt": "eager",
+      "napari._qt.utils": "lazy"
+    },
+    "napari.viewer": {
+      "napari._qt.qthreading": "eager",
+      "napari.utils.io": "lazy"
+    },
+    "napari._qt._qapp_model": {
+      "napari._qt.qthreading": "lazy"
+    },
+    "napari.utils.info": {
+      "napari.utils": "eager"
+    },
+    "napari.utils.notebook_display": {
+      "napari.utils": "eager"
+    }
+  },
+  "type_only_crossings": {},
+  "importers_with_crossings": {
+    "napari._qt": [
+      "napari._qt.qt_event_loop",
+      "napari._qt.qt_main_window"
+    ],
+    "napari._qt.qthreading": [
+      "napari._app_model",
+      "napari._qt._qapp_model",
+      "napari.utils._magicgui",
+      "napari.viewer"
+    ],
+    "napari._qt.utils": [
+      "napari._qt.qt_main_window"
+    ],
+    "napari._qt.widgets.qt_dims": [
+      "napari.settings"
+    ],
+    "napari._qt.widgets.qt_dims_slider": [
+      "napari.settings"
+    ],
+    "napari._vispy.canvas": [
+      "napari.settings"
+    ],
+    "napari._vispy.layers.points": [
+      "napari.settings"
+    ],
+    "napari._vispy.layers.shapes": [
+      "napari.settings"
+    ],
+    "napari._vispy.overlays.canvas_axes": [
+      "napari.utils.theme"
+    ],
+    "napari._vispy.overlays.labels_polygon": [
+      "napari.settings"
+    ],
+    "napari._vispy.overlays.scene_axes": [
+      "napari.utils.theme"
+    ],
+    "napari._vispy.overlays.zoom": [
+      "napari.settings"
+    ],
+    "napari.components._layer_slicer": [
+      "napari.settings"
+    ],
+    "napari.components._viewer_key_bindings": [
+      "napari.utils.action_manager",
+      "napari.utils.theme"
+    ],
+    "napari.components.canvas": [
+      "napari.settings",
+      "napari.utils.theme"
+    ],
+    "napari.components.grid": [
+      "napari.settings"
+    ],
+    "napari.components.layerlist": [
+      "napari._app_model",
+      "napari.plugins"
+    ],
+    "napari.components.viewer_model": [
+      "napari.plugins",
+      "napari.settings",
+      "napari.utils.action_manager",
+      "napari.utils.theme"
+    ],
+    "napari.layers.base.base": [
+      "napari.plugins",
+      "napari.settings",
+      "napari.utils._magicgui"
+    ],
+    "napari.layers.image._image_key_bindings": [
+      "napari.utils.action_manager"
+    ],
+    "napari.layers.labels._labels_mouse_bindings": [
+      "napari.settings"
+    ],
+    "napari.layers.points._points_key_bindings": [
+      "napari.settings"
+    ],
+    "napari.layers.shapes._shapes_mouse_bindings": [
+      "napari.settings"
+    ],
+    "napari.layers.shapes.shapes": [
+      "napari.settings"
+    ],
+    "napari.layers.utils.layer_utils": [
+      "napari.utils.action_manager"
+    ],
+    "napari.types": [
+      "napari.utils._magicgui"
+    ],
+    "napari.utils": [
+      "napari.utils.info",
+      "napari.utils.notebook_display"
+    ],
+    "napari.utils.io": [
+      "napari._qt.qt_event_loop",
+      "napari.viewer"
+    ],
+    "napari.utils.key_bindings": [
+      "napari.settings",
+      "napari.utils.action_manager"
+    ],
+    "napari.utils.notifications": [
+      "napari.settings"
+    ]
+  },
+  "third_party_imports": {
+    "numpy": [
+      "napari",
+      "napari._check_numpy_version",
+      "napari._qt.utils",
+      "napari._qt.widgets.qt_dims",
+      "napari._qt.widgets.qt_dims_slider",
+      "napari._vispy.camera",
+      "napari._vispy.canvas",
+      "napari._vispy.filters.tracks",
+      "napari._vispy.layers.base",
+      "napari._vispy.layers.image",
+      "napari._vispy.layers.labels",
+      "napari._vispy.layers.points",
+      "napari._vispy.layers.scalar_field",
+      "napari._vispy.layers.shapes",
+      "napari._vispy.layers.surface",
+      "napari._vispy.layers.tiled_image",
+      "napari._vispy.layers.vectors",
+      "napari._vispy.overlays.base",
+      "napari._vispy.overlays.bounding_box",
+      "napari._vispy.overlays.colorbar",
+      "napari._vispy.overlays.labels_brush_stroke",
+      "napari._vispy.overlays.labels_polygon",
+      "napari._vispy.overlays.scale_bar",
+      "napari._vispy.overlays.scene_axes",
+      "napari._vispy.overlays.text",
+      "napari._vispy.utils.gl",
+      "napari._vispy.utils.qt_font",
+      "napari._vispy.utils.text",
+      "napari._vispy.utils.visual",
+      "napari._vispy.visuals.axes",
+      "napari._vispy.visuals.bounding_box",
+      "napari._vispy.visuals.colorbar",
+      "napari._vispy.visuals.interaction_box",
+      "napari._vispy.visuals.scale_bar",
+      "napari.components._viewer_key_bindings",
+      "napari.components._viewer_mouse_bindings",
+      "napari.components.camera",
+      "napari.components.canvas",
+      "napari.components.cursor",
+      "napari.components.dims",
+      "napari.components.grid",
+      "napari.components.histogram",
+      "napari.components.layerlist",
+      "napari.components.overlays.interaction_box",
+      "napari.components.viewer_model",
+      "napari.layers._multiscale_data",
+      "napari.layers._scalar_field._slice",
+      "napari.layers._scalar_field.scalar_field",
+      "napari.layers.base._base_mouse_bindings",
+      "napari.layers.base.base",
+      "napari.layers.image._image_mouse_bindings",
+      "napari.layers.image._image_utils",
+      "napari.layers.image._slice",
+      "napari.layers.image.image",
+      "napari.layers.intensity_mixin",
+      "napari.layers.labels._labels_key_bindings",
+      "napari.layers.labels._labels_utils",
+      "napari.layers.labels._slice",
+      "napari.layers.labels.labels",
+      "napari.layers.points._points_mouse_bindings",
+      "napari.layers.points._points_utils",
+      "napari.layers.points._slice",
+      "napari.layers.points.points",
+      "napari.layers.shapes._accelerated_triangulate_dispatch",
+      "napari.layers.shapes._accelerated_triangulate_numba",
+      "napari.layers.shapes._accelerated_triangulate_python",
+      "napari.layers.shapes._mesh",
+      "napari.layers.shapes._shape_list",
+      "napari.layers.shapes._shapes_key_bindings",
+      "napari.layers.shapes._shapes_models._polygon_base",
+      "napari.layers.shapes._shapes_models.ellipse",
+      "napari.layers.shapes._shapes_models.line",
+      "napari.layers.shapes._shapes_models.rectangle",
+      "napari.layers.shapes._shapes_models.shape",
+      "napari.layers.shapes._shapes_mouse_bindings",
+      "napari.layers.shapes._shapes_utils",
+      "napari.layers.shapes.shape_types",
+      "napari.layers.shapes.shapes",
+      "napari.layers.surface._slice",
+      "napari.layers.surface._surface_utils",
+      "napari.layers.surface.surface",
+      "napari.layers.tracks._track_utils",
+      "napari.layers.tracks.tracks",
+      "napari.layers.utils._slice_input",
+      "napari.layers.utils._text_utils",
+      "napari.layers.utils.color_encoding",
+      "napari.layers.utils.color_manager",
+      "napari.layers.utils.color_manager_utils",
+      "napari.layers.utils.color_transformations",
+      "napari.layers.utils.interaction_box",
+      "napari.layers.utils.interactivity_utils",
+      "napari.layers.utils.layer_utils",
+      "napari.layers.utils.plane",
+      "napari.layers.utils.stack_utils",
+      "napari.layers.utils.string_encoding",
+      "napari.layers.utils.style_encoding",
+      "napari.layers.utils.text_manager",
+      "napari.layers.vectors._slice",
+      "napari.layers.vectors._vector_utils",
+      "napari.layers.vectors.vectors",
+      "napari.types",
+      "napari.utils._dtype",
+      "napari.utils._indexing",
+      "napari.utils._test_utils",
+      "napari.utils._tracebacks",
+      "napari.utils._xarray_utils",
+      "napari.utils.camera_orientations",
+      "napari.utils.color",
+      "napari.utils.colormaps._accelerated_cmap",
+      "napari.utils.colormaps.categorical_colormap",
+      "napari.utils.colormaps.categorical_colormap_utils",
+      "napari.utils.colormaps.colorbars",
+      "napari.utils.colormaps.colormap",
+      "napari.utils.colormaps.colormap_utils",
+      "napari.utils.colormaps.standardize_color",
+      "napari.utils.colormaps.vendored._cm",
+      "napari.utils.colormaps.vendored.cm",
+      "napari.utils.colormaps.vendored.colors",
+      "napari.utils.events.custom_types",
+      "napari.utils.events.evented_model",
+      "napari.utils.geometry",
+      "napari.utils.io",
+      "napari.utils.misc",
+      "napari.utils.status_messages",
+      "napari.utils.transforms.transform_utils",
+      "napari.utils.transforms.transforms"
+    ],
+    "vispy": [
+      "napari._vispy",
+      "napari._vispy.camera",
+      "napari._vispy.canvas",
+      "napari._vispy.filters.tracks",
+      "napari._vispy.layers.base",
+      "napari._vispy.layers.labels",
+      "napari._vispy.layers.scalar_field",
+      "napari._vispy.layers.surface",
+      "napari._vispy.layers.tiled_image",
+      "napari._vispy.mouse_event",
+      "napari._vispy.overlays.base",
+      "napari._vispy.overlays.brush_circle",
+      "napari._vispy.overlays.canvas_axes",
+      "napari._vispy.overlays.labels_brush_stroke",
+      "napari._vispy.overlays.labels_polygon",
+      "napari._vispy.utils.gl",
+      "napari._vispy.utils.qt_font",
+      "napari._vispy.visuals.axes",
+      "napari._vispy.visuals.bounding_box",
+      "napari._vispy.visuals.clipping_planes_mixin",
+      "napari._vispy.visuals.colorbar",
+      "napari._vispy.visuals.image",
+      "napari._vispy.visuals.interaction_box",
+      "napari._vispy.visuals.labels",
+      "napari._vispy.visuals.markers",
+      "napari._vispy.visuals.points",
+      "napari._vispy.visuals.scale_bar",
+      "napari._vispy.visuals.shapes",
+      "napari._vispy.visuals.surface",
+      "napari._vispy.visuals.text",
+      "napari._vispy.visuals.tracks",
+      "napari._vispy.visuals.vectors",
+      "napari._vispy.visuals.volume",
+      "napari.layers.shapes._shapes_utils",
+      "napari.layers.shapes.shapes",
+      "napari.utils.colormaps.colormap_utils",
+      "napari.utils.colormaps.standardize_color",
+      "napari.utils.events.event",
+      "napari.utils.key_bindings"
+    ],
+    "pydantic": [
+      "napari._pydantic_util",
+      "napari.components.camera",
+      "napari.components.canvas",
+      "napari.components.dims",
+      "napari.components.histogram",
+      "napari.components.overlays.base",
+      "napari.components.overlays.bounding_box",
+      "napari.components.overlays.colorbar",
+      "napari.components.overlays.labels_polygon",
+      "napari.components.overlays.scale_bar",
+      "napari.components.overlays.zoom",
+      "napari.components.scene",
+      "napari.components.viewer_model",
+      "napari.layers._source",
+      "napari.layers.surface.normals",
+      "napari.layers.surface.wireframe",
+      "napari.layers.utils.color_encoding",
+      "napari.layers.utils.color_manager",
+      "napari.layers.utils.plane",
+      "napari.layers.utils.string_encoding",
+      "napari.layers.utils.style_encoding",
+      "napari.layers.utils.text_manager",
+      "napari.utils.color",
+      "napari.utils.colormaps.categorical_colormap",
+      "napari.utils.colormaps.colormap",
+      "napari.utils.events.containers._selection",
+      "napari.utils.events.custom_types",
+      "napari.utils.events.debugging",
+      "napari.utils.events.evented_model",
+      "napari.utils.mouse_bindings"
+    ],
+    "qtpy": [
+      "napari._qt",
+      "napari._qt.dialogs.qt_modal",
+      "napari._qt.utils",
+      "napari._qt.widgets.qt_dims",
+      "napari._qt.widgets.qt_dims_slider",
+      "napari._qt.widgets.qt_mirrored_sliders_popup",
+      "napari._qt.widgets.qt_scrollbar",
+      "napari._vispy",
+      "napari._vispy.utils.cursor",
+      "napari._vispy.utils.qt_font",
+      "napari._vispy.utils.text",
+      "napari._wayland_fix"
+    ],
+    "pint": [
+      "napari._vispy.layers.base",
+      "napari._vispy.overlays.scale_bar",
+      "napari.components.dims",
+      "napari.components.layerlist",
+      "napari.layers.base.base",
+      "napari.layers.utils._slice_input",
+      "napari.layers.utils.stack_utils",
+      "napari.utils._units",
+      "napari.utils.transforms._units",
+      "napari.utils.transforms.transforms"
+    ],
+    "scipy": [
+      "napari._vispy.camera",
+      "napari.components.viewer_model",
+      "napari.layers.image.image",
+      "napari.layers.labels._labels_utils",
+      "napari.layers.labels.labels",
+      "napari.layers.points.points",
+      "napari.layers.shapes._shapes_models._polygon_base",
+      "napari.layers.tracks._track_utils",
+      "napari.utils.camera_orientations",
+      "napari.utils.transforms.transform_utils"
+    ],
+    "pydantic_core": [
+      "napari.layers.utils.color_encoding",
+      "napari.layers.utils.color_manager",
+      "napari.layers.utils.string_encoding",
+      "napari.utils.color",
+      "napari.utils.colormaps.categorical_colormap_utils",
+      "napari.utils.events.containers._selection",
+      "napari.utils.events.containers._set",
+      "napari.utils.events.custom_types"
+    ],
+    "psygnal": [
+      "napari.components.overlays.base",
+      "napari.layers.base.base",
+      "napari.layers.points.points",
+      "napari.layers.shapes._shapes_mouse_bindings",
+      "napari.layers.shapes.shapes",
+      "napari.utils.events.containers._evented_dict",
+      "napari.utils.transforms.transforms"
+    ],
+    "app_model": [
+      "napari.components._viewer_key_bindings",
+      "napari.layers.labels._labels_key_bindings",
+      "napari.layers.points._points_key_bindings",
+      "napari.layers.shapes._shapes_key_bindings",
+      "napari.utils.events.evented_model",
+      "napari.utils.key_bindings"
+    ],
+    "superqt": [
+      "napari._qt.qthreading",
+      "napari._qt.widgets.qt_dims_slider",
+      "napari._qt.widgets.qt_mirrored_sliders_popup",
+      "napari._vispy.canvas",
+      "napari._vispy.layers.shapes"
+    ],
+    "dask": [
+      "napari.components.histogram",
+      "napari.layers.utils.layer_utils",
+      "napari.layers.utils.stack_utils",
+      "napari.utils._dask_utils"
+    ],
+    "magicgui": [
+      "napari._qt.qthreading",
+      "napari.layers._source",
+      "napari.layers.base.base",
+      "napari.types"
+    ],
+    "numba": [
+      "napari.layers.shapes._accelerated_triangulate_numba",
+      "napari.utils.colormaps._accelerated_cmap",
+      "napari.utils.colormaps.colormap"
+    ],
+    "packaging": [
+      "napari._check_numpy_version",
+      "napari.utils.colormaps._accelerated_cmap",
+      "napari.utils.misc"
+    ],
+    "skimage": [
+      "napari.layers.labels.labels",
+      "napari.layers.shapes._shapes_utils",
+      "napari.utils.colormaps.colormap_utils"
+    ],
+    "PIL": [
+      "napari.layers.labels.labels",
+      "napari.utils.io"
+    ],
+    "PartSegCore_compiled_backend": [
+      "napari.layers.shapes._shapes_models.shape",
+      "napari.utils.colormaps._accelerated_cmap"
+    ],
+    "npe2": [
+      "napari.layers.base.base",
+      "napari.types"
+    ],
+    "typing_extensions": [
+      "napari.components.viewer_model",
+      "napari.types"
+    ],
+    "IPython": [
+      "napari.utils._tracebacks"
+    ],
+    "OpenGL": [
+      "napari._vispy.canvas"
+    ],
+    "bermuda": [
+      "napari.layers.shapes._shapes_models.shape"
+    ],
+    "certifi": [
+      "napari.utils.misc"
+    ],
+    "docstring_parser": [
+      "napari.utils._test_utils"
+    ],
+    "imageio": [
+      "napari.utils.io"
+    ],
+    "lazy_loader": [
+      "napari"
+    ],
+    "psutil": [
+      "napari.utils._dask_utils"
+    ],
+    "pydantic_settings": [
+      "napari.utils.events.debugging"
+    ],
+    "rich": [
+      "napari.utils.events.debugging"
+    ],
+    "tifffile": [
+      "napari.utils.io"
+    ],
+    "toolz": [
+      "napari.utils.transforms.transforms"
+    ],
+    "tqdm": [
+      "napari.utils.progress"
+    ],
+    "triangle": [
+      "napari.layers.shapes._shapes_utils"
+    ],
+    "wrapt": [
+      "napari.utils._proxies"
+    ],
+    "xarray": [
+      "napari.utils._xarray_utils"
+    ]
+  },
+  "missing_modules": {},
+  "copied_modules": [
+    "napari",
+    "napari._check_numpy_version",
+    "napari._pydantic_util",
+    "napari._qt",
+    "napari._qt.dialogs",
+    "napari._qt.dialogs.qt_modal",
+    "napari._qt.qthreading",
+    "napari._qt.utils",
+    "napari._qt.widgets",
+    "napari._qt.widgets.qt_dims",
+    "napari._qt.widgets.qt_dims_slider",
+    "napari._qt.widgets.qt_mirrored_sliders_popup",
+    "napari._qt.widgets.qt_scrollbar",
+    "napari._vispy",
+    "napari._vispy.camera",
+    "napari._vispy.canvas",
+    "napari._vispy.filters",
+    "napari._vispy.filters.tracks",
+    "napari._vispy.layers",
+    "napari._vispy.layers.base",
+    "napari._vispy.layers.image",
+    "napari._vispy.layers.labels",
+    "napari._vispy.layers.points",
+    "napari._vispy.layers.scalar_field",
+    "napari._vispy.layers.shapes",
+    "napari._vispy.layers.surface",
+    "napari._vispy.layers.tiled_image",
+    "napari._vispy.layers.tracks",
+    "napari._vispy.layers.vectors",
+    "napari._vispy.mouse_event",
+    "napari._vispy.overlays",
+    "napari._vispy.overlays.base",
+    "napari._vispy.overlays.bounding_box",
+    "napari._vispy.overlays.brush_circle",
+    "napari._vispy.overlays.canvas_axes",
+    "napari._vispy.overlays.colorbar",
+    "napari._vispy.overlays.interaction_box",
+    "napari._vispy.overlays.labels_brush_stroke",
+    "napari._vispy.overlays.labels_polygon",
+    "napari._vispy.overlays.scale_bar",
+    "napari._vispy.overlays.scene_axes",
+    "napari._vispy.overlays.text",
+    "napari._vispy.overlays.zoom",
+    "napari._vispy.utils",
+    "napari._vispy.utils.cursor",
+    "napari._vispy.utils.gl",
+    "napari._vispy.utils.qt_font",
+    "napari._vispy.utils.text",
+    "napari._vispy.utils.visual",
+    "napari._vispy.visuals",
+    "napari._vispy.visuals.axes",
+    "napari._vispy.visuals.bounding_box",
+    "napari._vispy.visuals.clipping_planes_mixin",
+    "napari._vispy.visuals.colorbar",
+    "napari._vispy.visuals.image",
+    "napari._vispy.visuals.interaction_box",
+    "napari._vispy.visuals.labels",
+    "napari._vispy.visuals.markers",
+    "napari._vispy.visuals.points",
+    "napari._vispy.visuals.scale_bar",
+    "napari._vispy.visuals.shapes",
+    "napari._vispy.visuals.surface",
+    "napari._vispy.visuals.text",
+    "napari._vispy.visuals.tracks",
+    "napari._vispy.visuals.util",
+    "napari._vispy.visuals.vectors",
+    "napari._vispy.visuals.volume",
+    "napari._wayland_fix",
+    "napari.components",
+    "napari.components._layer_slicer",
+    "napari.components._viewer_constants",
+    "napari.components._viewer_key_bindings",
+    "napari.components._viewer_mouse_bindings",
+    "napari.components.camera",
+    "napari.components.canvas",
+    "napari.components.cursor",
+    "napari.components.dims",
+    "napari.components.experimental",
+    "napari.components.experimental.commands",
+    "napari.components.grid",
+    "napari.components.histogram",
+    "napari.components.layerlist",
+    "napari.components.overlays",
+    "napari.components.overlays.base",
+    "napari.components.overlays.bounding_box",
+    "napari.components.overlays.brush_circle",
+    "napari.components.overlays.canvas_axes",
+    "napari.components.overlays.colorbar",
+    "napari.components.overlays.interaction_box",
+    "napari.components.overlays.labels_brush_stroke",
+    "napari.components.overlays.labels_polygon",
+    "napari.components.overlays.scale_bar",
+    "napari.components.overlays.scene_axes",
+    "napari.components.overlays.text",
+    "napari.components.overlays.zoom",
+    "napari.components.scene",
+    "napari.components.tooltip",
+    "napari.components.viewer_model",
+    "napari.errors",
+    "napari.errors.reader_errors",
+    "napari.layers",
+    "napari.layers._data_protocols",
+    "napari.layers._multiscale_data",
+    "napari.layers._scalar_field",
+    "napari.layers._scalar_field._slice",
+    "napari.layers._scalar_field.scalar_field",
+    "napari.layers._source",
+    "napari.layers.base",
+    "napari.layers.base._base_constants",
+    "napari.layers.base._base_mouse_bindings",
+    "napari.layers.base._slice",
+    "napari.layers.base.base",
+    "napari.layers.image",
+    "napari.layers.image._image_constants",
+    "napari.layers.image._image_key_bindings",
+    "napari.layers.image._image_mouse_bindings",
+    "napari.layers.image._image_utils",
+    "napari.layers.image._slice",
+    "napari.layers.image.image",
+    "napari.layers.intensity_mixin",
+    "napari.layers.labels",
+    "napari.layers.labels._labels_constants",
+    "napari.layers.labels._labels_key_bindings",
+    "napari.layers.labels._labels_mouse_bindings",
+    "napari.layers.labels._labels_utils",
+    "napari.layers.labels._slice",
+    "napari.layers.labels.labels",
+    "napari.layers.points",
+    "napari.layers.points._points_constants",
+    "napari.layers.points._points_key_bindings",
+    "napari.layers.points._points_mouse_bindings",
+    "napari.layers.points._points_utils",
+    "napari.layers.points._slice",
+    "napari.layers.points.points",
+    "napari.layers.shapes",
+    "napari.layers.shapes._accelerated_triangulate_dispatch",
+    "napari.layers.shapes._accelerated_triangulate_numba",
+    "napari.layers.shapes._accelerated_triangulate_python",
+    "napari.layers.shapes._mesh",
+    "napari.layers.shapes._shape_list",
+    "napari.layers.shapes._shapes_constants",
+    "napari.layers.shapes._shapes_key_bindings",
+    "napari.layers.shapes._shapes_models",
+    "napari.layers.shapes._shapes_models._polygon_base",
+    "napari.layers.shapes._shapes_models.ellipse",
+    "napari.layers.shapes._shapes_models.line",
+    "napari.layers.shapes._shapes_models.path",
+    "napari.layers.shapes._shapes_models.polygon",
+    "napari.layers.shapes._shapes_models.rectangle",
+    "napari.layers.shapes._shapes_models.shape",
+    "napari.layers.shapes._shapes_mouse_bindings",
+    "napari.layers.shapes._shapes_utils",
+    "napari.layers.shapes.shape_types",
+    "napari.layers.shapes.shapes",
+    "napari.layers.surface",
+    "napari.layers.surface._slice",
+    "napari.layers.surface._surface_constants",
+    "napari.layers.surface._surface_key_bindings",
+    "napari.layers.surface._surface_utils",
+    "napari.layers.surface.normals",
+    "napari.layers.surface.surface",
+    "napari.layers.surface.wireframe",
+    "napari.layers.tracks",
+    "napari.layers.tracks._track_utils",
+    "napari.layers.tracks._tracks_key_bindings",
+    "napari.layers.tracks.tracks",
+    "napari.layers.utils",
+    "napari.layers.utils._color_manager_constants",
+    "napari.layers.utils._link_layers",
+    "napari.layers.utils._slice_input",
+    "napari.layers.utils._text_constants",
+    "napari.layers.utils._text_utils",
+    "napari.layers.utils.color_encoding",
+    "napari.layers.utils.color_manager",
+    "napari.layers.utils.color_manager_utils",
+    "napari.layers.utils.color_transformations",
+    "napari.layers.utils.interaction_box",
+    "napari.layers.utils.interactivity_utils",
+    "napari.layers.utils.layer_utils",
+    "napari.layers.utils.plane",
+    "napari.layers.utils.stack_utils",
+    "napari.layers.utils.string_encoding",
+    "napari.layers.utils.style_encoding",
+    "napari.layers.utils.text_manager",
+    "napari.layers.vectors",
+    "napari.layers.vectors._slice",
+    "napari.layers.vectors._vector_utils",
+    "napari.layers.vectors._vectors_constants",
+    "napari.layers.vectors._vectors_key_bindings",
+    "napari.layers.vectors.vectors",
+    "napari.types",
+    "napari.utils",
+    "napari.utils._dask_utils",
+    "napari.utils._dtype",
+    "napari.utils._env_detection",
+    "napari.utils._indexing",
+    "napari.utils._proxies",
+    "napari.utils._register",
+    "napari.utils._test_utils",
+    "napari.utils._tracebacks",
+    "napari.utils._units",
+    "napari.utils._xarray_utils",
+    "napari.utils.camera_orientations",
+    "napari.utils.color",
+    "napari.utils.colormap_backend",
+    "napari.utils.colormaps",
+    "napari.utils.colormaps._accelerated_cmap",
+    "napari.utils.colormaps.bop_colors",
+    "napari.utils.colormaps.categorical_colormap",
+    "napari.utils.colormaps.categorical_colormap_utils",
+    "napari.utils.colormaps.colorbars",
+    "napari.utils.colormaps.colormap",
+    "napari.utils.colormaps.colormap_utils",
+    "napari.utils.colormaps.inverse_colormaps",
+    "napari.utils.colormaps.standardize_color",
+    "napari.utils.colormaps.vendored",
+    "napari.utils.colormaps.vendored._cm",
+    "napari.utils.colormaps.vendored._cm_listed",
+    "napari.utils.colormaps.vendored._color_data",
+    "napari.utils.colormaps.vendored.cm",
+    "napari.utils.colormaps.vendored.colors",
+    "napari.utils.events",
+    "napari.utils.events.containers",
+    "napari.utils.events.containers._dict",
+    "napari.utils.events.containers._evented_dict",
+    "napari.utils.events.containers._evented_list",
+    "napari.utils.events.containers._nested_list",
+    "napari.utils.events.containers._selectable_list",
+    "napari.utils.events.containers._selection",
+    "napari.utils.events.containers._set",
+    "napari.utils.events.containers._typed",
+    "napari.utils.events.custom_types",
+    "napari.utils.events.debugging",
+    "napari.utils.events.event",
+    "napari.utils.events.event_utils",
+    "napari.utils.events.evented_model",
+    "napari.utils.events.types",
+    "napari.utils.geometry",
+    "napari.utils.interactions",
+    "napari.utils.io",
+    "napari.utils.key_bindings",
+    "napari.utils.migrations",
+    "napari.utils.misc",
+    "napari.utils.mouse_bindings",
+    "napari.utils.naming",
+    "napari.utils.notifications",
+    "napari.utils.progress",
+    "napari.utils.status_messages",
+    "napari.utils.task_status",
+    "napari.utils.transforms",
+    "napari.utils.transforms._units",
+    "napari.utils.transforms.transform_utils",
+    "napari.utils.transforms.transforms",
+    "napari.utils.triangulation_backend",
+    "napari.utils.validators"
+  ],
+  "copied_tests": [
+    "napari._qt._tests",
+    "napari._qt._tests.test_app",
+    "napari._qt._tests.test_async_slicing",
+    "napari._qt._tests.test_open_file",
+    "napari._qt._tests.test_proxy_fixture",
+    "napari._qt._tests.test_prune_qt_connections",
+    "napari._qt._tests.test_qt_utils",
+    "napari._qt._tests.test_qt_version_check",
+    "napari._qt._tests.test_qt_viewer_2",
+    "napari._qt._tests.test_sigint_interupt",
+    "napari._qt._tests.test_viewer_leaking_layers",
+    "napari._qt.dialogs._tests",
+    "napari._qt.dialogs._tests.test_qt_modal",
+    "napari._qt.widgets._tests",
+    "napari._qt.widgets._tests.test_qt_dims",
+    "napari._qt.widgets._tests.test_qt_dims_2",
+    "napari._qt.widgets._tests.test_qt_dims_slider",
+    "napari._qt.widgets._tests.test_qt_play",
+    "napari._qt.widgets._tests.test_qt_scrollbar",
+    "napari._tests.utils",
+    "napari._vispy._tests.test_canvas",
+    "napari._vispy._tests.test_image_rendering",
+    "napari._vispy._tests.test_qt_font",
+    "napari._vispy._tests.test_utils",
+    "napari._vispy._tests.test_vispy_big_images",
+    "napari._vispy._tests.test_vispy_bounding_box_visual",
+    "napari._vispy._tests.test_vispy_brush_circle_overlay",
+    "napari._vispy._tests.test_vispy_calls",
+    "napari._vispy._tests.test_vispy_camera",
+    "napari._vispy._tests.test_vispy_canvas_axes_overlay",
+    "napari._vispy._tests.test_vispy_image_layer",
+    "napari._vispy._tests.test_vispy_labels",
+    "napari._vispy._tests.test_vispy_labels_brush_stroke_overlay",
+    "napari._vispy._tests.test_vispy_labels_layer",
+    "napari._vispy._tests.test_vispy_labels_polygon_overlay",
+    "napari._vispy._tests.test_vispy_layer_name_overlay",
+    "napari._vispy._tests.test_vispy_multiscale",
+    "napari._vispy._tests.test_vispy_points_layer",
+    "napari._vispy._tests.test_vispy_scale_bar_visual",
+    "napari._vispy._tests.test_vispy_scene_axes_overlay",
+    "napari._vispy._tests.test_vispy_shapes_layer",
+    "napari._vispy._tests.test_vispy_surface_layer",
+    "napari._vispy._tests.test_vispy_text_visual",
+    "napari._vispy._tests.test_vispy_tracks_layer",
+    "napari._vispy._tests.test_vispy_vectors_layer",
+    "napari._vispy._tests.test_vispy_zoom_overlay",
+    "napari._vispy._tests.utils",
+    "napari.components._tests.test_add_layers",
+    "napari.components._tests.test_brush_circle_overlay",
+    "napari.components._tests.test_camera",
+    "napari.components._tests.test_cursor",
+    "napari.components._tests.test_dims",
+    "napari.components._tests.test_grid",
+    "napari.components._tests.test_histogram",
+    "napari.components._tests.test_interaction_box",
+    "napari.components._tests.test_layer_slicer",
+    "napari.components._tests.test_layers_base",
+    "napari.components._tests.test_layers_list",
+    "napari.components._tests.test_multichannel",
+    "napari.components._tests.test_prune_kwargs",
+    "napari.components._tests.test_scale_bar",
+    "napari.components._tests.test_scene_axes",
+    "napari.components._tests.test_text_overlay",
+    "napari.components._tests.test_viewer_keybindings",
+    "napari.components._tests.test_viewer_labels_io",
+    "napari.components._tests.test_viewer_mouse_bindings",
+    "napari.components._tests.test_world_coordinates",
+    "napari.components._tests.test_zoom",
+    "napari.layers._scalar_field._tests",
+    "napari.layers._scalar_field._tests.test_scalar_field",
+    "napari.layers._tests",
+    "napari.layers._tests._utils",
+    "napari.layers._tests.test_dask_layers",
+    "napari.layers._tests.test_data_protocol",
+    "napari.layers._tests.test_layer_attributes",
+    "napari.layers._tests.test_serialize",
+    "napari.layers._tests.test_source",
+    "napari.layers._tests.test_utils",
+    "napari.layers.base._tests.test_mouse_bindings",
+    "napari.layers.image._tests",
+    "napari.layers.image._tests.test_big_image_timing",
+    "napari.layers.image._tests.test_image",
+    "napari.layers.image._tests.test_image_key_bindings",
+    "napari.layers.image._tests.test_image_utils",
+    "napari.layers.image._tests.test_multiscale",
+    "napari.layers.image._tests.test_volume",
+    "napari.layers.labels._tests.test_labels",
+    "napari.layers.labels._tests.test_labels_key_bindings",
+    "napari.layers.labels._tests.test_labels_mouse_bindings",
+    "napari.layers.labels._tests.test_labels_multiscale",
+    "napari.layers.labels._tests.test_labels_utils",
+    "napari.layers.points._tests.test_points",
+    "napari.layers.points._tests.test_points_key_bindings",
+    "napari.layers.points._tests.test_points_mouse_bindings",
+    "napari.layers.points._tests.test_points_utils",
+    "napari.layers.shapes._shapes_models._tests.test_rasterize",
+    "napari.layers.shapes._shapes_models._tests.test_shapes_models",
+    "napari.layers.shapes._tests.test_shape_list",
+    "napari.layers.shapes._tests.test_shapes",
+    "napari.layers.shapes._tests.test_shapes_key_bindings",
+    "napari.layers.shapes._tests.test_shapes_mouse_bindings",
+    "napari.layers.shapes._tests.test_shapes_selection",
+    "napari.layers.shapes._tests.test_shapes_utils",
+    "napari.layers.shapes._tests.test_triangulation",
+    "napari.layers.surface._tests.test_surface",
+    "napari.layers.surface._tests.test_surface_utils",
+    "napari.layers.tracks._tests.test_tracks",
+    "napari.layers.utils._tests",
+    "napari.layers.utils._tests.test_color_encoding",
+    "napari.layers.utils._tests.test_color_manager",
+    "napari.layers.utils._tests.test_color_manager_utils",
+    "napari.layers.utils._tests.test_color_transforms",
+    "napari.layers.utils._tests.test_interactivity_utils",
+    "napari.layers.utils._tests.test_layer_utils",
+    "napari.layers.utils._tests.test_link_layers",
+    "napari.layers.utils._tests.test_plane",
+    "napari.layers.utils._tests.test_stack_utils",
+    "napari.layers.utils._tests.test_string_encoding",
+    "napari.layers.utils._tests.test_style_encoding",
+    "napari.layers.utils._tests.test_text_manager",
+    "napari.layers.utils._tests.test_text_utils",
+    "napari.layers.vectors._tests.test_vectors",
+    "napari.utils._tests",
+    "napari.utils._tests.test_action_manager",
+    "napari.utils._tests.test_camera_orientations",
+    "napari.utils._tests.test_color",
+    "napari.utils._tests.test_compat",
+    "napari.utils._tests.test_dtype",
+    "napari.utils._tests.test_env_detection",
+    "napari.utils._tests.test_geometry",
+    "napari.utils._tests.test_info",
+    "napari.utils._tests.test_interactions",
+    "napari.utils._tests.test_io",
+    "napari.utils._tests.test_key_bindings",
+    "napari.utils._tests.test_migrations",
+    "napari.utils._tests.test_misc",
+    "napari.utils._tests.test_naming",
+    "napari.utils._tests.test_notification_manager",
+    "napari.utils._tests.test_progress",
+    "napari.utils._tests.test_proxies",
+    "napari.utils._tests.test_register",
+    "napari.utils._tests.test_status",
+    "napari.utils._tests.test_task_status",
+    "napari.utils._tests.test_validators",
+    "napari.utils._tests.test_xarray_utils",
+    "napari.utils.colormaps._tests",
+    "napari.utils.colormaps._tests.colors_data",
+    "napari.utils.colormaps._tests.test_categorical_colormap",
+    "napari.utils.colormaps._tests.test_categorical_colormap_utils",
+    "napari.utils.colormaps._tests.test_color_to_array",
+    "napari.utils.colormaps._tests.test_colormap",
+    "napari.utils.colormaps._tests.test_colormap_utils",
+    "napari.utils.colormaps._tests.test_colormaps",
+    "napari.utils.events._tests.test_event_emitter",
+    "napari.utils.events._tests.test_event_utils",
+    "napari.utils.events._tests.test_evented_dict",
+    "napari.utils.events._tests.test_evented_list",
+    "napari.utils.events._tests.test_evented_model",
+    "napari.utils.events._tests.test_evented_set",
+    "napari.utils.events._tests.test_selectable_list",
+    "napari.utils.events._tests.test_selection",
+    "napari.utils.events._tests.test_typed_dict",
+    "napari.utils.events._tests.test_typed_list",
+    "napari.utils.transforms._tests.test_transform_chain",
+    "napari.utils.transforms._tests.test_transform_utils",
+    "napari.utils.transforms._tests.test_transforms"
+  ],
+  "own_code_kept": []
+}
