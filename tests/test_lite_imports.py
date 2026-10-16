@@ -17,17 +17,21 @@ import textwrap
 import pytest
 
 # Packages that must never be loaded by importing napari-lite's core.
-# Issue 07 adds npe2, 08 magicgui, 09 lxml, 17 app_model.
-FORBIDDEN = {'napari'}
+# Issue 17 adds app_model.
+FORBIDDEN = {'napari', 'npe2', 'magicgui', 'lxml'}
 
 # Imported one by one in a clean interpreter.
 MODULES = [
     'napari_lite',
     'napari_lite.utils',
+    'napari_lite.settings',
+    'napari_lite.utils.theme',
+    'napari_lite.utils.action_manager',
     'napari_lite.components',
     'napari_lite.layers',
     'napari_lite._vispy',
     'napari_lite._qt.widgets.qt_dims',
+    'napari_lite._qt.qt_event_loop',
 ]
 
 BLOCKED = {'napari'}

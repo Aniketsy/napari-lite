@@ -1,3 +1,4 @@
+import sys
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from functools import partial
 from pathlib import Path
@@ -5,6 +6,7 @@ from types import TracebackType
 from typing import (
     TYPE_CHECKING,
     Any,
+    Literal,
     NewType,
     Optional,
     Union,
@@ -13,10 +15,20 @@ from typing import (
 
 import numpy as np
 import numpy.typing as npt
-
-# TODO decide where types should be defined to have single place for them
-from npe2.types import LayerName as LayerTypeName
 from typing_extensions import TypeAliasType, TypedDict
+
+# napari-lite: local copy of ``npe2.types.LayerName`` (napari imports it
+# from npe2, which napari-lite does not depend on).
+LayerTypeName = Literal[
+    'graph',
+    'image',
+    'labels',
+    'points',
+    'shapes',
+    'surface',
+    'tracks',
+    'vectors',
+]
 
 if TYPE_CHECKING:
     # dask zarr should be imported as `import dask.array as da` But here it is used only in type annotation to
@@ -162,4 +174,7 @@ def _register_types_with_magicgui() -> None:
         )
 
 
-_register_types_with_magicgui()
+# napari-lite: magicgui is optional and never imported by the core.  The
+# napari types are registered with it only if it is already loaded.
+if 'magicgui' in sys.modules:
+    _register_types_with_magicgui()

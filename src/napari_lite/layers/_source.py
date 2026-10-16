@@ -6,7 +6,6 @@ from contextvars import ContextVar
 from typing import TYPE_CHECKING, Any
 from weakref import ReferenceType
 
-from magicgui.widgets import FunctionGui
 from pydantic import BaseModel, ConfigDict, field_validator
 
 from napari_lite.layers.base.base import Layer
@@ -14,6 +13,8 @@ from napari_lite.layers.base.base import Layer
 if TYPE_CHECKING:
     from collections.abc import Generator
     from typing import Self
+
+    from magicgui.widgets import FunctionGui
 
 
 class Source(BaseModel):
@@ -37,7 +38,9 @@ class Source(BaseModel):
     path: str | None = None
     reader_plugin: str | None = None
     sample: tuple[str, str] | None = None
-    widget: FunctionGui | None = None
+    # napari-lite: typed Any so that magicgui is not imported for the
+    # annotation; napari declares ``FunctionGui | None`` here.
+    widget: Any = None
     parent: Layer | None = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True)
