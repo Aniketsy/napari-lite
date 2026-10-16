@@ -1,0 +1,7 @@
+# napari-lite: own code
+# Copied napari files are LF; keep every text file LF on every platform.
+* text=auto eol=lf
+*.png binary
+*.gif binary
+*.ico binary
+*.icns binary

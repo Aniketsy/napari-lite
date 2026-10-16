@@ -401,7 +401,9 @@ def write_tree(
         target.parent.mkdir(parents=True, exist_ok=True)
         text = mod.path.read_text(encoding='utf-8')
         target.write_text(
-            rewrite(text, cfg.literal_rewrites), encoding='utf-8'
+            rewrite(text, cfg.literal_rewrites),
+            encoding='utf-8',
+            newline='\n',
         )
         written.append(rel.as_posix())
     # test packages need an __init__.py if napari has one
@@ -415,10 +417,11 @@ def write_tree(
                     init.read_text(encoding='utf-8'), cfg.literal_rewrites
                 ),
                 encoding='utf-8',
+                newline='\n',
             )
             wanted.add(dst / rel)
             written.append(rel.as_posix())
-    # data files travel with their package: copied only if the package is
+    # data files travel with their package: copied only if that is copied
     copied_dirs = {m.path.parent for m in result.copied.values()}
 
     def owner_copied(path: Path) -> bool:
@@ -636,7 +639,9 @@ def main(argv: list[str] | None = None) -> int:
         'own_code_kept': kept,
     }
     (REPO / 'VENDORED.json').write_text(
-        json.dumps(manifest, indent=2) + '\n', encoding='utf-8'
+        json.dumps(manifest, indent=2) + '\n',
+        encoding='utf-8',
+        newline='\n',
     )
     print_report(info)
     print(f'wrote {len(written)} files, kept {len(kept)} own-code files')
