@@ -310,7 +310,10 @@ def crawl(modules: dict[str, Module], cfg: Config) -> Result:
                 continue
             app = matches(dep, cfg.app_modules)
             if app:
-                crossings[app].append((name, kind))
+                # a module always imports its parent packages; an explicitly
+                # copied module under an app package is not a crossing
+                if not name.startswith(dep + '.'):
+                    crossings[app].append((name, kind))
                 continue
             if dep not in copied:
                 queue.append(dep)
@@ -321,8 +324,11 @@ def crawl(modules: dict[str, Module], cfg: Config) -> Result:
     # top-level conftest.py is not in a ``_tests`` folder and stays out.
     tests: dict[str, Module] = {}
     skipped_tests: dict[str, list[str]] = {}
+    # a package counts as copied when its __init__ is copied or is own code
     copied_packages = {
-        name for name in copied if modules[name].path.name == '__init__.py'
+        name
+        for name in [*copied, *cfg.own_modules]
+        if name in modules and modules[name].path.name == '__init__.py'
     }
     candidates = [
         (name, mod)

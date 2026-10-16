@@ -10,14 +10,14 @@
     "napari._qt.widgets.qt_dims",
     "napari._qt.qthreading",
     "napari.types",
-    "napari.utils",
     "napari.utils.io",
     "napari.utils.key_bindings",
     "napari.utils.colormaps",
     "napari.utils.transforms",
     "napari.utils.progress",
     "napari.utils._dask_utils",
-    "napari.utils.shortcuts"
+    "napari.utils.shortcuts",
+    "napari.utils._env_detection"
   ],
   "app_modules": [
     "napari.settings",
@@ -39,9 +39,37 @@
   ],
   "modules_total": 556,
   "modules_copied": 254,
-  "lines_copied": 76171,
-  "tests_copied": 157,
+  "lines_copied": 76236,
+  "tests_copied": 169,
   "tests_skipped": {
+    "napari._qt._tests.test_plugin_widgets": [
+      "napari._qt._qplugins._qnpe2"
+    ],
+    "napari._qt._tests.test_qt_event_filters": [
+      "napari._qt.qt_event_filters"
+    ],
+    "napari._qt._tests.test_qt_notifications": [
+      "napari._qt.dialogs.qt_notification"
+    ],
+    "napari._qt._tests.test_qt_public_imports": [
+      "napari.qt",
+      "napari.qt.threading"
+    ],
+    "napari._qt._tests.test_qt_viewer": [
+      "napari._qt.qt_viewer"
+    ],
+    "napari._qt._tests.test_qt_window": [
+      "napari._qt.widgets.qt_viewer_status_bar"
+    ],
+    "napari._qt._tests.test_threading_progress": [
+      "napari._qt.widgets.qt_progress_bar"
+    ],
+    "napari._qt._tests.test_threads": [
+      "napari._qt.threads.status_checker"
+    ],
+    "napari._qt._tests.test_viewer_qt_integration": [
+      "napari._qt._tests.test_qt_viewer"
+    ],
     "napari._qt.dialogs._tests.test_about": [
       "napari._qt.dialogs.qt_about"
     ],
@@ -111,9 +139,6 @@
     "napari.utils._tests.test_appdirs": [
       "napari.utils._platformdirs"
     ],
-    "napari.utils._tests.test_env_detection": [
-      "napari.utils._env_detection"
-    ],
     "napari.utils._tests.test_history": [
       "napari.utils.history"
     ],
@@ -133,8 +158,8 @@
       "napari.utils.events.migrations"
     ]
   },
-  "crossings_total": 44,
-  "app_modules_hit": 12,
+  "crossings_total": 41,
+  "app_modules_hit": 10,
   "crossings": {
     "napari.settings": {
       "napari._qt.widgets.qt_dims": "eager",
@@ -153,7 +178,6 @@
       "napari.layers.points._points_key_bindings": "eager",
       "napari.layers.shapes._shapes_mouse_bindings": "eager",
       "napari.layers.shapes.shapes": "eager",
-      "napari.settings._constants": "eager",
       "napari.utils.key_bindings": "lazy",
       "napari.utils.notifications": "lazy"
     },
@@ -197,12 +221,6 @@
     },
     "napari._qt.qt_main_window": {
       "napari._qt.utils": "lazy"
-    },
-    "napari.utils.info": {
-      "napari.utils": "eager"
-    },
-    "napari.utils.notebook_display": {
-      "napari.utils": "eager"
     }
   },
   "type_only_crossings": {},
@@ -290,15 +308,8 @@
     "napari.layers.utils.layer_utils": [
       "napari.utils.action_manager"
     ],
-    "napari.settings._constants": [
-      "napari.settings"
-    ],
     "napari.types": [
       "napari.utils._magicgui"
-    ],
-    "napari.utils": [
-      "napari.utils.info",
-      "napari.utils.notebook_display"
     ],
     "napari.utils.io": [
       "napari._qt.qt_event_loop",
@@ -870,9 +881,9 @@
     "napari.layers.vectors.vectors",
     "napari.settings._constants",
     "napari.types",
-    "napari.utils",
     "napari.utils._dask_utils",
     "napari.utils._dtype",
+    "napari.utils._env_detection",
     "napari.utils._indexing",
     "napari.utils._proxies",
     "napari.utils._register",
@@ -936,6 +947,17 @@
     "napari.utils.validators"
   ],
   "copied_tests": [
+    "napari._qt._tests",
+    "napari._qt._tests.test_app",
+    "napari._qt._tests.test_async_slicing",
+    "napari._qt._tests.test_open_file",
+    "napari._qt._tests.test_proxy_fixture",
+    "napari._qt._tests.test_prune_qt_connections",
+    "napari._qt._tests.test_qt_utils",
+    "napari._qt._tests.test_qt_version_check",
+    "napari._qt._tests.test_qt_viewer_2",
+    "napari._qt._tests.test_sigint_interupt",
+    "napari._qt._tests.test_viewer_leaking_layers",
     "napari._qt.dialogs._tests",
     "napari._qt.dialogs._tests.test_qt_modal",
     "napari._qt.widgets._tests",
@@ -1056,6 +1078,7 @@
     "napari.utils._tests.test_color",
     "napari.utils._tests.test_compat",
     "napari.utils._tests.test_dtype",
+    "napari.utils._tests.test_env_detection",
     "napari.utils._tests.test_geometry",
     "napari.utils._tests.test_info",
     "napari.utils._tests.test_interactions",
