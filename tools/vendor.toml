@@ -1,0 +1,71 @@
+# napari-lite: own code
+# Configuration for tools/vendor.py.  See tools/vendor.py for the meaning of
+# every key and SYNC.md for the resync routine.
+
+# napari commit the copy is taken from.
+pin = "ebfc4a0a"
+
+# The crawl starts here and follows every ``napari.*`` import.
+roots = [
+    "napari.components",
+    "napari.layers",
+    "napari._vispy",
+    "napari._qt.widgets.qt_dims",
+    "napari._qt.qthreading",
+    "napari.types",
+    "napari.utils",
+    "napari.utils.io",
+    "napari.utils.key_bindings",
+    "napari.utils.colormaps",
+    "napari.utils.transforms",
+]
+
+# Not copied.  napari-lite writes its own module at the same import path
+# (a "shim"), so the copied code keeps its import lines unchanged.
+app_modules = [
+    "napari.settings",
+    "napari.plugins",
+    "napari._app_model",
+    "napari.utils.theme",
+    "napari.utils.action_manager",
+    "napari.utils._magicgui",
+    "napari.utils.info",
+    "napari.utils.notebook_display",
+    "napari._qt._qapp_model",
+    "napari._qt.qt_main_window",
+    "napari._qt.qt_event_loop",
+    "napari._qt.perf",
+    "napari.viewer",
+    "napari.window",
+    "napari.view_layers",
+    "napari._event_loop",
+]
+
+# Copied in addition to what the crawl reaches (issue 21 adds the layer
+# list and layer controls here).
+extra_modules = []
+
+# Never copied, never reported.  ``napari._tests`` holds napari's
+# application-level tests (Viewer, Window, examples).
+skip_modules = [
+    "napari.benchmarks",
+    "napari._tests",
+]
+
+# Copied paths that ``main`` has replaced with own code (exact module names,
+# e.g. "napari.utils" for utils/__init__.py).  Not written, imports of them
+# are not crossings, their own imports are not followed.  Edit this list on
+# the ``vendor`` branch together with the pin (see SYNC.md).
+own_modules = []
+
+# Non-Python files, globs relative to ``src/napari``.
+data = [
+    "resources/icons/*.svg",
+    "resources/loading.gif",
+    "resources/icon.ico",
+    "resources/icon.icns",
+]
+
+# Plain text substitutions applied after the ``napari`` -> ``napari_lite``
+# rewrite.  Issue 17 maps ``from app_model.types import`` to a local module.
+[literal_rewrites]
