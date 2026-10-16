@@ -33,6 +33,7 @@ dependencies = [
     "superqt>=0.7.8",
     "psygnal>=0.14.2",
     "pydantic>=2.8.0",
+    "pydantic-extra-types",  # Color in utils/theme.py
     "pint>=0.17",
     "Pillow>=10.0",
     "imageio>=2.20,!=2.22.1",
