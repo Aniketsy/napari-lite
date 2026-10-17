@@ -43,7 +43,6 @@ dependencies = [
     "tqdm>=4.56.0",
     "typing_extensions>=4.12",
     "wrapt>=1.14.1",
-    "app-model>=0.5.0,<0.6.0",  # TEMP issue 17: only key enums are used
     "magicgui>=0.7.0",  # TEMP issue 08
     "npe2>=0.9.0",  # TEMP issue 07
     "dask[array]>=2022.1.1",  # TEMP issue 18: moves to the [dask] extra
@@ -140,7 +139,7 @@ markers = [
 [tool.ruff]
 line-length = 79
 # Copied napari code keeps napari's formatting; only own code is linted.
-extend-exclude = ["src/napari_lite"]
+extend-exclude = ["src/napari_lite", "*.ipynb"]
 
 [tool.ruff.format]
 quote-style = "single"

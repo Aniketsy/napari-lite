@@ -17,8 +17,7 @@ import textwrap
 import pytest
 
 # Packages that must never be loaded by importing napari-lite's core.
-# Issue 17 adds app_model.
-FORBIDDEN = {'napari', 'npe2', 'magicgui', 'lxml'}
+FORBIDDEN = {'napari', 'npe2', 'magicgui', 'lxml', 'app_model'}
 
 # Imported one by one in a clean interpreter.
 MODULES = [

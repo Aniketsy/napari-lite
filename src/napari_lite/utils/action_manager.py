@@ -29,7 +29,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from typing import Protocol
 
-    from app_model.types import KeyBinding
+    from napari_lite.utils._keys import KeyBinding
 
     from napari_lite.utils.events import Event
     from napari_lite.utils.key_bindings import KeymapProvider
