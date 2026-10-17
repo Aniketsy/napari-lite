@@ -26,11 +26,30 @@ def toggle_console_visibility(viewer: ViewerModel) -> None:
     viewer.status = 'napari-lite has no console (use your Python session)'
 
 
+_open_dialogs: set[QtShortcutsDialog] = set()
+
+
 def show_shortcuts(viewer: ViewerModel) -> QtShortcutsDialog:
-    """Open a window listing the current key bindings."""
+    """Open a window listing the current key bindings.
+
+    The window belongs to the viewer's main window when there is one (the
+    active window otherwise) and is kept in ``_open_dialogs`` until it is
+    closed: a parentless Qt window is deleted with its last Python
+    reference, and the key binding that calls this keeps none.
+    """
+    from qtpy.QtWidgets import QApplication
+
     from napari_lite.qt.shortcuts_dialog import QtShortcutsDialog
 
-    dialog = QtShortcutsDialog(viewer)
+    window = getattr(viewer, 'window', None)
+    parent = (
+        window._qt_window
+        if window is not None
+        else QApplication.activeWindow()
+    )
+    dialog = QtShortcutsDialog(viewer, parent=parent)
+    _open_dialogs.add(dialog)
+    dialog.destroyed.connect(lambda *_: _open_dialogs.discard(dialog))
     dialog.show()
     return dialog
 

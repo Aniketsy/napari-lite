@@ -126,7 +126,6 @@ def test_actions_without_app_parts(canvas, qtbot) -> None:
     action_manager.trigger('napari:toggle_console_visibility', viewer)
     assert 'no console' in viewer.status
     dialog = action_manager.trigger('napari:show_shortcuts', viewer)
-    qtbot.addWidget(dialog)
     assert isinstance(dialog, QtShortcutsDialog)
     text = dialog.browser.toPlainText()
     assert 'Toggle 2D/3D view' in text
@@ -135,6 +134,8 @@ def test_actions_without_app_parts(canvas, qtbot) -> None:
     from napari_lite.utils.interactions import Shortcut
 
     assert str(Shortcut(KeyMod.CtrlCmd | KeyCode.KeyY)) in text
+    # not qtbot.addWidget: the dialog is deleted on close (WA_DeleteOnClose)
+    # and qtbot would close it a second time at teardown
     dialog.close()
 
 
