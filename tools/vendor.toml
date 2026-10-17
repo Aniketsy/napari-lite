@@ -299,3 +299,38 @@ new = '''
 from napari_lite.utils import _object_proxy as wrapt
 from napari_lite.utils import misc
 '''
+
+# scikit-image (43 MB with networkx and tifffile) was a dependency for four
+# functions, a line, a polygon, points in a polygon and a flood fill, and
+# for the two colour conversions behind label_colormap.  utils/_draw.py and
+# utils/_colorconv.py have them; the copied code imports those instead.
+[[rewrite]]
+old = '''
+from skimage import draw, measure
+'''
+new = '''
+# napari-lite: own line, polygon, points_in_poly and flood (utils/_draw.py),
+# so scikit-image is not a dependency
+from napari_lite.utils import _draw as draw
+from napari_lite.utils import _draw as measure
+'''
+
+[[rewrite]]
+old = '''
+        from skimage.segmentation import flood
+'''
+new = '''
+        # napari-lite: own flood fill (utils/_draw.py); scikit-image is not
+        # a dependency
+        from napari_lite.utils._draw import flood
+'''
+
+[[rewrite]]
+old = '''
+    import skimage.color as colorconv
+'''
+new = '''
+    # napari-lite: own luv2rgb and lab2rgb (utils/_colorconv.py);
+    # scikit-image is not a dependency
+    from napari_lite.utils import _colorconv as colorconv
+'''

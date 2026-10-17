@@ -1339,7 +1339,9 @@ class Labels(ScalarFieldBase):
                 The data within the bounding box.
             Returns None if the fill operation is invalid.
         """
-        from skimage.segmentation import flood
+        # napari-lite: own flood fill (utils/_draw.py); scikit-image is not
+        # a dependency
+        from napari_lite.utils._draw import flood
 
         int_coord = tuple(np.round(coord).astype(int))
         # If requested fill location is outside data shape then return
