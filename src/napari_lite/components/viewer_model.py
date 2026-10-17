@@ -90,7 +90,6 @@ from napari_lite.utils.events import (
 from napari_lite.utils.key_bindings import KeymapProvider
 from napari_lite.utils.misc import ensure_list_of_layer_data_tuple, is_sequence
 from napari_lite.utils.mouse_bindings import MousemapProviderPydantic
-from napari_lite.utils.progress import progress
 from napari_lite.utils.theme import available_themes, is_theme_available
 
 if TYPE_CHECKING:
@@ -1605,6 +1604,9 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
             paths.extend(stack)
 
         added: list[Layer] = []  # for layers that get added
+        # napari-lite: imported on first use (tqdm comes with it)
+        from napari_lite.utils.progress import progress
+
         with progress(
             paths,
             desc='Opening Files',
