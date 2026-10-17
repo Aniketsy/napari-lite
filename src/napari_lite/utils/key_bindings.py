@@ -39,7 +39,7 @@ from collections.abc import Callable, Mapping
 from types import EllipsisType, MethodType
 from typing import Union
 
-from app_model.types import KeyBinding, KeyCode, KeyMod
+from napari_lite.utils._keys import KeyBinding, KeyCode, KeyMod
 from vispy.util import keys
 
 KeyBindingLike = Union[KeyBinding, str, int]

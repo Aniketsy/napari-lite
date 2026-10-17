@@ -4,7 +4,7 @@ from contextlib import contextmanager
 from typing import Any, ClassVar, Union
 
 import numpy as np
-from app_model.types import KeyBinding
+from napari_lite.utils._keys import KeyBinding
 from pydantic import (
     BaseModel,
     ConfigDict,

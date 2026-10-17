@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import numpy as np
-from app_model.types import KeyCode, KeyMod
+from napari_lite.utils._keys import KeyCode, KeyMod
 
 from napari_lite.components.viewer_model import ViewerModel
 from napari_lite.utils.action_manager import action_manager

@@ -2,7 +2,7 @@ from collections.abc import Callable
 from typing import TypeVar, cast
 
 import numpy as np
-from app_model.types import KeyCode, KeyMod
+from napari_lite.utils._keys import KeyCode, KeyMod
 
 from napari_lite.layers.labels._labels_constants import Mode
 from napari_lite.layers.labels.labels import Labels, WrongSelectedLabelError

@@ -3,7 +3,7 @@ import time
 import types
 
 import pytest
-from app_model.types import KeyBinding, KeyCode, KeyMod
+from napari_lite.utils._keys import KeyBinding, KeyCode, KeyMod
 from vispy.util import keys
 
 from napari_lite.utils import key_bindings

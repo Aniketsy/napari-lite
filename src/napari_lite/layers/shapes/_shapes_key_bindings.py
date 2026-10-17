@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import numpy as np
-from app_model.types import KeyCode
+from napari_lite.utils._keys import KeyCode
 
 from napari_lite.layers.shapes._shapes_constants import Box, Mode
 from napari_lite.layers.shapes._shapes_mouse_bindings import (
