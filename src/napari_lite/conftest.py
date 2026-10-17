@@ -41,10 +41,7 @@ NEEDS_INFO = 'needs napari.utils.info (application feature)'
 
 # test modules that are not run (relative to this directory)
 collect_ignore = [
-    '_qt/_tests/test_async_slicing.py',  # Viewer
-    '_qt/_tests/test_open_file.py',  # Viewer, plugins
-    '_qt/_tests/test_viewer_leaking_layers.py',  # Viewer
-    'components/_tests/test_viewer_model.py',  # Viewer, _app_model.actions
+    '_qt/_tests/test_open_file.py',  # plugins
     'utils/_tests/test_info.py',  # utils.info
     # asserts napari's wording of the Qt version error; _qt/__init__.py is
     # own code with its own message
@@ -60,13 +57,81 @@ def _skip_fixture(reason: str):
     return _fixture
 
 
-make_napari_viewer = _skip_fixture(NEEDS_VIEWER)
-make_napari_viewer_proxy = _skip_fixture(NEEDS_VIEWER)
-qt_viewer = _skip_fixture(NEEDS_VIEWER)
+qt_viewer = _skip_fixture(
+    "needs napari's QtViewer (layer list, controls, console)"
+)
 builtins = _skip_fixture(NEEDS_PLUGINS)
 tmp_plugin = _skip_fixture(NEEDS_PLUGINS)
 napari_svg_name = _skip_fixture(NEEDS_PLUGINS)
 mock_app_model = _skip_fixture(NEEDS_APP_MODEL)
+
+
+@pytest.fixture
+def make_napari_viewer(qtbot, request):
+    """Create ``Viewer``s that are closed and checked for leaks after the test
+    (ported from napari's ``_testsupport.py``, without the plugin and
+    app-model parts).  Takes the arguments of ``napari_lite.Viewer``;
+    ``show`` defaults to False."""
+    import gc
+    from weakref import WeakSet
+
+    from napari_lite import Viewer
+    from napari_lite.qt import QtCanvas
+
+    gc.collect(1)
+    leaked_before = len(QtCanvas._instances)
+    QtCanvas._instances.clear()
+    assert leaked_before == 0, (
+        'A QtCanvas of a previous test was not cleaned up'
+    )
+
+    viewers: WeakSet = WeakSet()
+    request.node._viewer_weak_set = viewers
+
+    def actual_factory(
+        *model_args, ViewerClass=Viewer, strict_qt=None, **model_kwargs
+    ):
+        model_kwargs['show'] = model_kwargs.pop('show', False)
+        model_kwargs.pop('show_welcome_screen', None)
+        viewer = ViewerClass(*model_args, **model_kwargs)
+        viewers.add(viewer)
+        if model_kwargs['show']:
+            qtbot.wait_exposed(viewer.window._qt_window, timeout=5000)
+        return viewer
+
+    yield actual_factory
+
+    for viewer in list(viewers):
+        with suppress(AttributeError, RuntimeError):
+            viewer.close()
+    gc.collect(1)
+    if (
+        getattr(request.node, 'rep_call', None)
+        and request.node.rep_call.failed
+    ):
+        QtCanvas._instances.clear()  # a failed test may hold references
+    leaked = len(QtCanvas._instances)
+    QtCanvas._instances.clear()
+    assert leaked == 0, 'a QtCanvas leaked from this test'
+
+
+@pytest.fixture
+def make_napari_viewer_proxy(make_napari_viewer, monkeypatch):
+    """``make_napari_viewer`` returning viewers wrapped in PublicOnlyProxy."""
+    from napari_lite.utils._proxies import PublicOnlyProxy
+
+    proxies = []
+
+    def actual_factory(*model_args, ensure_main_thread=True, **model_kwargs):
+        monkeypatch.setenv(
+            'NAPARI_ENSURE_PLUGIN_MAIN_THREAD', str(ensure_main_thread)
+        )
+        viewer = make_napari_viewer(*model_args, **model_kwargs)
+        proxies.append(PublicOnlyProxy(viewer))
+        return proxies[-1]
+
+    proxies.clear()
+    return actual_factory
 
 
 # ---------------------------------------------------------------------------
