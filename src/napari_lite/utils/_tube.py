@@ -37,7 +37,12 @@ def _frenet_frames(
         tangents[0] = points[1] - points[0]
         tangents[-1] = points[-1] - points[-2]
     mags = np.sqrt(np.sum(tangents * tangents, axis=1))
-    tangents /= mags[:, np.newaxis]
+    # napari-lite: a repeated point gives a zero-length segment and 0/0
+    # here, in vispy's copy as well; the warning is silenced because
+    # napari-lite's tests turn warnings from its own modules into errors,
+    # which vispy's module never was
+    with np.errstate(divide='ignore', invalid='ignore'):
+        tangents /= mags[:, np.newaxis]
 
     # Get initial normal and binormal
     t = np.abs(tangents[0])
