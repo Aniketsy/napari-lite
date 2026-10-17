@@ -45,7 +45,8 @@ napari.run()
 ## Planned
 
 - Benchmarks against napari on Linux, macOS and Windows: import time, time
-  to first image, install size.
+  to first image, install size (first numbers in
+  [docs/benchmarks.md](docs/benchmarks.md)).
 - Heavy dependencies only on first use (dask, scikit-image, pandas, pint
   where possible) and smaller install extras.
 - Visual regression tests: every layer type in 2D and 3D compared with
