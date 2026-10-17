@@ -95,7 +95,17 @@ def test_first_image_imports_no_xarray_pandas_or_ndimage() -> None:
     pytest.importorskip('xarray')  # the check only bites when it is installed
     loaded = loaded_modules(FIRST_IMAGE)
     assert 'napari_lite.layers' in loaded
-    uninvited = {'xarray', 'pandas', 'scipy.ndimage', 'scipy.special'} & loaded
+    uninvited = {
+        'xarray',
+        'pandas',
+        'scipy.ndimage',
+        'scipy.special',
+        # vispy's scene graph belongs to the canvas, not to the layers
+        'vispy.visuals',
+        'vispy.scene',
+        # progress bars, and tqdm with them, on first use
+        'tqdm',
+    } & loaded
     assert not uninvited, f'the first image imported {sorted(uninvited)}'
 
 
@@ -107,5 +117,5 @@ def test_labels_thumbnail_imports_no_ndimage() -> None:
 def test_first_paint_in_2d_imports_no_scipy_spatial() -> None:
     loaded = loaded_modules(FIRST_PAINT)
     assert 'napari_lite._vispy' in loaded
-    uninvited = {'scipy.spatial', 'xarray'} & loaded
+    uninvited = {'scipy.spatial', 'xarray', 'tqdm'} & loaded
     assert not uninvited, f'the first 2D paint imported {sorted(uninvited)}'

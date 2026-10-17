@@ -218,3 +218,68 @@ new = '''
         # imported for a thumbnail
         from napari_lite.utils import _zoom as ndi
 '''
+
+# layers/shapes/_shapes_utils.py: one helper function imported from
+# vispy.visuals.tube loaded every vispy visual and vispy.gloo (about 100
+# modules) with the layers, before any canvas exists; utils/_tube.py is a
+# copy of that function.
+[[rewrite]]
+old = '''
+from vispy.geometry import Triangulation
+from vispy.visuals.tube import _frenet_frames
+'''
+new = '''
+from vispy.geometry import Triangulation
+
+# napari-lite: own copy of vispy's helper (utils/_tube.py); importing
+# vispy.visuals.tube would load every vispy visual and vispy.gloo with the
+# layers, before any canvas exists
+from napari_lite.utils._tube import _frenet_frames
+'''
+
+# components/viewer_model.py and _qt/qthreading.py: ``progress`` (and tqdm
+# with it, about 50 modules) imported where it is used, not with the
+# module; the own utils/__init__.py binds the name on first access.
+[[rewrite]]
+old = '''
+from napari_lite.utils.progress import progress
+from napari_lite.utils.theme import available_themes, is_theme_available
+'''
+new = '''
+from napari_lite.utils.theme import available_themes, is_theme_available
+'''
+
+[[rewrite]]
+old = '''
+        added: list[Layer] = []  # for layers that get added
+        with progress(
+'''
+new = '''
+        added: list[Layer] = []  # for layers that get added
+        # napari-lite: imported on first use (tqdm comes with it)
+        from napari_lite.utils.progress import progress
+
+        with progress(
+'''
+
+[[rewrite]]
+old = '''
+from napari_lite.utils.progress import progress
+from napari_lite.utils.task_status import Status
+'''
+new = '''
+from napari_lite.utils.task_status import Status
+'''
+
+[[rewrite]]
+old = '''
+        with progress._all_instances.events.changed.blocker():
+            pbar = progress(total=total, desc=desc)
+'''
+new = '''
+        # napari-lite: imported on first use (tqdm comes with it)
+        from napari_lite.utils.progress import progress
+
+        with progress._all_instances.events.changed.blocker():
+            pbar = progress(total=total, desc=desc)
+'''
