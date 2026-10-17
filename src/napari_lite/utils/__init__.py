@@ -3,9 +3,8 @@
 
 napari's ``utils/__init__.py`` imports dask utilities, colormaps (and so
 vispy), system information and the notebook screenshot helper eagerly.
-Here the same public names are loaded on first use; ``sys_info``,
-``citation_text`` and ``nbscreenshot`` are application features and are
-not provided (a notebook helper returns with issue 15).
+Here the same public names are loaded on first use; ``sys_info`` and
+``citation_text`` are application features and are not provided.
 """
 
 from lazy_loader import attach as _attach
@@ -30,6 +29,7 @@ __getattr__, __dir__, _lazy_all = _attach(
             'CyclicLabelColormap',
             'DirectLabelColormap',
         ],
+        'notebook_display': ['NotebookScreenshot', 'nbscreenshot'],
     },
 )
 __all__ = [*_lazy_all, 'cancelable_progress', 'progrange', 'progress']
