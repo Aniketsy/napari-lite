@@ -59,11 +59,11 @@ Numbers measured against napari from the same commit, on one machine
 |---|---|---|
 | `import` the package | 0.01 s | 0.22 s |
 | first image | 1.5 s | 3.3 s |
-| viewer window shown with an image | 3.9 s | 6.0 s |
-| memory with a window shown | 223 MB | 276 MB |
-| installed size | 570 MB | 761 MB |
-| packages installed | 37 | 106 |
-| direct dependencies | 18 | 37 |
+| viewer window shown with an image | 3.7 s | 6.0 s |
+| memory with a window shown | 222 MB | 276 MB |
+| installed size | 436 MB | 761 MB |
+| packages installed | 36 | 106 |
+| direct dependencies | 17 | 37 |
 
 ## Left out on purpose
 
@@ -136,12 +136,13 @@ widgets. The import-time and install-size gaps can still grow:
 - The colormap table built on first access (about 100 Colormap models at
   import), scipy-free rotation helpers for the 3D camera (scipy.spatial
   is 0.75 s on this machine the first time 3D is used).
-- scikit-image is out (done the same day, 43 MB with networkx and
-  tifffile: own line, polygon, points-in-polygon, flood fill and Luv/Lab
-  conversions, compared pixel for pixel with scikit-image in the tests).
-  Next, in this order ([docs/backlog.md](backlog.md), issues 27 to 29):
-  scipy as an extra once the camera and transform helpers are numpy-only
-  (134 MB), pandas as the `features` extra (63 MB), then the small ones.
+- scikit-image and scipy are out (done the same day, 177 MB together:
+  own line, polygon, points-in-polygon, flood fill, Luv/Lab conversions,
+  rotations, QR/RQ, morphology filters and Tracks lookups in numpy, each
+  compared with the library it replaces in the tests; scipy stays the
+  `scipy` extra for spline-interpolated shapes). Next
+  ([docs/backlog.md](backlog.md), issues 28 and 29): pandas as the
+  `features` extra (63 MB, a go/no-go decision), then the small ones.
 - Target: first image under 1 s and the install under 400 MB, measured by
   the benchmark workflow; Qt, numpy, vispy and PyOpenGL are a 330 MB
   floor.

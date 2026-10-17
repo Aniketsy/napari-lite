@@ -61,7 +61,7 @@ napari installed.
 | Threads | `napari_lite.qt.thread_worker`, `create_worker`, `FunctionWorker`, `GeneratorWorker`; `progress` and `cancelable_progress`. | [Multithreading in napari](https://napari.org/stable/guides/threading.html), [napari.qt.threading](https://napari.org/stable/api/napari.qt.threading.html), [progress](https://napari.org/stable/api/napari.utils.progress.html) |
 | Events | The same evented models and `events` attributes as napari on the viewer, dims, camera, layer list and every layer; notifications go to the console. | [Hooking up your own events](https://napari.org/stable/howtos/extending/connecting_events.html), [Events reference](https://napari.org/stable/guides/events_reference.html), [napari.utils.events](https://napari.org/stable/api/napari.utils.events.html), [notifications](https://napari.org/stable/api/napari.utils.notifications.html) |
 | Dask, zarr, xarray | Any array with `shape`, `dtype` and `__getitem__`; dask arrays with the `dask` extra (opportunistic cache, task fusion off while slicing); asynchronous slicing. | [Image data and numpy-like arrays](https://napari.org/stable/howtos/layers/image.html#image-data-and-numpy-like-arrays), [Using Dask and napari](https://napari.org/stable/tutorials/dask.html), [Dask nD image](https://napari.org/stable/gallery/dask_nD_image.html), [Performance](https://napari.org/stable/guides/performance.html) |
-| Fast import, small install | `import napari_lite` takes about 0.05 s and loads no numpy, Qt, vispy or pydantic; napari, npe2, magicgui, app-model and lxml are never imported; dask is imported on first use; scikit-image and wrapt are not dependencies, own code stands in for the few functions napari used from them. Numbers in [docs/benchmarks.md](docs/benchmarks.md). | [napari performance](https://napari.org/stable/guides/performance.html) |
+| Fast import, small install | `import napari_lite` takes about 0.05 s and loads no numpy, Qt, vispy or pydantic; napari, npe2, magicgui, app-model and lxml are never imported; dask is imported on first use; scipy, scikit-image and wrapt are not dependencies, own numpy code stands in for the few functions napari used from them (scipy is the `scipy` extra, needed for spline-interpolated shapes only). Numbers in [docs/benchmarks.md](docs/benchmarks.md). | [napari performance](https://napari.org/stable/guides/performance.html) |
 
 Data is interpreted exactly as napari interprets it (RGB and multiscale
 are guessed, the channel axis never): [docs/design.md](docs/design.md).
@@ -83,13 +83,13 @@ thumbnail or a 2D draw, no tqdm, no vispy scene graph before a canvas.
 |---|---|---|
 | `import` the package | 0.01 s | 0.22 s |
 | first image (`ViewerModel` + `add_image`) | 1.5 s | 3.3 s |
-| viewer window shown with an image | 3.9 s | 6.0 s |
-| memory with a viewer window shown | 223 MB | 276 MB |
-| modules loaded at the first image | 729 | 1,357 |
-| installed size | 570 MB | 761 MB |
-| packages installed | 37 | 106 |
-| direct dependencies | 18 | 37 |
-| Python modules in the package | 444 | 524 |
+| viewer window shown with an image | 3.7 s | 6.0 s |
+| memory with a viewer window shown | 222 MB | 276 MB |
+| modules loaded at the first image | 714 | 1,357 |
+| installed size | 436 MB | 761 MB |
+| packages installed | 36 | 106 |
+| direct dependencies | 17 | 37 |
+| Python modules in the package | 448 | 524 |
 
 ## Planned
 

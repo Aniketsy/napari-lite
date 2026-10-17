@@ -47,8 +47,18 @@ importable as `napari_lite` without napari installed.
   points in a polygon, a flood fill) and `utils/_colorconv.py` (Luv and
   Lab to RGB) stand in for the six functions napari used, pixel for pixel
   and colour for colour; networkx and tifffile leave with it, 43 MB in
-  all. `pip install napari-lite[pyqt6]` is 570 MB in 37 packages against
-  napari's 761 MB in 106.
+  all.
+- scipy is the `scipy` extra, needed only for spline-interpolated shapes
+  (`interpolation_order > 1`, with an error naming the extra otherwise).
+  The camera's rotations (`utils/_rotation.py`, scipy's own algorithms,
+  gimbal lock included), the affine decomposition's QR and RQ and the
+  geometric mean in points masks (`utils/_linalg.py`), the dilation and
+  erosion behind label contours (`utils/_morphology.py`) and the Tracks
+  layer's nearest-vertex and id lookups (`utils/_tracks_index.py`) are
+  numpy, compared with scipy in the tests; 134 MB less. The first 3D view
+  no longer stalls on importing `scipy.spatial`. `pip install
+  napari-lite[pyqt6]` is 436 MB in 36 packages against napari's 761 MB
+  in 106.
 - The first image and the first paint import only what they use: the
   check for xarray data runs only when xarray is already imported (napari
   imports it, and pandas with it, whenever it is installed); thumbnails
