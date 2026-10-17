@@ -65,6 +65,38 @@ def test_no_status_line(qtbot) -> None:
     assert widget.status is None
 
 
+def test_hint_until_a_layer_is_added(qtbot) -> None:
+    from napari_lite.components import ViewerModel
+    from napari_lite.qt import QtCanvas
+
+    viewer = ViewerModel()
+    widget = QtCanvas(viewer, hint='add a layer')
+    qtbot.addWidget(widget)
+    widget.show()
+    qtbot.waitExposed(widget)
+    assert widget.hint == 'add a layer'
+    assert widget._hint.isVisible()
+    # it lies over the canvas and leaves the mouse to it
+    assert widget._hint.geometry() == widget.canvas.native.geometry()
+    assert widget._hint.testAttribute(
+        Qt.WidgetAttribute.WA_TransparentForMouseEvents
+    )
+    layer = viewer.add_image(np.zeros((8, 8)))
+    assert not widget._hint.isVisible()
+    viewer.layers.remove(layer)
+    assert widget._hint.isVisible()
+    widget.hint = ''
+    assert not widget._hint.isVisible()
+
+
+def test_no_hint_by_default(canvas) -> None:
+    assert canvas.hint == ''
+    assert canvas._hint.isHidden()
+    canvas.viewer.add_image(np.zeros((8, 8)))
+    canvas.viewer.layers.clear()
+    assert canvas._hint.isHidden()
+
+
 def test_keys_reach_viewer_and_layer(canvas, qtbot) -> None:
     viewer = canvas.viewer
     labels = viewer.add_labels(np.zeros((4, 8, 8), dtype=np.uint8))

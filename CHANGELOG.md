@@ -10,6 +10,8 @@ importable as `napari_lite` without napari installed.
 
 - `napari_lite.Viewer`, `imshow`, `run`, `current_viewer`; a window with a
   status bar and `add_dock_widget`; `QtCanvas` for use in other Qt layouts.
+- A hint in the empty canvas with the ways to load data (the command
+  line, `add_image`) and the key-bindings shortcut; `QtCanvas(hint=...)`.
 - All seven layer types in 2D and 3D with napari's rendering, overlays,
   grid mode, screenshots and `export_figure`.
 - napari's default key bindings for the viewer and every layer

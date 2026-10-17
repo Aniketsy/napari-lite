@@ -23,7 +23,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, Literal
 from weakref import WeakSet
 
 import numpy as np
-from qtpy.QtCore import QCoreApplication, Qt
+from qtpy.QtCore import QCoreApplication, QEvent, Qt
 from qtpy.QtGui import QGuiApplication
 from qtpy.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 from superqt import QElidingLabel
@@ -42,6 +42,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterator
     from pathlib import Path
 
+    from qtpy.QtCore import QObject
     from qtpy.QtGui import QCloseEvent, QImage, QKeyEvent
 
     from napari_lite._vispy.layers.base import VispyBaseLayer
@@ -103,6 +104,9 @@ class QtCanvas(QWidget):
         Qt parent.
     show_status : bool
         Show the status line under the sliders (default True).
+    hint : str
+        Text shown in the middle of the canvas while there are no layers
+        (default '': nothing; the viewer window passes how to load data).
 
     Attributes
     ----------
@@ -122,6 +126,7 @@ class QtCanvas(QWidget):
         parent: QWidget | None = None,
         *,
         show_status: bool = True,
+        hint: str = '',
     ) -> None:
         super().__init__(parent)
         self._instances.add(self)
@@ -152,6 +157,23 @@ class QtCanvas(QWidget):
         self.status: QtStatusLine | None = (
             QtStatusLine(viewer) if show_status else None
         )
+        self._hint = QLabel(hint, self)
+        self._hint.setObjectName('canvas hint')
+        self._hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._hint.setWordWrap(True)
+        self._hint.setAttribute(
+            Qt.WidgetAttribute.WA_TransparentForMouseEvents
+        )
+        # a widget's own stylesheet beats the window's, which would paint
+        # the label's background over the canvas
+        self._hint.setStyleSheet(
+            'background: transparent; color: #808080; font-size: 11pt;'
+        )
+        # the hint lies over the canvas widget, outside the layout (a
+        # wrapped label in the layout would size the canvas by its text):
+        # eventFilter keeps it at the canvas widget's geometry
+        self.canvas.native.installEventFilter(self)
+        self._hint.raise_()
 
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 2, 0, 2)
@@ -167,6 +189,8 @@ class QtCanvas(QWidget):
         viewer.layers.events.inserted.connect(self._update_camera_depth)
         viewer.layers.events.removed.connect(self._update_camera_depth)
         viewer.layers.events.removed.connect(self._forget_removed_layer)
+        viewer.layers.events.inserted.connect(self._update_hint)
+        viewer.layers.events.removed.connect(self._update_hint)
         viewer.dims.events.ndisplay.connect(self._update_camera_depth)
         viewer.layers.selection.events.active.connect(self._on_active_change)
         viewer.layers.events.inserted.connect(self._on_add_layer_change)
@@ -175,6 +199,7 @@ class QtCanvas(QWidget):
         bind_shortcuts_from_settings()
 
         self._on_active_change()
+        self._update_hint()
         for layer in viewer.layers:
             self._add_layer(layer)
 
@@ -248,6 +273,36 @@ class QtCanvas(QWidget):
         max_depth = 2.0 / (10.0 * np.finfo(np.float32).eps)
         for camera in [self.canvas.camera, *self.canvas.grid_cameras]:
             camera._3D_camera.depth_value = min(128 * diameter, max_depth)
+
+    # ------------------------------------------------------------------
+    # the hint in the empty canvas
+    # ------------------------------------------------------------------
+
+    @property
+    def hint(self) -> str:
+        """Text shown in the middle of the canvas while there are no
+        layers; '' shows nothing."""
+        return self._hint.text()
+
+    @hint.setter
+    def hint(self, text: str) -> None:
+        self._hint.setText(text)
+        self._update_hint()
+
+    def _update_hint(self) -> None:
+        self._hint.setVisible(
+            bool(self._hint.text()) and len(self.viewer.layers) == 0
+        )
+
+    def eventFilter(self, obj: QObject | None, event: QEvent | None) -> bool:
+        """Move the hint with the canvas widget."""
+        if (
+            obj == self.canvas.native
+            and event is not None
+            and event.type() in (QEvent.Type.Resize, QEvent.Type.Move)
+        ):
+            self._hint.setGeometry(self.canvas.native.geometry())
+        return super().eventFilter(obj, event)
 
     # ------------------------------------------------------------------
     # mouse and keyboard

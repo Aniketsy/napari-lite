@@ -39,6 +39,16 @@ def test_viewer_window_and_canvas(make_viewer) -> None:
     assert viewer.window._qt_window.windowTitle() == 'renamed'
 
 
+def test_empty_canvas_hint(make_viewer) -> None:
+    viewer = make_viewer()
+    canvas = viewer.window._qt_viewer
+    assert 'napari-lite image.png' in canvas.hint
+    assert 'viewer.add_image(array)' in canvas.hint
+    assert not canvas._hint.isHidden()
+    viewer.add_image(np.zeros((8, 8)))
+    assert canvas._hint.isHidden()
+
+
 def test_status_bar(make_viewer) -> None:
     viewer = make_viewer()
     bar = viewer.window._status_bar

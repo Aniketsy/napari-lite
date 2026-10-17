@@ -32,6 +32,8 @@ from qtpy.QtWidgets import (
 from napari_lite._qt.qt_event_loop import get_qapp
 from napari_lite._qt.utils import QImg2array
 from napari_lite.qt.canvas import QtCanvas, QtStatusLine
+from napari_lite.settings import get_settings
+from napari_lite.utils.interactions import Shortcut
 from napari_lite.utils.io import imsave
 from napari_lite.utils.misc import in_jupyter
 from napari_lite.utils.task_status import Status, TaskStatusManager
@@ -53,6 +55,24 @@ _DOCK_AREAS = {
     'top': Qt.DockWidgetArea.TopDockWidgetArea,
     'bottom': Qt.DockWidgetArea.BottomDockWidgetArea,
 }
+
+
+def _empty_canvas_hint() -> str:
+    """What the canvas says while there are no layers: how to get data in.
+
+    napari shows a welcome screen here; napari-lite has no file dialog and
+    no readers, so the hint names the command line and ``add_image``.
+    """
+    lines = [
+        'No layers',
+        '',
+        'Open files from the command line:   napari-lite image.png stack.npy',
+        'Add layers from Python:   viewer.add_image(array)',
+    ]
+    keys = get_settings().shortcuts.shortcuts.get('napari:show_shortcuts')
+    if keys:
+        lines.append(f'List the key bindings:   {Shortcut(keys[0])}')
+    return '\n'.join(lines)
 
 
 class _NoThread:
@@ -123,7 +143,9 @@ class _QtMainWindow(QMainWindow):
         self._ev: QEventLoop | None = None
         self._window = window
         # the status line is the window's status bar, not part of the canvas
-        self._qt_viewer = QtCanvas(viewer, show_status=False)
+        self._qt_viewer = QtCanvas(
+            viewer, show_status=False, hint=_empty_canvas_hint()
+        )
         self.status_thread = _NoThread()
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         self.setCentralWidget(self._qt_viewer)
