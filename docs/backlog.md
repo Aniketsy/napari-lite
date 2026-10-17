@@ -420,3 +420,89 @@ milestone: M5 Sync and share · labels: needs-decision · depends: {{15}}, {{19}
 - [ ] README: install, 5-line example, comparison table (import, first image, install size), credits to napari.
 - [ ] Before any PyPI release: ask napari maintainers (Zulip) about the name "napari-lite". Use TestPyPI until then.
 - [ ] Share results on the napari Zulip and on the upstream napari issue 5940; findings can feed napari's own lite work.
+
+---
+
+## 26 · scikit-image out of the dependencies
+milestone: M6 Lighter install · labels: perf, vendored-fix · depends: {{19}}
+
+### Why
+`pip install napari-lite[pyqt6]` is 613 MB against napari's 761 MB: a lite package has to do
+better than 19%. Qt, numpy, vispy and PyOpenGL are a 330 MB floor; scipy (134 MB), pandas
+(63 MB) and scikit-image with networkx and tifffile (43 MB) are the movable blocks. scikit-image
+depends on scipy, so it goes first. napari uses four of its functions (a line, a polygon,
+points in a polygon, a flood fill) and two colour conversions.
+
+### Tasks
+- [ ] `utils/_draw.py`: `line`, `polygon`, `points_in_poly`, `flood` in numpy, the same pixels in
+      the same order (`tests/test_draw.py` compares with scikit-image).
+- [ ] `utils/_colorconv.py`: `luv2rgb`, `lab2rgb` for D65 and the 2° observer
+      (`tests/test_colorconv.py`).
+- [ ] `[[rewrite]]` rules for `_shapes_utils.py`, `labels.py` and `colormap_utils.py`; the hand
+      edits in `_shapes_utils.py` go, the rules take over.
+- [ ] scikit-image moves to the `dev` extra (copied tests import it).
+- [ ] CI job `no-extras`: plain install, assert scikit-image, networkx, tifffile, wrapt are absent,
+      own tests pass.
+
+### Done when
+- [ ] Install about 570 MB and 37 packages in the benchmark environment; README table updated.
+
+---
+
+## 27 · scipy as an extra
+milestone: M6 Lighter install · labels: perf, vendored-fix · depends: {{26}}
+
+### Why
+134 MB for ten call sites. Six are a few lines of numpy; one needs scipy for real.
+
+### Tasks
+- [ ] `utils/_rotation.py`: Euler to matrix (extrinsic `xyz` for `canvas_to_world`, intrinsic
+      `XYZ` for the camera), matrix to Euler with scipy's gimbal-lock choice, quaternion to matrix
+      and back with scipy's algorithm for the sign; compared with scipy in the tests.
+- [ ] Affine decomposition: QR from `numpy.linalg.qr`, RQ from it by flipping; signs are
+      normalized by the copied code afterwards.
+- [ ] `gmean` in points masks; labels contours as shifted maxima and minima with scipy's
+      reflect boundary.
+- [ ] Tracks: the id-to-index map from `np.unique`, nearest track vertex by brute force.
+- [ ] Spline interpolation of shapes keeps `scipy.interpolate`, imported on use, with an
+      ImportError naming the `scipy` extra; `all` includes it.
+- [ ] Startup test: no `scipy` in a shown 3D viewer; `no-extras` job asserts `import scipy` fails.
+
+### Done when
+- [ ] Install about 435 MB and 36 packages; the first 3D view no longer stalls on scipy.spatial.
+
+---
+
+## 28 · pandas as the `features` extra
+milestone: M6 Lighter install · labels: perf, needs-decision · depends: {{27}}
+
+### Why
+63 MB, used for `layer.features`, which is a DataFrame by API. Go or no-go after 26 and 27 have
+shipped and been measured.
+
+### Tasks
+- [ ] A small own feature table (dict of numpy arrays) with the methods the text and colour
+      encodings call, held by Points, Shapes, Labels, Vectors and Tracks until features are given.
+- [ ] The first call with real features imports pandas and switches to a DataFrame; without
+      pandas it raises an ImportError naming the extra.
+- [ ] The copied feature and encoding tests are the guard; they run with pandas installed.
+
+### Done when
+- [ ] Layers without features need no pandas; install about 370 MB.
+
+---
+
+## 29 · Small dependencies and upstream asks
+milestone: M6 Lighter install · labels: perf, upstream · depends: {{26}}
+
+### Tasks
+- [ ] `pydantic-extra-types` replaced by an own `Color` in `utils/theme.py` (own code).
+- [ ] `toolz`: one decorator in `utils/transforms/transforms.py`.
+- [ ] `imageio` to an `io` extra with the command line's readers; Pillow stays (the labels polygon
+      tool draws with it).
+- [ ] Upstream: superqt makes pygments optional (8.7 MB); pint imports dask lazily (70 modules at
+      import when dask is installed); napari takes the xarray check, the numpy thumbnail zoom and
+      the `canvas_to_world` import placement, so the rules can be dropped after a resync.
+
+### Done when
+- [ ] Direct dependencies at 14 or fewer; install about 355 MB; README and benchmarks updated.

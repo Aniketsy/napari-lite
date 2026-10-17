@@ -23,9 +23,10 @@ classifiers = [
 ]
 # Every package below is imported by a copied module (VENDORED.json,
 # "third_party_imports").  dask, cachey and psutil are in the [dask] extra:
-# the core imports them only when the data is a dask array.  wrapt is
-# listed there too: a rewrite rule (tools/vendor.toml) puts
-# utils/_object_proxy.py in its place.
+# the core imports them only when the data is a dask array.  wrapt and
+# scikit-image are listed there too: rewrite rules (tools/vendor.toml) put
+# utils/_object_proxy.py, utils/_draw.py and utils/_colorconv.py in their
+# place.
 dependencies = [
     "numpy>=1.25",
     "scipy>=1.14.0",
@@ -48,8 +49,6 @@ dependencies = [
     # in a DataFrame, so it is needed as soon as one of them is created;
     # it is imported on first use
     "pandas>=1.5.0",
-    # scikit-image: shapes masks and triangle culling, imported on first use
-    "scikit-image>=0.20.0",
 ]
 
 [project.scripts]
@@ -87,6 +86,9 @@ dev = [
     "docstring_parser>=0.15",  # copied napari tests (utils/_test_utils.py)
     "xarray>=2023.5.0",  # copied napari tests import it at module level
     "zarr>=3.0.8",  # copied napari tests import it at module level
+    # copied napari tests import it; the comparison tests of utils/_draw.py
+    # and utils/_colorconv.py run against it
+    "scikit-image>=0.20.0",
     "matplotlib>=3.6.1",  # vispy's get_colormap falls back to matplotlib names
     "pydantic-settings",  # utils/events/debugging: event tracing for developers
     "napari-lite[dask]",  # the copied dask tests

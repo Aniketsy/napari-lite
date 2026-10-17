@@ -45,6 +45,39 @@ jobs:
       - name: Test (own tests and the copied napari tests)
         run: python -m pytest tests src/napari_lite
 
+  # The dependency tree itself: a plain ``pip install napari-lite[pyqt6]``
+  # must not bring the packages own code stands in for, and the own tests
+  # must pass against that install (the comparison tests skip without
+  # scikit-image; the matrix above runs them).
+  no-extras:
+    name: plain install, no extras
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: pip
+      - name: Setup headless display
+        uses: pyvista/setup-headless-display-action@v4
+        with:
+          qt: true
+      - name: Install napari-lite[pyqt6] and the test runner, nothing else
+        run: |
+          python -m pip install -U pip
+          python -m pip install .[pyqt6] pytest pytest-qt hypothesis
+      - name: Packages a plain install must not bring
+        shell: bash
+        run: |
+          for pkg in napari scikit-image networkx tifffile wrapt; do
+            if python -m pip show "$pkg" >/dev/null 2>&1; then
+              echo "$pkg comes with napari-lite[pyqt6]; it must not" >&2
+              exit 1
+            fi
+          done
+      - name: Own tests against the plain install
+        run: python -m pytest tests
+
   lint:
     runs-on: ubuntu-latest
     steps:

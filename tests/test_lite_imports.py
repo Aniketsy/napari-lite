@@ -17,7 +17,17 @@ import textwrap
 import pytest
 
 # Packages that must never be loaded by importing napari-lite's core.
-FORBIDDEN = {'napari', 'npe2', 'magicgui', 'lxml', 'app_model'}
+# wrapt and scikit-image are not dependencies any more (own code stands in
+# for what napari used from them); if installed, they must stay unused.
+FORBIDDEN = {
+    'napari',
+    'npe2',
+    'magicgui',
+    'lxml',
+    'app_model',
+    'wrapt',
+    'skimage',
+}
 
 # Imported one by one in a clean interpreter.
 MODULES = [
@@ -126,11 +136,11 @@ FIRST_IMAGE = textwrap.dedent(
     """
 )
 
-# Needed only for dask data (dask, cachey, psutil) or Labels colors and
-# Shapes masks (skimage): issue 18.  Dependencies may import them for their
-# own reasons (pint imports dask when it is installed); napari-lite's own
-# modules must not, before a dask array or a Labels layer shows up.
-ON_FIRST_USE = {'dask', 'cachey', 'psutil', 'skimage'}
+# Needed only for dask data (dask, cachey, psutil): issue 18.  Dependencies
+# may import them for their own reasons (pint imports dask when it is
+# installed); napari-lite's own modules must not, before a dask array
+# shows up.
+ON_FIRST_USE = {'dask', 'cachey', 'psutil'}
 
 
 def test_heavy_dependencies_wait_for_first_use() -> None:

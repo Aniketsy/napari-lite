@@ -47,8 +47,19 @@ FIRST_LABELS = textwrap.dedent(
 
     viewer = ViewerModel()
     viewer.add_image(np.zeros((4, 64, 64), dtype=np.uint8))
-    viewer.add_labels(np.zeros((4, 64, 64), dtype=np.int32))
+    labels = viewer.add_labels(np.zeros((4, 64, 64), dtype=np.int32))
     viewer.dims.set_current_step(0, 2)
+    # the fill tool, the label colours and the shapes masks used
+    # scikit-image; they are own code now
+    labels.selected_label = 3
+    labels.fill((2, 10, 10), 3)
+    shapes = viewer.add_shapes(
+        [np.array([[2, 5, 5], [2, 5, 40], [2, 40, 40]])],
+        shape_type='polygon',
+    )
+    shapes.add_paths([np.array([[2, 1, 1], [2, 20, 30], [2, 50, 10]])])
+    shapes.to_labels((4, 64, 64))
+    shapes.to_masks((4, 64, 64))
     """
 )
 
@@ -109,9 +120,11 @@ def test_first_image_imports_no_xarray_pandas_or_ndimage() -> None:
     assert not uninvited, f'the first image imported {sorted(uninvited)}'
 
 
-def test_labels_thumbnail_imports_no_ndimage() -> None:
+def test_labels_and_shapes_import_no_ndimage_or_scikit_image() -> None:
     loaded = loaded_modules(FIRST_LABELS)
-    assert 'scipy.ndimage' not in loaded
+    assert 'napari_lite.layers' in loaded
+    uninvited = {'scipy.ndimage', 'skimage', 'networkx', 'tifffile'} & loaded
+    assert not uninvited, f'labels and shapes imported {sorted(uninvited)}'
 
 
 def test_first_paint_in_2d_imports_no_scipy_spatial() -> None:
