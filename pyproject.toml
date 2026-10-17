@@ -51,6 +51,9 @@ dependencies = [
     "scikit-image>=0.20.0",
 ]
 
+[project.scripts]
+napari-lite = "napari_lite.__main__:main"
+
 [project.urls]
 Source = "https://github.com/Aniketsy/napari-lite"
 Changelog = "https://github.com/Aniketsy/napari-lite/blob/main/CHANGELOG.md"
