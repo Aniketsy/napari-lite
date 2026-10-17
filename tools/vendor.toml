@@ -98,3 +98,6 @@ data = [
 # callbacks; it recognizes them by module prefix.
 "self._is_core_callback(c, 'napari')" = "self._is_core_callback(c, 'napari_lite')"
 "self._is_core_callback(callback, 'napari')" = "self._is_core_callback(callback, 'napari_lite')"
+# layers/shapes/_shapes_models/_tests/test_shapes_models.py names the module
+# that provides the pure-python triangulation backend
+"TriangulationBackend.pure_python: 'napari'," = "TriangulationBackend.pure_python: 'napari_lite',"
