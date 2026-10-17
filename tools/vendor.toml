@@ -46,6 +46,8 @@ app_modules = [
     "napari.window",
     "napari.view_layers",
     "napari._event_loop",
+    # cache directory for the themed icons: a temp dir in napari-lite
+    "napari.utils._platformdirs",
 ]
 
 # Copied in addition to what the crawl reaches (issue 21 adds the layer
@@ -57,6 +59,16 @@ extra_modules = [
     # enums (LoopMode, LabelDTypes, ...) used by the copied code; the rest
     # of napari.settings is replaced by the own shim (issue 04)
     "napari.settings._constants",
+    # the layer list, the layer controls and the two button rows (issue 21)
+    "napari._qt.containers",
+    "napari._qt.layer_controls",
+    "napari._qt.widgets.qt_viewer_buttons",
+    "napari._qt.widgets.qt_viewer_dock_widget",
+    # their stylesheet and themed icons
+    "napari._qt.qt_resources",
+    "napari.resources",
+    # the layer operations behind the layer list's context menu
+    "napari.layers._layer_actions",
 ]
 
 # Never copied, never reported.  ``napari._tests`` holds napari's
@@ -86,6 +98,7 @@ data = [
     "resources/loading.gif",
     "resources/icon.ico",
     "resources/icon.icns",
+    "_qt/qt_resources/styles/*.qss",
 ]
 
 # Plain text substitutions applied after the ``napari`` -> ``napari_lite``

@@ -34,12 +34,13 @@
     "napari.viewer",
     "napari.window",
     "napari.view_layers",
-    "napari._event_loop"
+    "napari._event_loop",
+    "napari.utils._platformdirs"
   ],
   "modules_total": 556,
-  "modules_copied": 253,
-  "lines_copied": 76074,
-  "tests_copied": 169,
+  "modules_copied": 398,
+  "lines_copied": 93690,
+  "tests_copied": 212,
   "tests_skipped": {
     "napari._qt._tests.test_plugin_widgets": [
       "napari._qt._qplugins._qnpe2"
@@ -69,6 +70,12 @@
     "napari._qt._tests.test_viewer_qt_integration": [
       "napari._qt._tests.test_qt_viewer"
     ],
+    "napari._qt.containers._tests.test_qt_list": [
+      "napari.utils.events._tests.test_evented_list"
+    ],
+    "napari._qt.containers._tests.test_qt_tree": [
+      "napari.utils.events._tests.test_evented_list"
+    ],
     "napari._qt.dialogs._tests.test_about": [
       "napari._qt.dialogs.qt_about"
     ],
@@ -88,20 +95,8 @@
     "napari._qt.dialogs._tests.test_screenshot_dialog": [
       "napari._qt.dialogs.screenshot_dialog"
     ],
-    "napari._qt.widgets._tests.test_qt_buttons": [
-      "napari._qt.widgets.qt_mode_buttons"
-    ],
-    "napari._qt.widgets._tests.test_qt_color_swatch": [
-      "napari._qt.widgets.qt_color_swatch"
-    ],
     "napari._qt.widgets._tests.test_qt_command_palette": [
       "napari._qt.widgets.qt_command_palette"
-    ],
-    "napari._qt.widgets._tests.test_qt_dims_sorter": [
-      "napari._qt.widgets.qt_dims_sorter"
-    ],
-    "napari._qt.widgets._tests.test_qt_dock_widget": [
-      "napari._qt.widgets.qt_viewer_dock_widget"
     ],
     "napari._qt.widgets._tests.test_qt_extension2reader": [
       "napari._qt.widgets.qt_extension2reader"
@@ -109,34 +104,17 @@
     "napari._qt.widgets._tests.test_qt_highlight_preview": [
       "napari._qt.widgets.qt_highlight_preview"
     ],
-    "napari._qt.widgets._tests.test_qt_histogram": [
-      "napari._qt.widgets.qt_histogram",
-      "napari._qt.widgets.qt_histogram_content",
-      "napari._qt.widgets.qt_histogram_settings"
-    ],
     "napari._qt.widgets._tests.test_qt_logger": [
       "napari._qt.widgets.qt_logger"
     ],
     "napari._qt.widgets._tests.test_qt_progress_bar": [
       "napari._qt.widgets.qt_progress_bar"
     ],
-    "napari._qt.widgets._tests.test_qt_tooltip": [
-      "napari._qt.widgets.qt_tooltip"
-    ],
-    "napari._qt.widgets._tests.test_qt_viewer_buttons": [
-      "napari._qt.widgets.qt_viewer_buttons"
-    ],
     "napari._qt.widgets._tests.test_shortcut_editor_widget": [
       "napari._qt.widgets.qt_keyboard_settings"
     ],
-    "napari.layers._tests.test_layer_actions": [
-      "napari.layers._layer_actions"
-    ],
     "napari.layers.base._tests.test_base": [
       "napari.layers.base._test_util_sample_layer"
-    ],
-    "napari.utils._tests.test_appdirs": [
-      "napari.utils._platformdirs"
     ],
     "napari.utils._tests.test_history": [
       "napari.utils.history"
@@ -147,9 +125,6 @@
     "napari.utils._tests.test_startup_script": [
       "napari.utils._startup_script"
     ],
-    "napari.utils._tests.test_theme": [
-      "napari.resources._icons"
-    ],
     "napari.utils._tests.test_tips": [
       "napari.utils.tips"
     ],
@@ -157,12 +132,18 @@
       "napari.utils.events.migrations"
     ]
   },
-  "crossings_total": 41,
-  "app_modules_hit": 10,
+  "crossings_total": 65,
+  "app_modules_hit": 11,
   "crossings": {
     "napari.settings": {
+      "napari._qt.containers.qt_layer_model": "eager",
+      "napari._qt.layer_controls.qt_layer_controls_container": "eager",
+      "napari._qt.qt_resources": "eager",
       "napari._qt.widgets.qt_dims": "eager",
       "napari._qt.widgets.qt_dims_slider": "eager",
+      "napari._qt.widgets.qt_histogram": "eager",
+      "napari._qt.widgets.qt_viewer_buttons": "lazy",
+      "napari._qt.widgets.qt_viewer_dock_widget": "eager",
       "napari._vispy.canvas": "eager",
       "napari._vispy.layers.points": "eager",
       "napari._vispy.layers.shapes": "eager",
@@ -181,6 +162,14 @@
       "napari.utils.notifications": "lazy"
     },
     "napari.utils.action_manager": {
+      "napari._qt.layer_controls.dynamic.buttons.qt_layer_buttons_base": "eager",
+      "napari._qt.layer_controls.dynamic.buttons.qt_points_buttons": "eager",
+      "napari._qt.layer_controls.dynamic.buttons.qt_shapes_buttons": "eager",
+      "napari._qt.layer_controls.qt_layer_controls_base": "eager",
+      "napari._qt.layer_controls.qt_points_controls": "eager",
+      "napari._qt.layer_controls.qt_shapes_controls": "eager",
+      "napari._qt.layer_controls.widgets._image.qt_depiction_control": "eager",
+      "napari._qt.widgets.qt_viewer_buttons": "eager",
       "napari.components._viewer_key_bindings": "eager",
       "napari.components.viewer_model": "eager",
       "napari.layers.image._image_key_bindings": "eager",
@@ -188,11 +177,26 @@
       "napari.utils.key_bindings": "lazy"
     },
     "napari.utils.theme": {
+      "napari._qt.qt_resources": "lazy",
+      "napari._qt.qt_resources._svg": "lazy",
+      "napari._qt.widgets.qt_histogram": "eager",
       "napari._vispy.overlays.canvas_axes": "eager",
       "napari._vispy.overlays.scene_axes": "eager",
       "napari.components._viewer_key_bindings": "eager",
       "napari.components.canvas": "eager",
-      "napari.components.viewer_model": "eager"
+      "napari.components.viewer_model": "eager",
+      "napari.resources._icons": "lazy"
+    },
+    "napari._app_model": {
+      "napari._qt.containers._layer_delegate": "eager",
+      "napari._qt.qthreading": "lazy",
+      "napari._qt.widgets.qt_viewer_buttons": "eager",
+      "napari.components.layerlist": "lazy"
+    },
+    "napari._qt._qapp_model": {
+      "napari._qt.containers._layer_delegate": "eager",
+      "napari._qt.containers.qt_layer_list": "eager",
+      "napari._qt.qthreading": "lazy"
     },
     "napari.plugins": {
       "napari.components.layerlist": "lazy",
@@ -204,26 +208,64 @@
       "napari.layers.base.base": "eager",
       "napari.types": "lazy"
     },
-    "napari._app_model": {
-      "napari._qt.qthreading": "lazy",
-      "napari.components.layerlist": "lazy"
-    },
     "napari.viewer": {
       "napari._qt.qthreading": "eager",
+      "napari._qt.widgets.qt_viewer_dock_widget": "lazy",
       "napari.utils.io": "lazy"
-    },
-    "napari._qt._qapp_model": {
-      "napari._qt.qthreading": "lazy"
     },
     "napari._qt.qt_event_loop": {
       "napari.utils.io": "lazy"
     },
     "napari._qt.qt_main_window": {
       "napari._qt.utils": "lazy"
+    },
+    "napari.utils._platformdirs": {
+      "napari.resources._icons": "eager"
     }
   },
   "type_only_crossings": {},
   "importers_with_crossings": {
+    "napari._qt.containers._layer_delegate": [
+      "napari._app_model",
+      "napari._qt._qapp_model"
+    ],
+    "napari._qt.containers.qt_layer_list": [
+      "napari._qt._qapp_model"
+    ],
+    "napari._qt.containers.qt_layer_model": [
+      "napari.settings"
+    ],
+    "napari._qt.layer_controls.dynamic.buttons.qt_layer_buttons_base": [
+      "napari.utils.action_manager"
+    ],
+    "napari._qt.layer_controls.dynamic.buttons.qt_points_buttons": [
+      "napari.utils.action_manager"
+    ],
+    "napari._qt.layer_controls.dynamic.buttons.qt_shapes_buttons": [
+      "napari.utils.action_manager"
+    ],
+    "napari._qt.layer_controls.qt_layer_controls_base": [
+      "napari.utils.action_manager"
+    ],
+    "napari._qt.layer_controls.qt_layer_controls_container": [
+      "napari.settings"
+    ],
+    "napari._qt.layer_controls.qt_points_controls": [
+      "napari.utils.action_manager"
+    ],
+    "napari._qt.layer_controls.qt_shapes_controls": [
+      "napari.utils.action_manager"
+    ],
+    "napari._qt.layer_controls.widgets._image.qt_depiction_control": [
+      "napari.utils.action_manager"
+    ],
+    "napari._qt.qt_resources": [
+      "napari.settings",
+      "napari.utils.theme"
+    ],
+    "napari._qt.qt_resources._svg": [
+      "napari.utils.theme"
+    ],
     "napari._qt.qthreading": [
       "napari._app_model",
       "napari._qt._qapp_model",
@@ -238,6 +280,19 @@
     ],
     "napari._qt.widgets.qt_dims_slider": [
       "napari.settings"
+    ],
+    "napari._qt.widgets.qt_histogram": [
+      "napari.settings",
+      "napari.utils.theme"
+    ],
+    "napari._qt.widgets.qt_viewer_buttons": [
+      "napari._app_model",
+      "napari.settings",
+      "napari.utils.action_manager"
+    ],
+    "napari._qt.widgets.qt_viewer_dock_widget": [
+      "napari.settings",
+      "napari.viewer"
     ],
     "napari._vispy.canvas": [
       "napari.settings"
@@ -307,6 +362,10 @@
     "napari.layers.utils.layer_utils": [
       "napari.utils.action_manager"
     ],
+    "napari.resources._icons": [
+      "napari.utils._platformdirs",
+      "napari.utils.theme"
+    ],
     "napari.types": [
       "napari.utils._magicgui"
     ],
@@ -325,7 +384,22 @@
   "third_party_imports": {
     "numpy": [
       "napari._check_numpy_version",
+      "napari._qt.layer_controls.dynamic.widgets._labels.qt_brush_size_slider",
+      "napari._qt.layer_controls.dynamic.widgets._labels.qt_current_label_controls",
+      "napari._qt.layer_controls.dynamic.widgets._points.qt_current_size_slider",
+      "napari._qt.layer_controls.dynamic.widgets._shapes.qt_edge_width_slider",
+      "napari._qt.layer_controls.dynamic.widgets._vectors.qt_line_dimension_spinbox",
+      "napari._qt.layer_controls.dynamic.widgets.qt_contrast_limits",
+      "napari._qt.layer_controls.dynamic.widgets.qt_multiscale_level_control",
+      "napari._qt.layer_controls.widgets._labels.qt_brush_size_slider",
+      "napari._qt.layer_controls.widgets._labels.qt_label_color",
+      "napari._qt.layer_controls.widgets._points.qt_current_size_slider",
+      "napari._qt.layer_controls.widgets._shapes.qt_edge_width_slider",
+      "napari._qt.layer_controls.widgets._vectors.qt_line_dimension_spinbox",
+      "napari._qt.layer_controls.widgets.qt_contrast_limits",
+      "napari._qt.layer_controls.widgets.qt_multiscale_level_control",
       "napari._qt.utils",
+      "napari._qt.widgets.qt_color_swatch",
       "napari._qt.widgets.qt_dims",
       "napari._qt.widgets.qt_dims_slider",
       "napari._vispy.camera",
@@ -355,6 +429,7 @@
       "napari._vispy.visuals.axes",
       "napari._vispy.visuals.bounding_box",
       "napari._vispy.visuals.colorbar",
+      "napari._vispy.visuals.histogram",
       "napari._vispy.visuals.interaction_box",
       "napari._vispy.visuals.scale_bar",
       "napari.components._viewer_key_bindings",
@@ -368,6 +443,7 @@
       "napari.components.layerlist",
       "napari.components.overlays.interaction_box",
       "napari.components.viewer_model",
+      "napari.layers._layer_actions",
       "napari.layers._multiscale_data",
       "napari.layers._scalar_field._slice",
       "napari.layers._scalar_field.scalar_field",
@@ -450,7 +526,116 @@
       "napari.utils.transforms.transform_utils",
       "napari.utils.transforms.transforms"
     ],
+    "qtpy": [
+      "napari._qt.containers._base_item_model",
+      "napari._qt.containers._base_item_view",
+      "napari._qt.containers._layer_delegate",
+      "napari._qt.containers.qt_axis_model",
+      "napari._qt.containers.qt_layer_list",
+      "napari._qt.containers.qt_layer_model",
+      "napari._qt.containers.qt_list_model",
+      "napari._qt.containers.qt_list_view",
+      "napari._qt.containers.qt_tree_model",
+      "napari._qt.containers.qt_tree_view",
+      "napari._qt.dialogs.qt_modal",
+      "napari._qt.layer_controls.dynamic.buttons.qt_layer_buttons_base",
+      "napari._qt.layer_controls.dynamic.qt_dynamic_layer_controls",
+      "napari._qt.layer_controls.dynamic.widgets._image.qt_depiction_control",
+      "napari._qt.layer_controls.dynamic.widgets._image.qt_interpolation_combobox",
+      "napari._qt.layer_controls.dynamic.widgets._image.qt_render_control",
+      "napari._qt.layer_controls.dynamic.widgets._labels.qt_brush_size_slider",
+      "napari._qt.layer_controls.dynamic.widgets._labels.qt_contiguous_checkbox",
+      "napari._qt.layer_controls.dynamic.widgets._labels.qt_contour_spinbox",
+      "napari._qt.layer_controls.dynamic.widgets._labels.qt_current_label_controls",
+      "napari._qt.layer_controls.dynamic.widgets._labels.qt_display_selected_label_checkbox",
+      "napari._qt.layer_controls.dynamic.widgets._labels.qt_ndim_spinbox",
+      "napari._qt.layer_controls.dynamic.widgets._labels.qt_preserve_labels_checkbox",
+      "napari._qt.layer_controls.dynamic.widgets._points.qt_current_size_slider",
+      "napari._qt.layer_controls.dynamic.widgets._shapes.qt_edge_width_slider",
+      "napari._qt.layer_controls.dynamic.widgets._tracks.qt_color_properties_combobox",
+      "napari._qt.layer_controls.dynamic.widgets._tracks.qt_colormap_control",
+      "napari._qt.layer_controls.dynamic.widgets._tracks.qt_graph_checkbox",
+      "napari._qt.layer_controls.dynamic.widgets._tracks.qt_head_slider",
+      "napari._qt.layer_controls.dynamic.widgets._tracks.qt_hide_completed_tracks_checkbox",
+      "napari._qt.layer_controls.dynamic.widgets._tracks.qt_id_checkbox",
+      "napari._qt.layer_controls.dynamic.widgets._tracks.qt_tail_control",
+      "napari._qt.layer_controls.dynamic.widgets._vectors.qt_edge_color",
+      "napari._qt.layer_controls.dynamic.widgets._vectors.qt_line_dimension_spinbox",
+      "napari._qt.layer_controls.dynamic.widgets._vectors.qt_vector_style_combobox",
+      "napari._qt.layer_controls.dynamic.widgets.qt_colormap_control",
+      "napari._qt.layer_controls.dynamic.widgets.qt_contrast_limits",
+      "napari._qt.layer_controls.dynamic.widgets.qt_gamma_slider",
+      "napari._qt.layer_controls.dynamic.widgets.qt_histogram_control",
+      "napari._qt.layer_controls.dynamic.widgets.qt_multiscale_level_control",
+      "napari._qt.layer_controls.dynamic.widgets.qt_opacity_blending_controls",
+      "napari._qt.layer_controls.dynamic.widgets.qt_projection_mode_control",
+      "napari._qt.layer_controls.dynamic.widgets.qt_text_visibility",
+      "napari._qt.layer_controls.dynamic.widgets.qt_widget_controls_base",
+      "napari._qt.layer_controls.qt_layer_controls_base",
+      "napari._qt.layer_controls.qt_layer_controls_container",
+      "napari._qt.layer_controls.widgets._image.qt_depiction_control",
+      "napari._qt.layer_controls.widgets._image.qt_interpolation_combobox",
+      "napari._qt.layer_controls.widgets._image.qt_render_control",
+      "napari._qt.layer_controls.widgets._labels.qt_brush_size_slider",
+      "napari._qt.layer_controls.widgets._labels.qt_color_mode_combobox",
+      "napari._qt.layer_controls.widgets._labels.qt_contiguous_checkbox",
+      "napari._qt.layer_controls.widgets._labels.qt_contour_spinbox",
+      "napari._qt.layer_controls.widgets._labels.qt_display_selected_label_checkbox",
+      "napari._qt.layer_controls.widgets._labels.qt_label_color",
+      "napari._qt.layer_controls.widgets._labels.qt_ndim_spinbox",
+      "napari._qt.layer_controls.widgets._labels.qt_preserve_labels_checkbox",
+      "napari._qt.layer_controls.widgets._labels.qt_render_control",
+      "napari._qt.layer_controls.widgets._points.qt_border_color",
+      "napari._qt.layer_controls.widgets._points.qt_current_size_slider",
+      "napari._qt.layer_controls.widgets._points.qt_symbol_combobox",
+      "napari._qt.layer_controls.widgets._shapes.qt_edge_color",
+      "napari._qt.layer_controls.widgets._shapes.qt_edge_width_slider",
+      "napari._qt.layer_controls.widgets._surface.qt_shading_combobox",
+      "napari._qt.layer_controls.widgets._tracks.qt_color_properties_combobox",
+      "napari._qt.layer_controls.widgets._tracks.qt_colormap_control",
+      "napari._qt.layer_controls.widgets._tracks.qt_graph_checkbox",
+      "napari._qt.layer_controls.widgets._tracks.qt_head_slider",
+      "napari._qt.layer_controls.widgets._tracks.qt_hide_completed_tracks_checkbox",
+      "napari._qt.layer_controls.widgets._tracks.qt_id_checkbox",
+      "napari._qt.layer_controls.widgets._tracks.qt_tail_control",
+      "napari._qt.layer_controls.widgets._vectors.qt_edge_color",
+      "napari._qt.layer_controls.widgets._vectors.qt_line_dimension_spinbox",
+      "napari._qt.layer_controls.widgets._vectors.qt_vector_style_combobox",
+      "napari._qt.layer_controls.widgets.qt_colormap_control",
+      "napari._qt.layer_controls.widgets.qt_contrast_limits",
+      "napari._qt.layer_controls.widgets.qt_face_color",
+      "napari._qt.layer_controls.widgets.qt_gamma_slider",
+      "napari._qt.layer_controls.widgets.qt_histogram_control",
+      "napari._qt.layer_controls.widgets.qt_multiscale_level_control",
+      "napari._qt.layer_controls.widgets.qt_opacity_blending_controls",
+      "napari._qt.layer_controls.widgets.qt_projection_mode_control",
+      "napari._qt.layer_controls.widgets.qt_text_visibility",
+      "napari._qt.layer_controls.widgets.qt_widget_controls_base",
+      "napari._qt.qt_resources._svg",
+      "napari._qt.utils",
+      "napari._qt.widgets.qt_color_swatch",
+      "napari._qt.widgets.qt_dims",
+      "napari._qt.widgets.qt_dims_slider",
+      "napari._qt.widgets.qt_dims_sorter",
+      "napari._qt.widgets.qt_histogram",
+      "napari._qt.widgets.qt_histogram_content",
+      "napari._qt.widgets.qt_histogram_settings",
+      "napari._qt.widgets.qt_mirrored_sliders_popup",
+      "napari._qt.widgets.qt_mode_buttons",
+      "napari._qt.widgets.qt_scrollbar",
+      "napari._qt.widgets.qt_spinbox",
+      "napari._qt.widgets.qt_tooltip",
+      "napari._qt.widgets.qt_viewer_buttons",
+      "napari._qt.widgets.qt_viewer_dock_widget",
+      "napari._vispy",
+      "napari._vispy.utils.cursor",
+      "napari._vispy.utils.qt_font",
+      "napari._vispy.utils.text",
+      "napari._wayland_fix"
+    ],
     "vispy": [
+      "napari._qt.widgets.qt_color_swatch",
+      "napari._qt.widgets.qt_histogram",
       "napari._vispy",
       "napari._vispy.camera",
       "napari._vispy.canvas",
@@ -472,6 +657,7 @@
       "napari._vispy.visuals.bounding_box",
       "napari._vispy.visuals.clipping_planes_mixin",
       "napari._vispy.visuals.colorbar",
+      "napari._vispy.visuals.histogram",
       "napari._vispy.visuals.image",
       "napari._vispy.visuals.interaction_box",
       "napari._vispy.visuals.labels",
@@ -490,6 +676,44 @@
       "napari.utils.colormaps.standardize_color",
       "napari.utils.events.event",
       "napari.utils.key_bindings"
+    ],
+    "superqt": [
+      "napari._qt.layer_controls.dynamic.widgets._image.qt_depiction_control",
+      "napari._qt.layer_controls.dynamic.widgets._image.qt_render_control",
+      "napari._qt.layer_controls.dynamic.widgets._labels.qt_brush_size_slider",
+      "napari._qt.layer_controls.dynamic.widgets._labels.qt_color_mode_combobox",
+      "napari._qt.layer_controls.dynamic.widgets._labels.qt_contour_spinbox",
+      "napari._qt.layer_controls.dynamic.widgets._labels.qt_current_label_controls",
+      "napari._qt.layer_controls.dynamic.widgets._labels.qt_rendering_control",
+      "napari._qt.layer_controls.dynamic.widgets._points.qt_current_size_slider",
+      "napari._qt.layer_controls.dynamic.widgets._points.qt_symbol_combobox",
+      "napari._qt.layer_controls.dynamic.widgets._shapes.qt_edge_width_slider",
+      "napari._qt.layer_controls.dynamic.widgets._surface.qt_shading_combobox",
+      "napari._qt.layer_controls.dynamic.widgets._vectors.qt_vector_style_combobox",
+      "napari._qt.layer_controls.dynamic.widgets.qt_contrast_limits",
+      "napari._qt.layer_controls.dynamic.widgets.qt_gamma_slider",
+      "napari._qt.layer_controls.dynamic.widgets.qt_opacity_blending_controls",
+      "napari._qt.layer_controls.widgets._image.qt_depiction_control",
+      "napari._qt.layer_controls.widgets._image.qt_render_control",
+      "napari._qt.layer_controls.widgets._labels.qt_brush_size_slider",
+      "napari._qt.layer_controls.widgets._labels.qt_color_mode_combobox",
+      "napari._qt.layer_controls.widgets._labels.qt_contour_spinbox",
+      "napari._qt.layer_controls.widgets._labels.qt_label_color",
+      "napari._qt.layer_controls.widgets._labels.qt_render_control",
+      "napari._qt.layer_controls.widgets._points.qt_current_size_slider",
+      "napari._qt.layer_controls.widgets._points.qt_symbol_combobox",
+      "napari._qt.layer_controls.widgets._shapes.qt_edge_width_slider",
+      "napari._qt.layer_controls.widgets._surface.qt_shading_combobox",
+      "napari._qt.layer_controls.widgets._vectors.qt_vector_style_combobox",
+      "napari._qt.layer_controls.widgets.qt_contrast_limits",
+      "napari._qt.layer_controls.widgets.qt_gamma_slider",
+      "napari._qt.layer_controls.widgets.qt_opacity_blending_controls",
+      "napari._qt.qthreading",
+      "napari._qt.widgets.qt_dims_slider",
+      "napari._qt.widgets.qt_mirrored_sliders_popup",
+      "napari._qt.widgets.qt_viewer_buttons",
+      "napari._vispy.canvas",
+      "napari._vispy.layers.shapes"
     ],
     "pydantic": [
       "napari._pydantic_util",
@@ -522,19 +746,6 @@
       "napari.utils.events.debugging",
       "napari.utils.events.evented_model",
       "napari.utils.mouse_bindings"
-    ],
-    "qtpy": [
-      "napari._qt.dialogs.qt_modal",
-      "napari._qt.utils",
-      "napari._qt.widgets.qt_dims",
-      "napari._qt.widgets.qt_dims_slider",
-      "napari._qt.widgets.qt_mirrored_sliders_popup",
-      "napari._qt.widgets.qt_scrollbar",
-      "napari._vispy",
-      "napari._vispy.utils.cursor",
-      "napari._vispy.utils.qt_font",
-      "napari._vispy.utils.text",
-      "napari._wayland_fix"
     ],
     "pint": [
       "napari._vispy.layers.base",
@@ -588,23 +799,17 @@
       "napari.utils.events.containers._evented_dict",
       "napari.utils.transforms.transforms"
     ],
-    "superqt": [
-      "napari._qt.qthreading",
-      "napari._qt.widgets.qt_dims_slider",
-      "napari._qt.widgets.qt_mirrored_sliders_popup",
-      "napari._vispy.canvas",
-      "napari._vispy.layers.shapes"
+    "dask": [
+      "napari.components.histogram",
+      "napari.layers._layer_actions",
+      "napari.layers.utils.layer_utils",
+      "napari.layers.utils.stack_utils"
     ],
     "magicgui": [
       "napari._qt.qthreading",
       "napari.layers._source",
       "napari.layers.base.base",
       "napari.types"
-    ],
-    "dask": [
-      "napari.components.histogram",
-      "napari.layers.utils.layer_utils",
-      "napari.layers.utils.stack_utils"
     ],
     "numba": [
       "napari.layers.shapes._accelerated_triangulate_numba",
@@ -688,15 +893,153 @@
   "copied_modules": [
     "napari._check_numpy_version",
     "napari._pydantic_util",
+    "napari._qt.containers",
+    "napari._qt.containers._base_item_model",
+    "napari._qt.containers._base_item_view",
+    "napari._qt.containers._factory",
+    "napari._qt.containers._layer_delegate",
+    "napari._qt.containers.qt_axis_model",
+    "napari._qt.containers.qt_layer_list",
+    "napari._qt.containers.qt_layer_model",
+    "napari._qt.containers.qt_list_model",
+    "napari._qt.containers.qt_list_view",
+    "napari._qt.containers.qt_tree_model",
+    "napari._qt.containers.qt_tree_view",
     "napari._qt.dialogs",
     "napari._qt.dialogs.qt_modal",
+    "napari._qt.layer_controls",
+    "napari._qt.layer_controls.dynamic",
+    "napari._qt.layer_controls.dynamic.buttons",
+    "napari._qt.layer_controls.dynamic.buttons.qt_image_buttons",
+    "napari._qt.layer_controls.dynamic.buttons.qt_labels_buttons",
+    "napari._qt.layer_controls.dynamic.buttons.qt_layer_buttons_base",
+    "napari._qt.layer_controls.dynamic.buttons.qt_points_buttons",
+    "napari._qt.layer_controls.dynamic.buttons.qt_shapes_buttons",
+    "napari._qt.layer_controls.dynamic.buttons.qt_surface_buttons",
+    "napari._qt.layer_controls.dynamic.buttons.qt_tracks_buttons",
+    "napari._qt.layer_controls.dynamic.buttons.qt_vectors_buttons",
+    "napari._qt.layer_controls.dynamic.qt_dynamic_layer_controls",
+    "napari._qt.layer_controls.dynamic.widgets",
+    "napari._qt.layer_controls.dynamic.widgets._image",
+    "napari._qt.layer_controls.dynamic.widgets._image.qt_depiction_control",
+    "napari._qt.layer_controls.dynamic.widgets._image.qt_interpolation_combobox",
+    "napari._qt.layer_controls.dynamic.widgets._image.qt_render_control",
+    "napari._qt.layer_controls.dynamic.widgets._labels",
+    "napari._qt.layer_controls.dynamic.widgets._labels.qt_brush_size_slider",
+    "napari._qt.layer_controls.dynamic.widgets._labels.qt_color_mode_combobox",
+    "napari._qt.layer_controls.dynamic.widgets._labels.qt_contiguous_checkbox",
+    "napari._qt.layer_controls.dynamic.widgets._labels.qt_contour_spinbox",
+    "napari._qt.layer_controls.dynamic.widgets._labels.qt_current_label_controls",
+    "napari._qt.layer_controls.dynamic.widgets._labels.qt_display_selected_label_checkbox",
+    "napari._qt.layer_controls.dynamic.widgets._labels.qt_ndim_spinbox",
+    "napari._qt.layer_controls.dynamic.widgets._labels.qt_preserve_labels_checkbox",
+    "napari._qt.layer_controls.dynamic.widgets._labels.qt_rendering_control",
+    "napari._qt.layer_controls.dynamic.widgets._points",
+    "napari._qt.layer_controls.dynamic.widgets._points.qt_border_color",
+    "napari._qt.layer_controls.dynamic.widgets._points.qt_current_size_slider",
+    "napari._qt.layer_controls.dynamic.widgets._points.qt_symbol_combobox",
+    "napari._qt.layer_controls.dynamic.widgets._shapes",
+    "napari._qt.layer_controls.dynamic.widgets._shapes.qt_edge_color",
+    "napari._qt.layer_controls.dynamic.widgets._shapes.qt_edge_width_slider",
+    "napari._qt.layer_controls.dynamic.widgets._surface",
+    "napari._qt.layer_controls.dynamic.widgets._surface.qt_shading_combobox",
+    "napari._qt.layer_controls.dynamic.widgets._tracks",
+    "napari._qt.layer_controls.dynamic.widgets._tracks.qt_color_properties_combobox",
+    "napari._qt.layer_controls.dynamic.widgets._tracks.qt_colormap_control",
+    "napari._qt.layer_controls.dynamic.widgets._tracks.qt_graph_checkbox",
+    "napari._qt.layer_controls.dynamic.widgets._tracks.qt_head_slider",
+    "napari._qt.layer_controls.dynamic.widgets._tracks.qt_hide_completed_tracks_checkbox",
+    "napari._qt.layer_controls.dynamic.widgets._tracks.qt_id_checkbox",
+    "napari._qt.layer_controls.dynamic.widgets._tracks.qt_tail_control",
+    "napari._qt.layer_controls.dynamic.widgets._vectors",
+    "napari._qt.layer_controls.dynamic.widgets._vectors.qt_edge_color",
+    "napari._qt.layer_controls.dynamic.widgets._vectors.qt_line_dimension_spinbox",
+    "napari._qt.layer_controls.dynamic.widgets._vectors.qt_vector_style_combobox",
+    "napari._qt.layer_controls.dynamic.widgets.qt_colormap_control",
+    "napari._qt.layer_controls.dynamic.widgets.qt_contrast_limits",
+    "napari._qt.layer_controls.dynamic.widgets.qt_face_color",
+    "napari._qt.layer_controls.dynamic.widgets.qt_gamma_slider",
+    "napari._qt.layer_controls.dynamic.widgets.qt_histogram_control",
+    "napari._qt.layer_controls.dynamic.widgets.qt_multiscale_level_control",
+    "napari._qt.layer_controls.dynamic.widgets.qt_opacity_blending_controls",
+    "napari._qt.layer_controls.dynamic.widgets.qt_projection_mode_control",
+    "napari._qt.layer_controls.dynamic.widgets.qt_text_visibility",
+    "napari._qt.layer_controls.dynamic.widgets.qt_widget_controls_base",
+    "napari._qt.layer_controls.qt_image_controls",
+    "napari._qt.layer_controls.qt_image_controls_base",
+    "napari._qt.layer_controls.qt_labels_controls",
+    "napari._qt.layer_controls.qt_layer_controls_base",
+    "napari._qt.layer_controls.qt_layer_controls_container",
+    "napari._qt.layer_controls.qt_points_controls",
+    "napari._qt.layer_controls.qt_shapes_controls",
+    "napari._qt.layer_controls.qt_surface_controls",
+    "napari._qt.layer_controls.qt_tracks_controls",
+    "napari._qt.layer_controls.qt_vectors_controls",
+    "napari._qt.layer_controls.widgets",
+    "napari._qt.layer_controls.widgets._image",
+    "napari._qt.layer_controls.widgets._image.qt_depiction_control",
+    "napari._qt.layer_controls.widgets._image.qt_interpolation_combobox",
+    "napari._qt.layer_controls.widgets._image.qt_render_control",
+    "napari._qt.layer_controls.widgets._labels",
+    "napari._qt.layer_controls.widgets._labels.qt_brush_size_slider",
+    "napari._qt.layer_controls.widgets._labels.qt_color_mode_combobox",
+    "napari._qt.layer_controls.widgets._labels.qt_contiguous_checkbox",
+    "napari._qt.layer_controls.widgets._labels.qt_contour_spinbox",
+    "napari._qt.layer_controls.widgets._labels.qt_display_selected_label_checkbox",
+    "napari._qt.layer_controls.widgets._labels.qt_label_color",
+    "napari._qt.layer_controls.widgets._labels.qt_ndim_spinbox",
+    "napari._qt.layer_controls.widgets._labels.qt_preserve_labels_checkbox",
+    "napari._qt.layer_controls.widgets._labels.qt_render_control",
+    "napari._qt.layer_controls.widgets._points",
+    "napari._qt.layer_controls.widgets._points.qt_border_color",
+    "napari._qt.layer_controls.widgets._points.qt_current_size_slider",
+    "napari._qt.layer_controls.widgets._points.qt_symbol_combobox",
+    "napari._qt.layer_controls.widgets._shapes",
+    "napari._qt.layer_controls.widgets._shapes.qt_edge_color",
+    "napari._qt.layer_controls.widgets._shapes.qt_edge_width_slider",
+    "napari._qt.layer_controls.widgets._surface",
+    "napari._qt.layer_controls.widgets._surface.qt_shading_combobox",
+    "napari._qt.layer_controls.widgets._tracks",
+    "napari._qt.layer_controls.widgets._tracks.qt_color_properties_combobox",
+    "napari._qt.layer_controls.widgets._tracks.qt_colormap_control",
+    "napari._qt.layer_controls.widgets._tracks.qt_graph_checkbox",
+    "napari._qt.layer_controls.widgets._tracks.qt_head_slider",
+    "napari._qt.layer_controls.widgets._tracks.qt_hide_completed_tracks_checkbox",
+    "napari._qt.layer_controls.widgets._tracks.qt_id_checkbox",
+    "napari._qt.layer_controls.widgets._tracks.qt_tail_control",
+    "napari._qt.layer_controls.widgets._vectors",
+    "napari._qt.layer_controls.widgets._vectors.qt_edge_color",
+    "napari._qt.layer_controls.widgets._vectors.qt_line_dimension_spinbox",
+    "napari._qt.layer_controls.widgets._vectors.qt_vector_style_combobox",
+    "napari._qt.layer_controls.widgets.qt_colormap_control",
+    "napari._qt.layer_controls.widgets.qt_contrast_limits",
+    "napari._qt.layer_controls.widgets.qt_face_color",
+    "napari._qt.layer_controls.widgets.qt_gamma_slider",
+    "napari._qt.layer_controls.widgets.qt_histogram_control",
+    "napari._qt.layer_controls.widgets.qt_multiscale_level_control",
+    "napari._qt.layer_controls.widgets.qt_opacity_blending_controls",
+    "napari._qt.layer_controls.widgets.qt_projection_mode_control",
+    "napari._qt.layer_controls.widgets.qt_text_visibility",
+    "napari._qt.layer_controls.widgets.qt_widget_controls_base",
+    "napari._qt.qt_resources",
+    "napari._qt.qt_resources._svg",
     "napari._qt.qthreading",
     "napari._qt.utils",
     "napari._qt.widgets",
+    "napari._qt.widgets.qt_color_swatch",
     "napari._qt.widgets.qt_dims",
     "napari._qt.widgets.qt_dims_slider",
+    "napari._qt.widgets.qt_dims_sorter",
+    "napari._qt.widgets.qt_histogram",
+    "napari._qt.widgets.qt_histogram_content",
+    "napari._qt.widgets.qt_histogram_settings",
     "napari._qt.widgets.qt_mirrored_sliders_popup",
+    "napari._qt.widgets.qt_mode_buttons",
     "napari._qt.widgets.qt_scrollbar",
+    "napari._qt.widgets.qt_spinbox",
+    "napari._qt.widgets.qt_tooltip",
+    "napari._qt.widgets.qt_viewer_buttons",
+    "napari._qt.widgets.qt_viewer_dock_widget",
     "napari._vispy",
     "napari._vispy.camera",
     "napari._vispy.canvas",
@@ -738,6 +1081,7 @@
     "napari._vispy.visuals.bounding_box",
     "napari._vispy.visuals.clipping_planes_mixin",
     "napari._vispy.visuals.colorbar",
+    "napari._vispy.visuals.histogram",
     "napari._vispy.visuals.image",
     "napari._vispy.visuals.interaction_box",
     "napari._vispy.visuals.labels",
@@ -786,6 +1130,7 @@
     "napari.errors.reader_errors",
     "napari.layers",
     "napari.layers._data_protocols",
+    "napari.layers._layer_actions",
     "napari.layers._multiscale_data",
     "napari.layers._scalar_field",
     "napari.layers._scalar_field._slice",
@@ -874,6 +1219,8 @@
     "napari.layers.vectors._vectors_constants",
     "napari.layers.vectors._vectors_key_bindings",
     "napari.layers.vectors.vectors",
+    "napari.resources",
+    "napari.resources._icons",
     "napari.settings._constants",
     "napari.types",
     "napari.utils._dtype",
@@ -937,6 +1284,9 @@
     "napari.utils.transforms._units",
     "napari.utils.transforms.transform_utils",
     "napari.utils.transforms.transforms",
+    "napari.utils.tree",
+    "napari.utils.tree.group",
+    "napari.utils.tree.node",
     "napari.utils.triangulation_backend",
     "napari.utils.validators"
   ],
@@ -952,15 +1302,54 @@
     "napari._qt._tests.test_qt_viewer_2",
     "napari._qt._tests.test_sigint_interupt",
     "napari._qt._tests.test_viewer_leaking_layers",
+    "napari._qt.containers._tests.test_factory",
+    "napari._qt.containers._tests.test_qt_axis_list",
+    "napari._qt.containers._tests.test_qt_layer_list",
     "napari._qt.dialogs._tests",
     "napari._qt.dialogs._tests.test_qt_modal",
+    "napari._qt.layer_controls._tests",
+    "napari._qt.layer_controls._tests.test_qt_controls_container",
+    "napari._qt.layer_controls._tests.test_qt_histogram_control",
+    "napari._qt.layer_controls._tests.test_qt_image_base_layer_",
+    "napari._qt.layer_controls._tests.test_qt_image_layer",
+    "napari._qt.layer_controls._tests.test_qt_labels_layer",
+    "napari._qt.layer_controls._tests.test_qt_layer_controls",
+    "napari._qt.layer_controls._tests.test_qt_multiscale_level_control",
+    "napari._qt.layer_controls._tests.test_qt_points_layer",
+    "napari._qt.layer_controls._tests.test_qt_shapes_layer",
+    "napari._qt.layer_controls._tests.test_qt_surface_layer",
+    "napari._qt.layer_controls._tests.test_qt_tracks_layer",
+    "napari._qt.layer_controls._tests.test_qt_vectors_layer",
+    "napari._qt.layer_controls._tests.test_qt_widget_controls_layout",
+    "napari._qt.layer_controls.dynamic._tests",
+    "napari._qt.layer_controls.dynamic._tests.conftest",
+    "napari._qt.layer_controls.dynamic._tests.test_buttons",
+    "napari._qt.layer_controls.dynamic._tests.test_dynamic_panel",
+    "napari._qt.layer_controls.dynamic._tests.test_general_widgets",
+    "napari._qt.layer_controls.dynamic._tests.test_image_widgets",
+    "napari._qt.layer_controls.dynamic._tests.test_labels_widgets",
+    "napari._qt.layer_controls.dynamic._tests.test_points_widgets",
+    "napari._qt.layer_controls.dynamic._tests.test_shapes_widgets",
+    "napari._qt.layer_controls.dynamic._tests.test_surface_widgets",
+    "napari._qt.layer_controls.dynamic._tests.test_tracks_widgets",
+    "napari._qt.layer_controls.dynamic._tests.test_vectors_layers",
+    "napari._qt.layer_controls.dynamic._tests.test_widget_controls_layout",
+    "napari._qt.qt_resources._tests.test_icons",
+    "napari._qt.qt_resources._tests.test_svg",
     "napari._qt.widgets._tests",
     "napari._qt.widgets._tests.conftest",
+    "napari._qt.widgets._tests.test_qt_buttons",
+    "napari._qt.widgets._tests.test_qt_color_swatch",
     "napari._qt.widgets._tests.test_qt_dims",
     "napari._qt.widgets._tests.test_qt_dims_2",
     "napari._qt.widgets._tests.test_qt_dims_slider",
+    "napari._qt.widgets._tests.test_qt_dims_sorter",
+    "napari._qt.widgets._tests.test_qt_dock_widget",
+    "napari._qt.widgets._tests.test_qt_histogram",
     "napari._qt.widgets._tests.test_qt_play",
     "napari._qt.widgets._tests.test_qt_scrollbar",
+    "napari._qt.widgets._tests.test_qt_tooltip",
+    "napari._qt.widgets._tests.test_qt_viewer_buttons",
     "napari._tests.utils",
     "napari._vispy._tests.test_canvas",
     "napari._vispy._tests.test_image_rendering",
@@ -1017,6 +1406,7 @@
     "napari.layers._tests._utils",
     "napari.layers._tests.test_dask_layers",
     "napari.layers._tests.test_data_protocol",
+    "napari.layers._tests.test_layer_actions",
     "napari.layers._tests.test_layer_attributes",
     "napari.layers._tests.test_serialize",
     "napari.layers._tests.test_source",
@@ -1068,6 +1458,7 @@
     "napari.layers.vectors._tests.test_vectors",
     "napari.utils._tests",
     "napari.utils._tests.test_action_manager",
+    "napari.utils._tests.test_appdirs",
     "napari.utils._tests.test_camera_orientations",
     "napari.utils._tests.test_color",
     "napari.utils._tests.test_compat",
@@ -1087,6 +1478,7 @@
     "napari.utils._tests.test_register",
     "napari.utils._tests.test_status",
     "napari.utils._tests.test_task_status",
+    "napari.utils._tests.test_theme",
     "napari.utils._tests.test_validators",
     "napari.utils._tests.test_xarray_utils",
     "napari.utils.colormaps._tests",
@@ -1109,7 +1501,8 @@
     "napari.utils.events._tests.test_typed_list",
     "napari.utils.transforms._tests.test_transform_chain",
     "napari.utils.transforms._tests.test_transform_utils",
-    "napari.utils.transforms._tests.test_transforms"
+    "napari.utils.transforms._tests.test_transforms",
+    "napari.utils.tree._tests.test_tree_model"
   ],
   "own_code_kept": []
 }
