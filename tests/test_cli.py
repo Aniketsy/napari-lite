@@ -65,8 +65,52 @@ def test_labels_and_options(qtbot, tmp_path, viewers) -> None:
     assert viewer.title == 'cells'
 
 
-def test_missing_file(qtbot) -> None:
+def test_missing_file(capsys) -> None:
     from napari_lite.__main__ import main
 
-    with pytest.raises(FileNotFoundError):
+    with pytest.raises(SystemExit) as info:
         main(['no-such-file.png'], run=False)
+    assert info.value.code == 2
+    assert 'no such file: no-such-file.png' in capsys.readouterr().err
+
+
+def test_unreadable_file(tmp_path, capsys) -> None:
+    from napari_lite.__main__ import main
+
+    notes = tmp_path / 'notes.txt'
+    notes.write_text('not an image', encoding='utf-8')
+    with pytest.raises(SystemExit) as info:
+        main([str(notes)], run=False)
+    assert info.value.code == 2
+    err = capsys.readouterr().err
+    assert f'cannot read {notes}' in err
+    assert 'Traceback' not in err
+
+
+def test_missing_file_from_the_command_line() -> None:
+    proc = subprocess.run(
+        [sys.executable, '-m', 'napari_lite', 'no-such-file.png'],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert proc.returncode == 2
+    assert 'no such file: no-such-file.png' in proc.stderr
+    assert 'Traceback' not in proc.stderr
+
+
+def test_cli_returns_none_so_the_command_exits_with_status_0(
+    qtbot, tmp_path, monkeypatch
+) -> None:
+    import napari_lite
+    from napari_lite.__main__ import cli
+
+    ran = []
+    monkeypatch.setattr(napari_lite, 'run', lambda: ran.append(True))
+    npy = tmp_path / 'cells.npy'
+    np.save(npy, np.zeros((8, 8), dtype=np.uint8))
+    try:
+        assert cli([str(npy)]) is None
+    finally:
+        napari_lite.Viewer.close_all()
+    assert ran == [True]

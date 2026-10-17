@@ -15,14 +15,13 @@ otherwise.  Anything else: load it in Python and call ``add_image``.
 from __future__ import annotations
 
 import argparse
-import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from napari_lite.viewer import Viewer
 
-__all__ = ['load', 'main']
+__all__ = ['cli', 'load', 'main']
 
 
 def load(path: str | Path) -> Any:
@@ -54,7 +53,11 @@ def load(path: str | Path) -> Any:
 
 def main(argv: list[str] | None = None, *, run: bool = True) -> Viewer:
     """Parse ``argv``, open the viewer, start the event loop (unless
-    ``run`` is False) and return the viewer."""
+    ``run`` is False) and return the viewer.
+
+    A file that does not exist or that no reader can open ends the program
+    with a message and exit status 2, before any window opens.
+    """
     parser = argparse.ArgumentParser(
         prog='napari-lite',
         description='Open a napari-lite viewer, optionally with files.',
@@ -75,12 +78,20 @@ def main(argv: list[str] | None = None, *, run: bool = True) -> Viewer:
     parser.add_argument('--title', default='napari-lite', help='window title')
     args = parser.parse_args(argv)
 
+    loaded: list[tuple[str, Any]] = []
+    for path in args.paths:
+        try:
+            loaded.append((Path(path).stem, load(path)))
+        except FileNotFoundError:
+            parser.error(f'no such file: {path}')
+        except (OSError, ValueError) as exc:
+            # how imageio, numpy and tifffile report a file they cannot read
+            parser.error(f'cannot read {path}: {exc}')
+
     import napari_lite
 
     viewer = napari_lite.Viewer(title=args.title, ndisplay=args.ndisplay)
-    for path in args.paths:
-        data = load(path)
-        name = Path(path).stem
+    for name, data in loaded:
         if args.labels:
             viewer.add_labels(data, name=name)
         elif isinstance(data, list):
@@ -88,12 +99,18 @@ def main(argv: list[str] | None = None, *, run: bool = True) -> Viewer:
                 viewer.add_image(item, name=f'{name}[{i}]')
         else:
             viewer.add_image(data, name=name)
-    if args.paths:
+    if loaded:
         viewer.reset_view()
     if run:
         napari_lite.run()
     return viewer
 
 
+def cli(argv: list[str] | None = None) -> None:
+    """The ``napari-lite`` command: ``main`` without the returned viewer,
+    so that the console-script wrapper's ``sys.exit`` reports success."""
+    main(argv)
+
+
 if __name__ == '__main__':
-    sys.exit(0 if main() else 1)
+    cli()

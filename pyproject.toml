@@ -49,7 +49,7 @@ dependencies = [
 ]
 
 [project.scripts]
-napari-lite = "napari_lite.__main__:main"
+napari-lite = "napari_lite.__main__:cli"
 
 [project.urls]
 Source = "https://github.com/Aniketsy/napari-lite"
