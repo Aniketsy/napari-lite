@@ -67,6 +67,24 @@ are guessed, the channel axis never): [docs/design.md](docs/design.md).
 Where napari is installed, `tests/test_visual_napari.py` renders every
 layer type in 2D and 3D with both packages and compares the images.
 
+## napari vs napari-lite in numbers
+
+Both installed with `pip install <package>[pyqt6]` into fresh
+environments, napari from the same commit the copy was taken from; one
+Windows machine, so read the ratios ([details and the CI numbers on three
+OSes](docs/benchmarks.md)).
+
+| | napari-lite | napari |
+|---|---|---|
+| `import` the package | 0.01 s | 0.21 s |
+| first image (`ViewerModel` + `add_image`) | 2.1 s | 3.3 s |
+| viewer window shown with an image | 4.1 s | 6.1 s |
+| memory with a viewer window shown | 236 MB | 276 MB |
+| installed size | 607 MB | 761 MB |
+| packages installed | 41 | 106 |
+| direct dependencies | 20 | 37 |
+| Python modules in the package | 286 | 524 |
+
 ## Planned
 
 - Opt-in [layer list](https://napari.org/stable/getting_started/viewer.html#layer-list)
