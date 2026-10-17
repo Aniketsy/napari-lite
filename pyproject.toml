@@ -85,6 +85,7 @@ dev = [
     "matplotlib>=3.6.1",  # vispy's get_colormap falls back to matplotlib names
     "pydantic-settings",  # utils/events/debugging: event tracing for developers
     "napari-lite[dask]",  # the copied dask tests
+    "npe2>=0.9.0",  # two copied test modules import it (their plugin tests skip)
     "ruff",
 ]
 
