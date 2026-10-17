@@ -114,7 +114,9 @@ assert table.properties() == {} and table.choices() == {} and table.currents() =
 
 viewer = ViewerModel()
 rng = np.random.default_rng(0)
-points = viewer.add_points(rng.random((20, 3)) * 10, text='hello', size=3)
+points = viewer.add_points(
+    rng.random((20, 3)) * 10, text={'string': {'constant': 'hello'}}, size=3
+)
 points.add([1.0, 2.0, 3.0])
 points.selected_data = {0, 1}
 points.remove_selected()
@@ -141,6 +143,8 @@ assert points.features is features
 features['x'] = np.arange(19)
 assert list(points.features.columns) == ['x']
 assert isinstance(points.feature_defaults, pd.DataFrame)
+assert points.feature_defaults.shape == (1, 0)  # as napari: in-place edits
+points.features = {'x': np.arange(19)}
 assert points.feature_defaults.shape == (1, 1)
 assert isinstance(points.as_layer_data_tuple()[1]['features'], pd.DataFrame)
 points.add([5.0, 5.0, 5.0])
@@ -188,7 +192,7 @@ import numpy as np
 from napari_lite.layers import Points, Labels, Tracks
 from napari_lite.layers.utils._lite_features import LiteFeatures
 
-points = Points(np.zeros((4, 2)), text='hello')
+points = Points(np.zeros((4, 2)), text={'string': {'constant': 'hello'}})
 points.add([1.0, 1.0])
 labels = Labels(np.zeros((8, 8), dtype=np.int32))
 labels.fill((2, 2), 3)

@@ -48,8 +48,9 @@ def pandas() -> Any:
 
 def available() -> bool:
     """Whether pandas can be imported, without importing it."""
+    # a None entry in sys.modules is how a blocked package looks
     return (
-        'pandas' in sys.modules
+        sys.modules.get('pandas') is not None
         or importlib.util.find_spec('pandas') is not None
     )
 
@@ -287,7 +288,7 @@ def use_lite(features: Any) -> bool:
     input has no columns and pandas has not been imported by anyone."""
     if isinstance(features, LiteFeatures):
         return True
-    if 'pandas' in sys.modules:
+    if sys.modules.get('pandas') is not None:
         return False
     return features is None or (
         isinstance(features, dict) and len(features) == 0
