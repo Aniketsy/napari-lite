@@ -16,8 +16,8 @@ from collections.abc import Iterable
 from typing import Any, Literal
 
 from pydantic import field_validator
-from pydantic_extra_types.color import Color
 
+from napari_lite.utils._color import Color
 from napari_lite.utils.events import EventedModel
 from napari_lite.utils.events.containers._evented_dict import EventedDict
 

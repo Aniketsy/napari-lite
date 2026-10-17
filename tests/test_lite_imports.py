@@ -17,8 +17,10 @@ import textwrap
 import pytest
 
 # Packages that must never be loaded by importing napari-lite's core.
-# wrapt and scikit-image are not dependencies any more (own code stands in
-# for what napari used from them); if installed, they must stay unused.
+# wrapt, scikit-image and pydantic-extra-types are not dependencies any
+# more (own code stands in for what napari used from them); if installed,
+# they must stay unused.  (toolz and scipy are not listed: pint imports
+# scipy, and dask toolz, when they are installed.)
 FORBIDDEN = {
     'napari',
     'npe2',
@@ -27,6 +29,7 @@ FORBIDDEN = {
     'app_model',
     'wrapt',
     'skimage',
+    'pydantic_extra_types',
 }
 
 # Imported one by one in a clean interpreter.

@@ -24,11 +24,12 @@ classifiers = [
 # Every package below is imported by a copied module (VENDORED.json,
 # "third_party_imports").  dask, cachey and psutil are in the [dask] extra:
 # the core imports them only when the data is a dask array.  wrapt,
-# scikit-image and scipy are listed there too: rewrite rules
-# (tools/vendor.toml) put own numpy code in their place
-# (utils/_object_proxy.py, _draw.py, _colorconv.py, _rotation.py,
-# _linalg.py, _morphology.py, _tracks_index.py); scipy stays an extra for
-# spline-interpolated shapes.
+# scikit-image, scipy and toolz are listed there too: rewrite rules
+# (tools/vendor.toml) put own code in their place (utils/_object_proxy.py,
+# _draw.py, _colorconv.py, _rotation.py, _linalg.py, _morphology.py,
+# _tracks_index.py, _toolz.py); scipy stays an extra for spline-interpolated
+# shapes.  pydantic-extra-types' Color, used by the own utils/theme.py, is
+# copied into utils/_color.py.
 dependencies = [
     "numpy>=1.25",
     "vispy>=0.17.0,<0.18",
@@ -37,13 +38,11 @@ dependencies = [
     "superqt>=0.7.8",
     "psygnal>=0.14.2",
     "pydantic>=2.8.0",
-    "pydantic-extra-types",  # Color in utils/theme.py
     "pint>=0.17",
     "Pillow>=10.0",
     "imageio>=2.20,!=2.22.1",
     "lazy_loader>=0.3",
     "packaging",
-    "toolz>=0.12.1",
     "tqdm>=4.56.0",
     "typing_extensions>=4.12",
     # pandas: Points, Shapes, Labels, Vectors and Tracks keep their features
