@@ -117,5 +117,5 @@ def test_labels_thumbnail_imports_no_ndimage() -> None:
 def test_first_paint_in_2d_imports_no_scipy_spatial() -> None:
     loaded = loaded_modules(FIRST_PAINT)
     assert 'napari_lite._vispy' in loaded
-    uninvited = {'scipy.spatial', 'xarray', 'tqdm'} & loaded
+    uninvited = {'scipy.spatial', 'xarray', 'tqdm', 'wrapt'} & loaded
     assert not uninvited, f'the first 2D paint imported {sorted(uninvited)}'
