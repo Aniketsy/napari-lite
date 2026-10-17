@@ -36,31 +36,65 @@ How to resync is written in [SYNC.md](SYNC.md). The current copy is listed
 in [VENDORED.json](VENDORED.json): which napari commit, which modules, and
 which imports cross into app modules that napari-lite must provide.
 
-## Status (2026-10-17)
+## Features
 
-Milestones M0 (repo and copy) and M1 (imports without napari) of the
-[backlog](docs/backlog.md) are done:
+### Working now
 
-- `import napari_lite` takes about 0.05 s and loads no numpy, Qt, vispy or
-  pydantic; `napari_lite.components` imports with napari blocked and all seven
-  layer types (Image, Labels, Points, Shapes, Vectors, Surface, Tracks) work
-  in a `ViewerModel`.
-- napari's settings, theme, action manager, plugins, magicgui hooks and
-  app-model are replaced by small own modules at the same import paths
-  (`src/napari_lite/settings/`, `utils/theme.py`, `utils/action_manager.py`,
-  `plugins/`, `utils/_magicgui.py`, `_app_model/`).
-- The copied napari tests run from `src/napari_lite/**/_tests` with the
-  fixtures in `src/napari_lite/conftest.py`. Of napari's test files for the
-  copied modules, 169 are copied (37 are not, because they import
-  application modules; the list is in `VENDORED.json`) and 6 of those are
-  not collected (they import the `Viewer`, app-model actions or
-  `utils.info`; see `collect_ignore` in the conftest). Last full run,
-  own tests included: 3977 passed, 179 skipped, 0 failed; 47 skips wait for
-  the `Viewer` (issue 13), 5 for plugins, the rest are napari's own
-  optional-dependency and platform skips.
+- **One-line swap**: `import napari_lite as napari`, then `napari.Viewer()`,
+  `napari.imshow(array)`, `viewer.add_image`, `add_labels`, `add_points`,
+  `add_shapes`, `add_vectors`, `add_surface`, `add_tracks`, `viewer.layers`,
+  `viewer.dims`, `viewer.camera`, `viewer.screenshot()`, `viewer.close()`,
+  `napari_lite.run()`. A test runs the same script with napari and
+  napari-lite and compares the result.
+- **All seven layer types** in 2D and 3D, with napari's rendering (vispy
+  canvas, colormaps, contrast limits, blending, multiscale, grid mode, scale
+  bar and axes overlays, layer name overlay).
+- **Navigation and editing with the mouse and keyboard**: pan, zoom,
+  rotate, dims sliders, playback, napari's default key bindings for the
+  viewer and every layer (paint, fill, pick, add points, draw shapes, ...),
+  listed in [docs/shortcuts.md](docs/shortcuts.md).
+- **`QtCanvas`**: the canvas with dims sliders and a status line as a
+  single Qt widget you can put in your own window or application
+  (`examples/canvas_only.py`).
+- **A small window**: `Viewer` opens a window with the canvas, dims
+  sliders and a status bar (cursor coordinates, layer value, help text);
+  `viewer.window.add_dock_widget(widget)` docks your own Qt or magicgui
+  widgets next to the canvas.
+- **Jupyter**: works with `%gui qt`; `nbscreenshot(viewer)` shows the
+  viewer inline (`examples/notebook.ipynb`).
+- **Settings in code**: `get_settings()` has napari's settings names and
+  defaults, changed per session, nothing written to disk.
+- **Dark and light themes**, following `viewer.theme`.
+- **Thread workers** (`napari_lite.qt.thread_worker`, `create_worker`).
+- **Fast import**: `import napari_lite` takes about 0.05 s and loads no
+  numpy, Qt, vispy or pydantic; no napari, npe2, magicgui, app-model or
+  lxml is ever imported.
 
-There is no `Viewer`, no window and no canvas widget yet: that is
-milestone M2 (`QtCanvas`, `napari_lite.Viewer`, `imshow`).
+### Planned (issue numbers in [docs/backlog.md](docs/backlog.md))
+
+- Benchmarks against napari on Linux, macOS and Windows: import time, time
+  to first image, `Viewer(show=False)`, install size (16, 19).
+- Heavy dependencies only on first use: dask, scikit-image, pandas, pint
+  where possible; `[dask]`, `[features]`, `[fast-shapes]` extras (18, 19).
+- Visual regression tests: every layer type in 2D and 3D compared with
+  napari screenshots (20).
+- **Opt-in layer list and layer controls**: `viewer.add_layer_list()`,
+  `viewer.add_layer_controls()`, loaded only when called (21), and the
+  editing tools through them, with undo/redo (22).
+- A decision on data interpretation: keep napari's guessing of RGB and
+  channel axis, or require `rgb=` / `channel_axis=` (23).
+- Monthly resync with napari's main branch (24); docs, demo, sharing with
+  the napari community (25).
+
+### Not planned
+
+Plugins (readers, writers, sample data, widgets), the IPython console,
+menus and the command palette, the preferences dialog and settings file,
+the welcome screen and the activity dialog. Load data with your own library
+(tifffile, imageio, zarr, ...) and pass arrays to `add_image`.
+
+The copied napari tests run as part of the test suite (3977 passed, 179
+skipped on the last full run; details in `src/napari_lite/conftest.py`).
 
 ## Layout
 
