@@ -89,29 +89,47 @@ FIRST_IMAGE = textwrap.dedent(
     import importlib.abc
     import json
     import sys
+    import traceback
 
     import numpy as np
 
     BLOCKED = set(json.loads(sys.argv[2]))
+    WATCHED = set(json.loads(sys.argv[3]))
+    direct = {}
 
-    class Block(importlib.abc.MetaPathFinder):
+    class Spy(importlib.abc.MetaPathFinder):
+        # Who asks for a watched package first?  Walking the stack from the
+        # import statement outwards, if a napari_lite file comes before any
+        # third-party file, napari-lite's own code imported it.
         def find_spec(self, name, path=None, target=None):
-            if name.split('.')[0] in BLOCKED:
+            top = name.split('.')[0]
+            if top in BLOCKED:
                 raise ImportError(f'{name} is blocked in this test')
+            if top in WATCHED and top not in direct:
+                for frame in reversed(traceback.extract_stack()[:-1]):
+                    file = frame.filename.replace(chr(92), '/')
+                    if 'importlib' in file or '<frozen' in file:
+                        continue
+                    if '/napari_lite/' in file:
+                        direct[top] = f'{file.rsplit("/", 1)[-1]}:{frame.lineno}'
+                    break
+                direct.setdefault(top, None)
             return None
 
-    sys.meta_path.insert(0, Block())
+    sys.meta_path.insert(0, Spy())
     from napari_lite.components import ViewerModel
 
     viewer = ViewerModel()
     viewer.add_image(np.zeros((4, 8, 8)))
-    viewer.add_labels(np.zeros((8, 8), dtype=np.uint8))
     loaded = {m.split('.')[0] for m in sys.modules}
-    print(json.dumps({'loaded': sorted(loaded), 'seconds': 0}))
+    print(json.dumps({'loaded': sorted(loaded), 'direct': direct}))
     """
 )
 
-# loaded only when the data asks for them (issue 18)
+# Needed only for dask data (dask, cachey, psutil) or Labels colors and
+# Shapes masks (skimage): issue 18.  Dependencies may import them for their
+# own reasons (pint imports dask when it is installed); napari-lite's own
+# modules must not, before a dask array or a Labels layer shows up.
 ON_FIRST_USE = {'dask', 'cachey', 'psutil', 'skimage'}
 
 
@@ -123,6 +141,7 @@ def test_heavy_dependencies_wait_for_first_use() -> None:
             FIRST_IMAGE,
             'unused',
             json.dumps(sorted(BLOCKED)),
+            json.dumps(sorted(ON_FIRST_USE)),
         ],
         capture_output=True,
         text=True,
@@ -130,10 +149,12 @@ def test_heavy_dependencies_wait_for_first_use() -> None:
         check=False,
     )
     assert proc.returncode == 0, proc.stderr
-    loaded = set(json.loads(proc.stdout.strip().splitlines()[-1])['loaded'])
-    assert not (FORBIDDEN & loaded), FORBIDDEN & loaded
-    early = ON_FIRST_USE & loaded
-    assert not early, f'loaded before first use: {early}'
+    info = json.loads(proc.stdout.strip().splitlines()[-1])
+    assert not (FORBIDDEN & set(info['loaded'])), FORBIDDEN & set(
+        info['loaded']
+    )
+    direct = {k: v for k, v in info['direct'].items() if v}
+    assert not direct, f'imported by napari-lite before first use: {direct}'
 
 
 def test_bare_import_is_light() -> None:

@@ -140,7 +140,7 @@ markers = [
 [tool.ruff]
 line-length = 79
 # Copied napari code keeps napari's formatting; only own code is linted.
-extend-exclude = ["src/napari_lite", "*.ipynb"]
+extend-exclude = ["src/napari_lite", "*.ipynb", "*.md"]
 
 [tool.ruff.format]
 quote-style = "single"

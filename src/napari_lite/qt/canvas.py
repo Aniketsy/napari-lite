@@ -166,6 +166,7 @@ class QtCanvas(QWidget):
         viewer._layer_slicer.events.ready.connect(self._on_slice_ready)
         viewer.layers.events.inserted.connect(self._update_camera_depth)
         viewer.layers.events.removed.connect(self._update_camera_depth)
+        viewer.layers.events.removed.connect(self._forget_removed_layer)
         viewer.dims.events.ndisplay.connect(self._update_camera_depth)
         viewer.layers.selection.events.active.connect(self._on_active_change)
         viewer.layers.events.inserted.connect(self._on_add_layer_change)
@@ -195,6 +196,18 @@ class QtCanvas(QWidget):
             layer, font_info=self.canvas.font_info()
         )
         self.canvas.add_layer_visual_mapping(layer, vispy_layer)
+
+    def _forget_removed_layer(self, event: Event) -> None:
+        """Drop the selection's "current" item when that layer is removed.
+
+        In napari the Qt layer list keeps ``selection._current`` in step with
+        its current row, so a removed layer is released.  There is no layer
+        list here, so the canvas does it; otherwise the layer (and its data)
+        would stay alive until another layer became current.
+        """
+        selection = self.viewer.layers.selection
+        if selection._current is event.value:
+            selection._current = selection.active
 
     def _on_active_change(self) -> None:
         """Keys go to the active layer first, then to the viewer."""

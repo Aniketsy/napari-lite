@@ -24,19 +24,24 @@ _os.environ.setdefault('SPARSE_AUTO_DENSIFY', '1')
 _fix_wayland_opengl()
 
 # numpy<2 wheels crash on Apple Silicon when used from several threads.
-# napari applies the OpenBLAS workaround at import; napari-lite only on the
-# platform where it matters, so other platforms do not import numpy here.
+# napari applies the OpenBLAS workaround at import; napari-lite only where
+# it matters (Apple Silicon with numpy 1.x), so importing napari_lite does
+# not import numpy anywhere else.
 if _sys.platform == 'darwin':  # pragma: no cover
     import platform as _platform
+    from importlib.metadata import version as _version
 
-    if _platform.machine() == 'arm64':
+    if (
+        _platform.machine() == 'arm64'
+        and int(_version('numpy').split('.')[0]) < 2
+    ):
         from napari_lite._check_numpy_version import (
             limit_numpy1x_threads_on_macos_arm,
         )
 
         limit_numpy1x_threads_on_macos_arm()
         del limit_numpy1x_threads_on_macos_arm
-    del _platform
+    del _platform, _version
 
 del _fix_wayland_opengl
 

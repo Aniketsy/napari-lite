@@ -24,10 +24,17 @@ def _handler(*providers):
     return handler
 
 
+def _ctrl(key):
+    """Ctrl on Windows and Linux, Cmd on macOS (napari's CtrlCmd)."""
+    from napari_lite.utils._keys import KeyCode, KeyMod
+
+    return KeyMod.CtrlCmd | getattr(KeyCode, key)
+
+
 def test_viewer_shortcut_toggles_ndisplay(viewer) -> None:
     viewer.add_image(np.zeros((4, 8, 8)))
     assert viewer.dims.ndisplay == 2
-    assert _handler(viewer).press_key('Control-Y')
+    assert _handler(viewer).press_key(_ctrl('KeyY'))
     assert viewer.dims.ndisplay == 3
 
 
@@ -58,15 +65,17 @@ def test_trigger_without_viewer_is_explicit() -> None:
 
 def test_bind_and_unbind_shortcut() -> None:
     from napari_lite.components import ViewerModel
+    from napari_lite.utils._keys import KeyMod
     from napari_lite.utils.action_manager import action_manager
 
     calls = []
     action_manager.register_action(
         'test:ping', lambda v: calls.append(v), 'ping', ViewerModel
     )
-    action_manager.bind_shortcut('test:ping', 'Control-Alt-Shift-P')
+    combo = _ctrl('KeyP') | KeyMod.Alt | KeyMod.Shift
+    action_manager.bind_shortcut('test:ping', combo)
     viewer = ViewerModel()
-    assert _handler(viewer).press_key('Control-Alt-Shift-P')
+    assert _handler(viewer).press_key(combo)
     assert calls == [viewer]
     action_manager.unbind_shortcut('test:ping')
-    assert not _handler(viewer).press_key('Control-Alt-Shift-P')
+    assert not _handler(viewer).press_key(combo)

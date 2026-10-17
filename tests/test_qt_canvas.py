@@ -98,7 +98,11 @@ def test_actions_without_app_parts(canvas, qtbot) -> None:
     assert isinstance(dialog, QtShortcutsDialog)
     text = dialog.browser.toPlainText()
     assert 'Toggle 2D/3D view' in text
-    assert 'Ctrl+Y' in text
+    # rendered as the platform shows it (Ctrl+Y here, ⌘Y on macOS)
+    from napari_lite.utils._keys import KeyCode, KeyMod
+    from napari_lite.utils.interactions import Shortcut
+
+    assert str(Shortcut(KeyMod.CtrlCmd | KeyCode.KeyY)) in text
     dialog.close()
 
 

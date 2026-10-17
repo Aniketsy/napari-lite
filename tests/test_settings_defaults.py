@@ -20,8 +20,9 @@ DEFAULTS = json.loads(
     ).read_text()
 )['sections']
 
-# napari's default font size depends on the platform the dump was made on
-PLATFORM_DEPENDENT = {('appearance', 'font_size')}
+# napari's default font size depends on the platform the dump was made on;
+# so does the text of key bindings (Ctrl on Windows and Linux, Cmd on macOS)
+PLATFORM_DEPENDENT = {('appearance', 'font_size'), ('shortcuts', 'shortcuts')}
 
 
 def _fields():
@@ -49,6 +50,19 @@ def test_default_matches_napari(settings, section: str, field: str) -> None:
         pytest.skip('platform dependent default')
     ours = getattr(settings, section).model_dump(mode='json')[field]
     assert ours == DEFAULTS[section][field]
+
+
+def test_default_shortcuts_match_napari(settings) -> None:
+    """Same action names and the same number of bindings per action; the
+    key text itself depends on the platform (Ctrl or Cmd)."""
+    ours = settings.shortcuts.model_dump(mode='json')['shortcuts']
+    theirs = DEFAULTS['shortcuts']['shortcuts']
+    assert set(ours) == set(theirs)
+    assert {k: len(v) for k, v in ours.items()} == {
+        k: len(v) for k, v in theirs.items()
+    }
+    if sys.platform != 'darwin':
+        assert ours == theirs
 
 
 def test_font_size_default(settings) -> None:
