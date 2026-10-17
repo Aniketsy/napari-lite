@@ -491,6 +491,32 @@ def pytest_runtest_makereport(item, call):
     setattr(item, f'rep_{rep.when}', rep)
 
 
+def pytest_collection_modifyitems(session, config, items) -> None:
+    """Run the copied tests in napari's order: utils, layers, components,
+    then the vispy and Qt folders (napari's conftest does the same; the
+    suite is tuned for it, e.g. timing tests run before Qt tests)."""
+    prefixes = [
+        'napari_lite/utils',
+        'napari_lite/layers',
+        'napari_lite/components',
+        'napari_lite/settings',
+        'napari_lite/plugins',
+        'napari_lite/_vispy',
+        'napari_lite/_qt',
+        'napari_lite/qt',
+    ]
+    buckets: list[list] = [[] for _ in prefixes]
+    buckets.append([])  # everything else, in collection order
+    for item in items:
+        path = str(item.fspath).replace(chr(92), '/')
+        index = -1
+        for i, prefix in enumerate(prefixes):
+            if prefix in path:
+                index = i
+        buckets[index].append(item)
+    items[:] = [item for bucket in buckets for item in bucket]
+
+
 def pytest_runtest_setup(item) -> None:
     """Tests that use Qt get a qtbot so threads are waited for."""
     if 'qapp' in item.fixturenames and 'qtbot' not in item.fixturenames:
