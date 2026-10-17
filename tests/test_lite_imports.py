@@ -70,7 +70,8 @@ SCRIPT = textwrap.dedent(
     start = time.perf_counter()
     importlib.import_module(sys.argv[1])
     elapsed = time.perf_counter() - start
-    loaded = {m.split('.')[0] for m in set(sys.modules) - before}
+    # a None entry marks an import that failed, not a loaded module
+    loaded = {m.split('.')[0] for m, mod in sys.modules.items() if mod is not None} - before
     print(json.dumps({'loaded': sorted(loaded), 'seconds': elapsed}))
     """
 )
@@ -134,7 +135,7 @@ FIRST_IMAGE = textwrap.dedent(
 
     viewer = ViewerModel()
     viewer.add_image(np.zeros((4, 8, 8)))
-    loaded = {m.split('.')[0] for m in sys.modules}
+    loaded = {m.split('.')[0] for m, mod in sys.modules.items() if mod is not None}
     print(json.dumps({'loaded': sorted(loaded), 'direct': direct}))
     """
 )

@@ -64,13 +64,34 @@ def test_points_in_poly(seed) -> None:
     rng = np.random.default_rng(seed)
     verts = rng.uniform(0, 20, (rng.integers(3, 8), 2))
     points = rng.uniform(-2, 22, (200, 2))
-    # vertices and edge midpoints exercise the boundary rule
-    midpoints = (verts + np.roll(verts, 1, axis=0)) / 2
-    points = np.concatenate([points, verts, midpoints])
     np.testing.assert_array_equal(
         _draw.points_in_poly(points, verts),
         skimage_measure.points_in_poly(points, verts),
     )
+
+
+@pytest.mark.parametrize('seed', range(30))
+def test_points_in_poly_on_the_boundary(seed) -> None:
+    # vertices and edge midpoints exercise the boundary rule; integer
+    # vertices keep the arithmetic exact: with arbitrary floats the answer
+    # for a point exactly on an edge hangs on the last bit, and
+    # scikit-image's own answer then differs between x86 and arm64 (fused
+    # multiply-add), so it is no reference there
+    rng = np.random.default_rng(seed)
+    verts = rng.integers(0, 20, (rng.integers(3, 8), 2)).astype(np.float64)
+    midpoints = (verts + np.roll(verts, 1, axis=0)) / 2
+    boundary = np.concatenate([verts, midpoints])
+    np.testing.assert_array_equal(
+        _draw.points_in_poly(boundary, verts),
+        skimage_measure.points_in_poly(boundary, verts),
+    )
+
+
+def test_points_in_poly_boundary_counts_as_inside() -> None:
+    square = np.array([[0.0, 0.0], [0.0, 4.0], [4.0, 4.0], [4.0, 0.0]])
+    on_it = [[0.0, 0.0], [0.0, 2.0], [2.0, 4.0], [4.0, 1.0], [2.0, 2.0]]
+    assert _draw.points_in_poly(on_it, square).all()
+    assert not _draw.points_in_poly([[-1.0, 2.0], [5.0, 5.0]], square).any()
 
 
 @pytest.mark.parametrize('seed', range(20))

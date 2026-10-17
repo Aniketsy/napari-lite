@@ -24,7 +24,10 @@ import pytest
 REPORT = textwrap.dedent(
     """
     import json, sys
-    loaded = sorted(m for m in sys.modules if m.count('.') <= 1)
+    # a None entry marks an import that failed, not a loaded module
+    loaded = sorted(
+        m for m, mod in sys.modules.items() if mod is not None and m.count('.') <= 1
+    )
     print('MODULES ' + json.dumps(loaded))
     """
 )
@@ -93,7 +96,12 @@ THREE_D = textwrap.dedent(
         [[1, 0, 0, 0], [0, 0.8, -0.6, 1], [0, 0.6, 0.8, 0], [0, 0, 0, 1]]
     )
     layer.rotate  # reads the decomposition of the affine
-    viewer.add_tracks(np.array([[0, 0, 1.0, 2.0, 3.0], [0, 1, 1.5, 2.5, 3.5]]))
+    try:
+        import pandas
+    except ImportError:  # a plain install: Tracks needs the features extra
+        pass
+    else:
+        viewer.add_tracks(np.array([[0, 0, 1.0, 2.0, 3.0], [0, 1, 1.5, 2.5, 3.5]]))
     viewer.dims.ndisplay = 3
     app = QApplication.instance()
     for _ in range(20):

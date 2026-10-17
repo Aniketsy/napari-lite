@@ -31,6 +31,8 @@ def test_console_notification_with_a_legacy_console_encoding(
         'stdout',
         io.TextIOWrapper(raw, encoding='cp1252', errors='strict'),
     )
-    show_console_notification(Notification('press \u21e7 to select', 'warning'))
+    show_console_notification(
+        Notification('press \u21e7 to select', 'warning')
+    )
     sys.stdout.flush()
     assert b'press ? to select' in raw.getvalue()
