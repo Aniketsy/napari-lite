@@ -180,14 +180,201 @@ new = '''
 old = '''
             # consistency (zyx actually describes a different rotation order)
             rot = R.from_euler('xyz', camera.angles, degrees=True)
+            rot_matrix = rot.as_matrix()
 '''
 new = '''
             # consistency (zyx actually describes a different rotation order)
-            # napari-lite: imported here, not at the top of the method: this
-            # runs on every draw, and scipy.spatial is only needed in 3D
-            from scipy.spatial.transform import Rotation as R
+            # napari-lite: numpy rotation with scipy's conventions
+            # (utils/_rotation.py); scipy is not a dependency
+            from napari_lite.utils._rotation import matrix_from_euler
 
-            rot = R.from_euler('xyz', camera.angles, degrees=True)
+            rot_matrix = matrix_from_euler('xyz', camera.angles, degrees=True)
+'''
+
+# scipy (134 MB) is an extra from here on.  Its remaining uses in the
+# copied code are numpy's job in own modules: rotations for the camera
+# (utils/_rotation.py, scipy's own algorithms), QR/RQ and the geometric
+# mean (utils/_linalg.py), the dilation and erosion behind label contours
+# (utils/_morphology.py), the Tracks lookups (utils/_tracks_index.py).
+# Spline interpolation of shapes keeps scipy, imported on use, and says so
+# when it is missing.
+[[rewrite]]
+old = '''
+    from scipy.spatial.transform import Rotation as R
+
+    # we take the opposite of the angles to match scipy's XYZ conventions
+    # while retaining napari behaviour
+    return R.from_euler('XYZ', -np.asarray(angles), degrees=True).as_matrix()
+'''
+new = '''
+    # napari-lite: numpy rotation with scipy's conventions
+    # (utils/_rotation.py); scipy is not a dependency
+    from napari_lite.utils._rotation import matrix_from_euler
+
+    # we take the opposite of the angles to match scipy's XYZ conventions
+    # while retaining napari behaviour
+    return matrix_from_euler('XYZ', -np.asarray(angles), degrees=True)
+'''
+
+[[rewrite]]
+old = '''
+    from scipy.spatial.transform import Rotation as R
+
+    # normalize view direction
+'''
+new = '''
+    # napari-lite: numpy rotation with scipy's conventions
+    # (utils/_rotation.py); scipy is not a dependency
+    from napari_lite.utils._rotation import euler_from_matrix
+
+    # normalize view direction
+'''
+
+[[rewrite]]
+old = '''
+        angles = R.from_matrix(rotation).as_euler('XYZ', degrees=True)
+'''
+new = '''
+        angles = euler_from_matrix('XYZ', rotation, degrees=True)
+'''
+
+[[rewrite]]
+old = '''
+    from scipy.spatial.transform import Rotation
+
+    w, x, y, z = quat.w, quat.x, quat.y, quat.z
+    # order is nonstandard!
+    return Rotation.from_quat([x, z, y, w]).as_matrix().T
+'''
+new = '''
+    # napari-lite: numpy rotation with scipy's conventions
+    # (utils/_rotation.py); scipy is not a dependency
+    from napari_lite.utils._rotation import matrix_from_quat
+
+    w, x, y, z = quat.w, quat.x, quat.y, quat.z
+    # order is nonstandard!
+    return matrix_from_quat([x, z, y, w]).T
+'''
+
+[[rewrite]]
+old = '''
+    from scipy.spatial.transform import Rotation
+
+    qx, qy, qz, qw = Rotation.from_matrix(matrix.T).as_quat()
+'''
+new = '''
+    # napari-lite: numpy rotation with scipy's conventions
+    # (utils/_rotation.py); scipy is not a dependency
+    from napari_lite.utils._rotation import quat_from_matrix
+
+    qx, qy, qz, qw = quat_from_matrix(matrix.T)
+'''
+
+[[rewrite]]
+old = '''
+    import scipy.linalg
+
+    n = matrix.shape[0]
+
+    if upper_triangular:
+        rotate, tri = scipy.linalg.qr(matrix)
+    else:
+        upper_tri, rotate = scipy.linalg.rq(matrix.T)
+'''
+new = '''
+    # napari-lite: numpy QR and RQ (utils/_linalg.py); the signs are
+    # normalized below, so scipy's factors are not needed
+    from napari_lite.utils._linalg import qr, rq
+
+    n = matrix.shape[0]
+
+    if upper_triangular:
+        rotate, tri = qr(matrix)
+    else:
+        upper_tri, rotate = rq(matrix.T)
+'''
+
+[[rewrite]]
+old = '''
+        from scipy.stats import gmean  # only import if needed
+'''
+new = '''
+        # napari-lite: numpy (utils/_linalg.py); scipy is not a dependency
+        from napari_lite.utils._linalg import gmean
+'''
+
+[[rewrite]]
+old = '''
+    from scipy import ndimage as ndi
+
+    struct_elem = ndi.generate_binary_structure(labels.ndim, 1)
+'''
+new = '''
+    # napari-lite: numpy dilation and erosion for these symmetric
+    # footprints (utils/_morphology.py); scipy is not a dependency
+    from napari_lite.utils import _morphology as ndi
+
+    struct_elem = ndi.generate_binary_structure(labels.ndim, 1)
+'''
+
+[[rewrite]]
+old = '''
+        from scipy.sparse import coo_matrix
+        from scipy.spatial import cKDTree
+
+        # convert data to a numpy array if it is not already one
+'''
+new = '''
+        # napari-lite: the nearest-vertex lookup and the id index in numpy
+        # (utils/_tracks_index.py); scipy is not a dependency
+        from napari_lite.utils._tracks_index import IdIndex, NearestVertices
+
+        # convert data to a numpy array if it is not already one
+'''
+
+[[rewrite]]
+old = '''
+        self._kdtree = cKDTree(self._points)
+'''
+new = '''
+        self._kdtree = NearestVertices(self._points)
+'''
+
+[[rewrite]]
+old = '''
+        self._id2idxs = coo_matrix(
+            (
+                np.broadcast_to(1, self.track_ids.size),  # just dummy ones
+                (self.track_ids, np.arange(self.track_ids.size)),
+            )
+        ).tocsr()
+'''
+new = '''
+        self._id2idxs = IdIndex(self.track_ids)
+'''
+
+[[rewrite]]
+old = '''
+        return self._id2idxs[track_id].nonzero()[1]
+'''
+new = '''
+        return self._id2idxs[track_id]
+'''
+
+[[rewrite]]
+old = '''
+            # only import if needed
+            from scipy.interpolate import splev, splprep
+'''
+new = '''
+            # only import if needed
+            try:
+                from scipy.interpolate import splev, splprep
+            except ImportError as error:  # napari-lite: scipy is an extra
+                raise ImportError(
+                    'spline interpolation of shapes needs scipy: '
+                    'pip install "napari-lite[scipy]"'
+                ) from error
 '''
 
 # layers/image/image.py and layers/labels/labels.py: the thumbnail is a

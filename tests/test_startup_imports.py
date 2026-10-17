@@ -79,6 +79,43 @@ FIRST_PAINT = textwrap.dedent(
     """
 )
 
+# the 3D camera, a rotated layer and a tracks layer used scipy; own numpy
+# code now (utils/_rotation.py, _linalg.py, _tracks_index.py)
+THREE_D = textwrap.dedent(
+    """
+    import numpy as np
+    import napari_lite
+    from qtpy.QtWidgets import QApplication
+
+    viewer = napari_lite.Viewer(show=True)
+    layer = viewer.add_image(np.zeros((8, 32, 32), dtype=np.uint8))
+    layer.affine = np.array([[0.8, -0.6, 0, 1], [0.6, 0.8, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+    layer.rotate  # reads the decomposition of the affine
+    viewer.add_tracks(np.array([[0, 0, 1.0, 2.0, 3.0], [0, 1, 1.5, 2.5, 3.5]]))
+    viewer.dims.ndisplay = 3
+    app = QApplication.instance()
+    for _ in range(20):
+        app.processEvents()
+    viewer.scene.camera.angles = (10, 20, 30)
+    viewer.scene.camera.view_direction = (0, 1, 0)
+    viewer.canvas_to_world((5, 5))
+    for _ in range(20):
+        app.processEvents()
+    viewer.screenshot(canvas_only=True)
+    viewer.close()
+    """
+)
+
+SCIPY_MODULES = {
+    'scipy.spatial',
+    'scipy.linalg',
+    'scipy.ndimage',
+    'scipy.stats',
+    'scipy.sparse',
+    'scipy.interpolate',
+    'scipy.special',
+}
+
 
 def loaded_modules(code: str) -> set[str]:
     env = dict(os.environ)
@@ -132,3 +169,12 @@ def test_first_paint_in_2d_imports_no_scipy_spatial() -> None:
     assert 'napari_lite._vispy' in loaded
     uninvited = {'scipy.spatial', 'xarray', 'tqdm', 'wrapt'} & loaded
     assert not uninvited, f'the first 2D paint imported {sorted(uninvited)}'
+
+
+def test_3d_view_rotated_layer_and_tracks_import_no_scipy() -> None:
+    # pint imports the top-level scipy package when it is installed; the
+    # submodules are what napari-lite used, and must not be needed
+    loaded = loaded_modules(THREE_D)
+    assert 'napari_lite._vispy' in loaded
+    uninvited = SCIPY_MODULES & loaded
+    assert not uninvited, f'the 3D view imported {sorted(uninvited)}'

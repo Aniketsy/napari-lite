@@ -18,8 +18,9 @@ pip install "napari-lite[pyqt6] @ git+https://github.com/Aniketsy/napari-lite"
 ```
 
 Extras: `pyqt6` or `pyside6` (one of them is needed), `dask` (dask
-arrays), `fast-shapes` (compiled triangulation and label colouring),
-`tiff` (tifffile), `all`. Python 3.11 to 3.13 on Linux, macOS and Windows.
+arrays), `scipy` (spline-interpolated shapes), `fast-shapes` (compiled
+triangulation and label colouring), `tiff` (tifffile), `all`. Python 3.11
+to 3.13 on Linux, macOS and Windows.
 
 ```python
 import numpy as np
