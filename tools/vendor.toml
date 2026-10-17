@@ -716,3 +716,25 @@ new = '''
     # scikit-image is not a dependency
     from napari_lite.utils import _colorconv as colorconv
 '''
+
+# utils/notifications.py: the console notification was printed with a bare
+# print().  On a console with a legacy encoding (cp1252 when Windows pipes
+# the output) a message with a character outside it, such as the shift arrow
+# of a shortcut, made print raise UnicodeEncodeError; the except turned that
+# into a misleading "An error occurred while trying to format an error" log
+# and no message.  Replace the characters the console cannot show instead.
+# Upstream: docs/upstream.md, patch 4.
+[[rewrite]]
+old = '''
+        print(notification)  # noqa: T201
+'''
+new = '''
+        text = str(notification)
+        encoding = getattr(sys.stdout, 'encoding', None)
+        if encoding:
+            # napari-lite: a console with a legacy encoding (cp1252 when
+            # Windows pipes the output) cannot print every character;
+            # replace them rather than fail
+            text = text.encode(encoding, errors='replace').decode(encoding)
+        print(text)  # noqa: T201
+'''
