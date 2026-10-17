@@ -1,0 +1,136 @@
+From 639f55f9fb5539cfefad4598642ffce13bc3dcc4 Mon Sep 17 00:00:00 2001
+From: Aniket Singh Yadav <singhyadavaniket43@gmail.com>
+Date: Sat, 17 Oct 2026 18:43:59 +0530
+Subject: [PATCH] Downsample thumbnails in numpy instead of importing
+ scipy.ndimage
+
+Image and Labels thumbnails used scipy.ndimage.zoom with order=0, a pure
+nearest-neighbour lookup. The import of scipy.ndimage (about 200 modules,
+scipy.special among them) was the largest cost of the first image after
+xarray, and the zoom ran again on every slice. zoom_nearest in
+layer_utils returns the same pixels; the one difference is that where
+floating-point error put the last coordinate a hair past the last pixel,
+scipy's default mode blanked that row or column, and the edge pixel is
+used instead.
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
+---
+ src/napari/layers/image/image.py       | 13 ++++---------
+ src/napari/layers/labels/labels.py     |  5 ++---
+ src/napari/layers/utils/layer_utils.py | 21 +++++++++++++++++++++
+ 3 files changed, 27 insertions(+), 12 deletions(-)
+
+diff --git a/src/napari/layers/image/image.py b/src/napari/layers/image/image.py
+index 7d3dbf64..d46281b0 100644
+--- a/src/napari/layers/image/image.py
++++ b/src/napari/layers/image/image.py
+@@ -24,7 +24,7 @@ from napari.layers.image._image_constants import (
+ from napari.layers.image._image_utils import guess_rgb
+ from napari.layers.image._slice import _ImageSliceRequest
+ from napari.layers.intensity_mixin import IntensityVisualizationMixin
+-from napari.layers.utils.layer_utils import calc_data_range
++from napari.layers.utils.layer_utils import calc_data_range, zoom_nearest
+ from napari.types import LayerDataType
+ from napari.utils._dtype import get_dtype_limits, normalize_dtype
+ from napari.utils.color import rgb_to_luminance
+@@ -532,7 +532,6 @@ class Image(IntensityVisualizationMixin, ScalarFieldBase):
+ 
+     def _update_thumbnail(self) -> None:
+         """Update thumbnail with current image data and colormap."""
+-        from scipy import ndimage as ndi
+ 
+         # black thumbnail if there is no data in the slice
+         if self._slice.empty:
+@@ -544,7 +543,7 @@ class Image(IntensityVisualizationMixin, ScalarFieldBase):
+         if self._slice_input.ndisplay == 3 and self.ndim > 2:
+             image = np.max(image, axis=0)
+ 
+-        # float16 not supported by ndi.zoom
++        # float16 is upcast for the thumbnail computations below
+         dtype = np.dtype(image.dtype)
+         if dtype in [np.dtype(np.float16)]:
+             image = image.astype(np.float32)
+@@ -559,9 +558,7 @@ class Image(IntensityVisualizationMixin, ScalarFieldBase):
+         )
+         zoom_factor = tuple(new_shape / image.shape[:2])
+         if self.rgb:
+-            downsampled = ndi.zoom(
+-                image, zoom_factor + (1,), prefilter=False, order=0
+-            )
++            downsampled = zoom_nearest(image, zoom_factor + (1,))
+             if image.shape[2] == 4:  # image is RGBA
+                 colormapped = np.copy(downsampled)
+                 colormapped[..., 3] = downsampled[..., 3] * self.opacity
+@@ -579,9 +576,7 @@ class Image(IntensityVisualizationMixin, ScalarFieldBase):
+                     alpha = np.full(downsampled.shape[:2] + (1,), self.opacity)
+                 colormapped = np.concatenate([downsampled, alpha], axis=2)
+         else:
+-            downsampled = ndi.zoom(
+-                image, zoom_factor, prefilter=False, order=0
+-            )
++            downsampled = zoom_nearest(image, zoom_factor)
+             low, high = self.contrast_limits
+             if np.issubdtype(downsampled.dtype, np.integer):
+                 low = max(low, np.iinfo(downsampled.dtype).min)  # pyrefly: ignore [bad-specialization]
+diff --git a/src/napari/layers/labels/labels.py b/src/napari/layers/labels/labels.py
+index 41f6c0da..270dbfaa 100644
+--- a/src/napari/layers/labels/labels.py
++++ b/src/napari/layers/labels/labels.py
+@@ -47,7 +47,7 @@ from napari.layers.labels._labels_utils import (
+     interpolate_coordinates,
+ )
+ from napari.layers.labels._slice import _LabelsSliceRequest
+-from napari.layers.utils.layer_utils import _FeatureTable
++from napari.layers.utils.layer_utils import _FeatureTable, zoom_nearest
+ from napari.types import LayerDataType
+ from napari.utils._dtype import (
+     get_dtype_limits,
+@@ -1057,7 +1057,6 @@ class Labels(ScalarFieldBase):
+         like adjusting gamma or changing the data based on the contrast
+         limits.
+         """
+-        from scipy import ndimage as ndi
+ 
+         if not self._slicing_state.loaded or self._slice.empty:
+             # ASYNC_TODO: Do not compute the thumbnail until we are loaded.
+@@ -1080,7 +1079,7 @@ class Labels(ScalarFieldBase):
+         )
+         zoom_factor = tuple(new_shape / imshape)
+ 
+-        downsampled = ndi.zoom(image, zoom_factor, prefilter=False, order=0)
++        downsampled = zoom_nearest(image, zoom_factor)
+         color_array = self.colormap.map(downsampled)
+         color_array[..., 3] *= self.opacity
+ 
+diff --git a/src/napari/layers/utils/layer_utils.py b/src/napari/layers/utils/layer_utils.py
+index c9601784..591e148c 100644
+--- a/src/napari/layers/utils/layer_utils.py
++++ b/src/napari/layers/utils/layer_utils.py
+@@ -1273,3 +1273,24 @@ def _unique_element(array: Array) -> Any | None:
+     if np.any(array[1:] != el):
+         return None
+     return el
++
++
++def zoom_nearest(image: np.ndarray, zoom: Sequence[float]) -> np.ndarray:
++    """Resample ``image`` by ``zoom`` with nearest-neighbour lookup.
++
++    The same pixels as ``scipy.ndimage.zoom(image, zoom, order=0,
++    prefilter=False)``: output index ``i`` reads input index
++    ``round(i * (n_in - 1) / (n_out - 1))`` on every axis.  Where
++    floating-point error puts the last coordinate a hair past the last
++    pixel, scipy's default mode fills that row with zeros; the edge pixel
++    is used here instead.  Used for the layer thumbnails, where importing
++    ``scipy.ndimage`` (about 200 modules) was a large part of the cost of
++    the first image.
++    """
++    index = []
++    for n_in, factor in zip(image.shape, zoom, strict=True):
++        n_out = round(n_in * factor)
++        ratio = (n_in - 1) / (n_out - 1) if n_out > 1 else 1.0
++        positions = np.floor(np.arange(n_out) * ratio + 0.5).astype(np.intp)
++        index.append(np.clip(positions, 0, max(n_in - 1, 0)))
++    return image[np.ix_(*index)]
+-- 
+2.50.1.windows.1
+

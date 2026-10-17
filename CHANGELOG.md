@@ -56,9 +56,15 @@ importable as `napari_lite` without napari installed.
   erosion behind label contours (`utils/_morphology.py`) and the Tracks
   layer's nearest-vertex and id lookups (`utils/_tracks_index.py`) are
   numpy, compared with scipy in the tests; 134 MB less. The first 3D view
-  no longer stalls on importing `scipy.spatial`. `pip install
-  napari-lite[pyqt6]` is 436 MB in 36 packages against napari's 761 MB
-  in 106.
+  no longer stalls on importing `scipy.spatial`.
+- toolz and pydantic-extra-types are not dependencies either: the two
+  toolz functions the transforms use are in `utils/_toolz.py`, and the
+  `Color` class of pydantic-extra-types is copied unchanged into
+  `utils/_color.py` under its MIT licence, so themes accept exactly the
+  same colours as before. `pip install napari-lite[pyqt6]` is 434 MB in
+  34 packages with 15 direct dependencies, against napari's 761 MB in 106
+  with 37. The three findings that apply to napari itself are patches in
+  `docs/upstream.md`.
 - The first image and the first paint import only what they use: the
   check for xarray data runs only when xarray is already imported (napari
   imports it, and pandas with it, whenever it is installed); thumbnails

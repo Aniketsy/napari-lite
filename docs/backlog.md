@@ -14,11 +14,13 @@
 > Later on 2026-10-17: the first image and the first paint stopped
 > importing xarray, scipy and tqdm (docs/benchmarks.md, "What the first
 > image stopped importing"), and issues 26 to 29 were added for the
-> install size. Issues 26 and 27 are done: scikit-image, networkx,
-> tifffile and scipy are gone (scipy stays as the `scipy` extra for
-> spline-interpolated shapes), 436 MB in 36 packages against 613 in the
-> morning. Open: 28 (pandas as the `features` extra, a go/no-go
-> decision) and 29 (small dependencies and upstream asks).
+> install size. Issues 26, 27 and 29 are done: scikit-image, networkx,
+> tifffile, scipy, toolz and pydantic-extra-types are gone (scipy stays as
+> the `scipy` extra for spline-interpolated shapes; imageio stays, the
+> command line reads with it), 434 MB in 34 packages with 15 direct
+> dependencies against 613, 40 and 19 in the morning. The upstream
+> patches and asks of issue 29 are in docs/upstream.md, not yet filed.
+> Open: 28 (pandas as the `features` extra, a go/no-go decision).
 
 Each `## NN · Title` section is one GitHub issue; `tools/create_issues.py` files them in order and
 turns `{{NN}}` into real issue numbers. Facts below were measured on napari ebfc4a0

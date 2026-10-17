@@ -1,0 +1,45 @@
+From 96859aa2b59deb28314b48636394392b4cddbe69 Mon Sep 17 00:00:00 2001
+From: Aniket Singh Yadav <singhyadavaniket43@gmail.com>
+Date: Sat, 17 Oct 2026 18:41:50 +0530
+Subject: [PATCH] Skip the xarray check in _check_xarray until xarray is
+ imported
+
+Every new layer calls _check_xarray, which imported xarray (and pandas
+with it) whenever xarray was installed: about 450 modules and, on a slow
+disk, a second on the first layer, with no xarray data in sight. An
+xarray object can only exist once xarray is in sys.modules, so look there
+first.
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
+---
+ src/napari/utils/_xarray_utils.py | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/src/napari/utils/_xarray_utils.py b/src/napari/utils/_xarray_utils.py
+index 7b744516..af5324ac 100644
+--- a/src/napari/utils/_xarray_utils.py
++++ b/src/napari/utils/_xarray_utils.py
+@@ -2,6 +2,7 @@
+ 
+ from __future__ import annotations
+ 
++import sys
+ from typing import TYPE_CHECKING, NamedTuple, cast
+ 
+ import numpy as np
+@@ -72,6 +73,12 @@ def _check_xarray(data: ArrayLike) -> _XarrayProps:
+     Returns a named tuple with ``has_dims`` (True for Variable / DataArray)
+     and ``has_coords`` (True for DataArray only).
+     """
++    # An xarray object can only exist once xarray has been imported, so
++    # there is nothing to check before that.  Importing xarray here would
++    # cost every environment that has it installed (xarray brings pandas
++    # with it) on the first layer, with no xarray data in sight.
++    if 'xarray' not in sys.modules:
++        return _XarrayProps()
+     # xarray is an optional dependency, so it may not be importable.
+     try:
+         import xarray as xr
+-- 
+2.50.1.windows.1
+

@@ -1,0 +1,43 @@
+From 969296d9ffd49dcd7e66aa859b1d5d6ac005c0e7 Mon Sep 17 00:00:00 2001
+From: Aniket Singh Yadav <singhyadavaniket43@gmail.com>
+Date: Sat, 17 Oct 2026 18:42:15 +0530
+Subject: [PATCH] Import scipy's Rotation in canvas_to_world only on the 3D
+ path
+
+canvas_to_world runs on every draw and imported scipy.spatial first
+thing, in 2D as well, where it is unused. The first paint of a 2D viewer
+stalled on that import (about 100 modules). The import now sits in the
+3D branch.
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
+---
+ src/napari/components/viewer_model.py | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/src/napari/components/viewer_model.py b/src/napari/components/viewer_model.py
+index aee88c97..86728e83 100644
+--- a/src/napari/components/viewer_model.py
++++ b/src/napari/components/viewer_model.py
+@@ -998,8 +998,6 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
+         world_position : np.ndarray
+             Canvas position (on the canvas plane) converted to world coordinates.
+         """
+-        from scipy.spatial.transform import Rotation as R
+-
+         ndisplay = self.dims.ndisplay
+         camera = self.scene.camera
+ 
+@@ -1017,6 +1015,10 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
+             # note that while we call napari axes "zyx", in terms of angles to
+             # rot conversion we need to treat them as normal xyz for internal
+             # consistency (zyx actually describes a different rotation order)
++            # imported here rather than at the top of the method: this runs
++            # on every draw, and scipy.spatial is only needed in 3D
++            from scipy.spatial.transform import Rotation as R
++
+             rot = R.from_euler('xyz', camera.angles, degrees=True)
+             rot_matrix = rot.as_matrix()
+             # the depth is set to zero because we want the position at the
+-- 
+2.50.1.windows.1
+

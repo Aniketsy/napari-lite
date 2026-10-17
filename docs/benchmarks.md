@@ -122,32 +122,38 @@ window 5.0 s and 248 MB.
 | memory after the first image | 70 MB | 112 MB | 38% less |
 | memory with a viewer window shown | 222 MB | 276 MB | 20% less |
 | modules loaded by importing the package | 77 | 207 | 2.7x fewer |
-| modules loaded at the first image | 714 | 1,357 | 1.9x fewer |
-| installed size (all packages) | 436 MB | 761 MB | 325 MB less |
-| packages installed | 36 | 106 | 70 fewer |
-| direct dependencies | 17 | 37 | 20 fewer |
-| Python modules in the package | 448 | 524 | 76 fewer |
-| lines of Python in the package | 93,199 | 111,648 | 18,400 fewer |
+| modules loaded at the first image | 701 | 1,357 | 1.9x fewer |
+| installed size (all packages) | 434 MB | 761 MB | 327 MB less |
+| packages installed | 34 | 106 | 72 fewer |
+| direct dependencies | 15 | 37 | 22 fewer |
+| Python modules in the package | 450 | 524 | 74 fewer |
+| lines of Python in the package | 93,861 | 111,648 | 17,800 fewer |
+
+The times are those of the run after scipy left; the later removal of
+toolz and pydantic-extra-types changed module counts and sizes only, and a
+rerun of the window on this machine moves by half a second either way.
 
 Where the difference comes from:
 
 - **Dependencies.** napari-lite keeps imageio, lazy-loader, numpy,
-  packaging, pandas, Pillow, pint, psygnal, pydantic, pydantic-extra-types,
-  PyOpenGL, qtpy, superqt, toolz, tqdm, typing-extensions and vispy. It
-  drops app-model, certifi, jsonschema, magicgui, napari-console,
-  napari-plugin-engine, napari-resources, napari-svg, npe2, platformdirs,
-  pydantic-settings, pygments, pywin32, PyYAML, wrapt (one base class, now
+  packaging, pandas, Pillow, pint, psygnal, pydantic, PyOpenGL, qtpy,
+  superqt, tqdm, typing-extensions and vispy. It drops app-model, certifi,
+  jsonschema, magicgui, napari-console, napari-plugin-engine,
+  napari-resources, napari-svg, npe2, platformdirs, pydantic-settings,
+  pygments, pywin32, PyYAML, wrapt (one base class, now
   `utils/_object_proxy.py`), scikit-image with networkx and tifffile (four
   drawing functions and two colour conversions, now `utils/_draw.py` and
-  `utils/_colorconv.py`) and scipy (rotations, QR and RQ, a geometric
-  mean, two morphology filters and the Tracks lookups, now
-  `utils/_rotation.py`, `_linalg.py`, `_morphology.py` and
-  `_tracks_index.py`; spline-interpolated shapes keep it as the `scipy`
-  extra), and moves dask, cachey and psutil to the `dask` extra and
-  tifffile to the `tiff` extra. Most of the 70 fewer installed packages
-  are what those pulled in. Of the 436 MB, 330 MB are Qt, numpy, vispy and
-  PyOpenGL, the floor of any Qt viewer in Python; pandas (63 MB) is the
-  next block to go (backlog issue 28).
+  `utils/_colorconv.py`), scipy (rotations, QR and RQ, a geometric mean,
+  two morphology filters and the Tracks lookups, now `utils/_rotation.py`,
+  `_linalg.py`, `_morphology.py` and `_tracks_index.py`; spline-interpolated
+  shapes keep it as the `scipy` extra), toolz (two functions, now
+  `utils/_toolz.py`) and pydantic-extra-types (its `Color` class copied
+  into `utils/_color.py` under its MIT licence), and moves dask, cachey and
+  psutil to the `dask` extra and tifffile to the `tiff` extra. Most of the
+  72 fewer installed packages are what those pulled in. Of the 434 MB,
+  330 MB are Qt, numpy, vispy and PyOpenGL, the floor of any Qt viewer in
+  Python; pandas (63 MB) is the next block to go (backlog issue 28).
+  imageio stays: the command line reads what it reads.
 - **Code.** Of napari's 556 modules at that commit, 398 are copied (the
   viewer model, layers, vispy rendering, the layer list, layer controls
   and button rows, dims widgets, events, colormaps, transforms, icons and
@@ -205,14 +211,16 @@ dask, only when dask is installed; pygments through superqt's package
 init. PyOpenGL (193 modules) is needed: napari's markers select vispy's
 `gl+` backend.
 
-The same day, scikit-image and scipy left the dependencies (backlog
-issues 26 and 27). The own numpy modules that stand in for them are
-compared with the libraries element by element in `tests/test_draw.py`,
-`test_colorconv.py`, `test_rotation.py`, `test_linalg.py`,
-`test_morphology.py` and `test_tracks_index.py`, which run in the `dev`
-environment; the `no-extras` CI job installs `napari-lite[pyqt6]` alone,
-checks that neither package comes with it, and runs the own tests against
-that install. Besides the install size, the first 3D view no longer stalls
+The same day, scikit-image, scipy, toolz and pydantic-extra-types left the
+dependencies (backlog issues 26, 27 and 29). The own modules that stand in
+for them are compared with the libraries element by element in
+`tests/test_draw.py`, `test_colorconv.py`, `test_rotation.py`,
+`test_linalg.py`, `test_morphology.py`, `test_tracks_index.py`,
+`test_toolz.py` and `test_color.py`, which run in the `dev` environment;
+the `no-extras` CI job installs `napari-lite[pyqt6]` alone, checks that
+none of those packages comes with it, and runs the own tests against that
+install. The three findings that apply to napari itself are patches in
+[docs/upstream.md](upstream.md). Besides the install size, the first 3D view no longer stalls
 on `scipy.spatial`, and the first Labels layer no longer imports
 `skimage.color`. One known trade: the Tracks layer finds the vertices
 nearest to the cursor by distance over all vertices instead of a KD-tree,
