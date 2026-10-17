@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "napari-lite"
-version = "0.0.1.dev0"
+version = "0.1.0"
 description = "The napari viewer core without the application: layers, canvas and dims sliders. Derived from napari (BSD-3)."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -12,7 +12,7 @@ license = "BSD-3-Clause"
 license-files = ["LICENSE"]
 authors = [{ name = "Aniket Singh Yadav" }]
 classifiers = [
-    "Development Status :: 2 - Pre-Alpha",
+    "Development Status :: 3 - Alpha",
     "Environment :: X11 Applications :: Qt",
     "Intended Audience :: Science/Research",
     "Programming Language :: Python :: 3 :: Only",
@@ -53,6 +53,7 @@ dependencies = [
 
 [project.urls]
 Source = "https://github.com/Aniketsy/napari-lite"
+Changelog = "https://github.com/Aniketsy/napari-lite/blob/main/CHANGELOG.md"
 "Upstream (napari)" = "https://github.com/napari/napari"
 "napari issue 5940" = "https://github.com/napari/napari/issues/5940"
 

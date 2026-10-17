@@ -1,0 +1,100 @@
+name: Release
+
+# Build the sdist and the wheel, check them, and publish them: to TestPyPI
+# for every version tag (and on request), to PyPI only when asked for by
+# hand.  Both use PyPI trusted publishing, so no token is stored: the
+# "testpypi" and "pypi" environments of this repository are registered as
+# trusted publishers on test.pypi.org and pypi.org (docs/release.md).
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Where to publish the build
+        type: choice
+        options: [none, testpypi, pypi]
+        default: none
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -U pip build twine
+      - name: The tag must match the version in pyproject.toml
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          version=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
+          tag="${GITHUB_REF_NAME#v}"
+          if [ "$version" != "$tag" ]; then
+            echo "tag v$tag but pyproject.toml says $version" >&2
+            exit 1
+          fi
+      - run: python -m build
+      - run: python -m twine check dist/*
+      - name: The wheel installs and imports without napari
+        shell: bash
+        run: |
+          python -m pip install dist/*.whl
+          cd /tmp
+          python -c "import sys, napari_lite; print(napari_lite.__version__); assert 'napari' not in sys.modules"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  testpypi:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v') || inputs.target == 'testpypi'
+    runs-on: ubuntu-latest
+    environment: testpypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+
+  pypi:
+    needs: build
+    if: inputs.target == 'pypi'
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
+
+  github-release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - name: GitHub release with the sdist and the wheel
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" \
+            --verify-tag --title "napari-lite $GITHUB_REF_NAME" \
+            --notes "See CHANGELOG.md for what is in this release."
