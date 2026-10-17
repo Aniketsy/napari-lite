@@ -89,8 +89,11 @@ data = [
 ]
 
 # Plain text substitutions applied after the ``napari`` -> ``napari_lite``
-# rewrite.  Issue 17 maps ``from app_model.types import`` to a local module.
+# rewrite.
 [literal_rewrites]
+# app-model is used for its key types only; napari-lite carries a copy of
+# them in utils/_keys (tools/copy_app_model_keys.py), so the dependency goes
+"from app_model.types import" = "from napari_lite.utils._keys import"
 # utils/_register.py hands the package to the generated add_* methods under
 # its own name; the generic rewrite leaves bare 'napari' strings alone.
 "'napari': sys.modules.get('napari')" = "'napari_lite': sys.modules.get('napari_lite')"

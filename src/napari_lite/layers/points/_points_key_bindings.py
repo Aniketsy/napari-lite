@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from app_model.types import KeyBinding, KeyCode, KeyMod
+from napari_lite.utils._keys import KeyBinding, KeyCode, KeyMod
 
 from napari_lite.layers.points._points_constants import Mode
 from napari_lite.layers.points.points import Points
