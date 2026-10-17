@@ -43,3 +43,13 @@ importable as `napari_lite` without napari installed.
   entries and no plugin entries.
 - dask and scikit-image are imported on first use; pandas stays a
   dependency (the layer features tables), pint is imported with the layers.
+- The first image and the first paint import only what they use: the
+  check for xarray data runs only when xarray is already imported (napari
+  imports it, and pandas with it, whenever it is installed); thumbnails
+  are downsampled in numpy, not with scipy.ndimage; scipy.spatial is
+  imported for 3D only; the layers do not import vispy's scene graph;
+  progress bars, and tqdm with them, are imported when one is made. In a
+  fresh environment the first image went from 2.2 s and 1,026 modules to
+  1.5 s and 729 (`docs/benchmarks.md`).
+- wrapt is not a dependency: `utils/_object_proxy.py` provides the one
+  class napari used from it.

@@ -23,7 +23,9 @@ classifiers = [
 ]
 # Every package below is imported by a copied module (VENDORED.json,
 # "third_party_imports").  dask, cachey and psutil are in the [dask] extra:
-# the core imports them only when the data is a dask array.
+# the core imports them only when the data is a dask array.  wrapt is
+# listed there too: a rewrite rule (tools/vendor.toml) puts
+# utils/_object_proxy.py in its place.
 dependencies = [
     "numpy>=1.25",
     "scipy>=1.14.0",

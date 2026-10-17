@@ -74,18 +74,21 @@ environments, napari from the same commit the copy was taken from; one
 Windows machine, so read the ratios ([details and the CI numbers on three
 OSes](docs/benchmarks.md)). The window shows napari's layer list and
 controls, the same widgets in both, so what is left of the startup time
-and memory is mostly shared: Qt, vispy and the first OpenGL context.
+and memory is mostly shared: Qt, vispy and the first OpenGL context. The
+first image imports only what it uses: no xarray probe, no scipy for a
+thumbnail or a 2D draw, no tqdm, no vispy scene graph before a canvas.
 
 | | napari-lite | napari |
 |---|---|---|
 | `import` the package | 0.01 s | 0.22 s |
-| first image (`ViewerModel` + `add_image`) | 2.2 s | 3.2 s |
-| viewer window shown with an image | 5.0 s | 6.1 s |
-| memory with a viewer window shown | 248 MB | 273 MB |
-| installed size | 611 MB | 761 MB |
-| packages installed | 41 | 106 |
-| direct dependencies | 20 | 37 |
-| Python modules in the package | 439 | 524 |
+| first image (`ViewerModel` + `add_image`) | 1.5 s | 3.3 s |
+| viewer window shown with an image | 3.9 s | 6.0 s |
+| memory with a viewer window shown | 223 MB | 276 MB |
+| modules loaded at the first image | 729 | 1,357 |
+| installed size | 613 MB | 761 MB |
+| packages installed | 40 | 106 |
+| direct dependencies | 19 | 37 |
+| Python modules in the package | 442 | 524 |
 
 ## Planned
 

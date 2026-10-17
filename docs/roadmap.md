@@ -58,12 +58,12 @@ Numbers measured against napari from the same commit, on one machine
 | | napari-lite | napari |
 |---|---|---|
 | `import` the package | 0.01 s | 0.22 s |
-| first image | 2.2 s | 3.2 s |
-| viewer window shown with an image | 5.0 s | 6.1 s |
-| memory with a window shown | 248 MB | 273 MB |
-| installed size | 611 MB | 761 MB |
-| packages installed | 41 | 106 |
-| direct dependencies | 20 | 37 |
+| first image | 1.5 s | 3.3 s |
+| viewer window shown with an image | 3.9 s | 6.0 s |
+| memory with a window shown | 223 MB | 276 MB |
+| installed size | 613 MB | 761 MB |
+| packages installed | 40 | 106 |
+| direct dependencies | 19 | 37 |
 
 ## Left out on purpose
 
@@ -118,19 +118,29 @@ entries.
 
 **0.2, a lighter start**
 
-The window gap to napari is 1.2x because what remains is shared: Qt,
-vispy, the first OpenGL context and the layer widgets. The import-time
-and install-size gaps can grow:
+Done on 2026-10-17 ([docs/benchmarks.md](benchmarks.md), "What the first
+image stopped importing"): the first image and the first paint import
+only what they use (no xarray probe, no scipy for a thumbnail or a 2D
+draw, no vispy scene graph with the layers, tqdm on first use, no wrapt),
+which took the first image from 2.2 s to 1.5 s and the window from 5.0 s
+to 3.9 s in the fresh environment. The window gap to napari is now 1.5x;
+what remains is shared: Qt, vispy, the first OpenGL context and the layer
+widgets. The import-time and install-size gaps can still grow:
 
-- scipy off the image path (the thumbnail contrast computation imports it;
-  0.7 s of the first image) and loaded on first use elsewhere.
-- pint's unit registry cached between runs (0.4 s), vispy and pydantic
-  imported when a canvas or a model is first made rather than with the
-  package.
+- The same three fixes offered to napari (the xarray check, the thumbnail
+  zoom, `canvas_to_world`), so a resync brings them back for free.
+- pint's import-time probe for dask (dask, PyYAML, toolz and psutil, about
+  70 modules whenever dask is installed) made lazy in pint; superqt's
+  package init made lazy (pygments and every widget come with the thread
+  workers today).
+- The colormap table built on first access (about 100 Colormap models at
+  import), scipy-free rotation helpers for the 3D camera (scipy.spatial
+  is 0.75 s on this machine the first time 3D is used).
 - scikit-image and pandas replaced or made optional (40 and 63 MB of the
-  install) where the copied code uses only a few functions.
-- Target: first image under 1.5 s and the install under 500 MB, measured
-  by the benchmark workflow.
+  install) where the copied code uses only a few functions; scipy as an
+  extra once the camera and transform helpers are numpy-only (134 MB).
+- Target: first image under 1 s and the install under 500 MB, measured by
+  the benchmark workflow.
 
 **0.2, easier to work with**
 

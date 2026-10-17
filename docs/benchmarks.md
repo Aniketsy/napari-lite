@@ -104,38 +104,42 @@ runners and had other work running, so read the ratios, not the seconds.
 Memory is the resident set at the end of the measured code; "modules" is
 `len(sys.modules)`. Measured again the same day after the layer panel went
 in (napari's layer list, layer controls and button rows in napari-lite's
-window): those are the numbers below. Before the panel, the window took
-4.1 s and 236 MB and the package had 286 modules.
+window) and once more after the first-image work of the next section;
+those are the numbers below. Before the panel, the window took 4.1 s and
+236 MB and the package had 286 modules; with the panel and before the
+first-image work, the first image took 2.15 s and 1,026 modules, the
+window 5.0 s and 248 MB.
 
 | | napari-lite | napari | napari-lite |
 |---|---|---|---|
-| import the package | 0.01 s | 0.22 s | 17x faster |
-| import the components (viewer model) | 1.48 s | 2.66 s | 1.8x faster |
-| first image: `ViewerModel` + `add_image` | 2.15 s | 3.18 s | 1.5x faster |
-| `Viewer(show=False)`, closed | 3.29 s | 4.73 s | 1.4x faster |
-| `Viewer` shown, one image painted, closed | 5.01 s | 6.14 s | 1.2x faster |
+| import the package | 0.01 s | 0.22 s | 16x faster |
+| import the components (viewer model) | 1.31 s | 2.64 s | 2.0x faster |
+| first image: `ViewerModel` + `add_image` | 1.51 s | 3.29 s | 2.2x faster |
+| `Viewer(show=False)`, closed | 2.91 s | 4.61 s | 1.6x faster |
+| `Viewer` shown, one image painted, closed | 3.93 s | 5.98 s | 1.5x faster |
 | memory after importing the package | 14 MB | 26 MB | 1.8x less |
-| memory after the first image | 91 MB | 112 MB | 19% less |
-| memory with a viewer window shown | 248 MB | 273 MB | 9% less |
+| memory after the first image | 70 MB | 112 MB | 38% less |
+| memory with a viewer window shown | 223 MB | 276 MB | 19% less |
 | modules loaded by importing the package | 77 | 207 | 2.7x fewer |
-| modules loaded at the first image | 1,026 | 1,357 | 1.3x fewer |
-| installed size (all packages) | 611 MB | 761 MB | 150 MB less |
-| packages installed | 41 | 106 | 65 fewer |
-| direct dependencies | 20 | 37 | 17 fewer |
-| Python modules in the package | 439 | 524 | 85 fewer |
-| lines of Python in the package | 92,106 | 111,648 | 19,500 fewer |
+| modules loaded at the first image | 729 | 1,357 | 1.9x fewer |
+| installed size (all packages) | 613 MB | 761 MB | 148 MB less |
+| packages installed | 40 | 106 | 66 fewer |
+| direct dependencies | 19 | 37 | 18 fewer |
+| Python modules in the package | 442 | 524 | 82 fewer |
+| lines of Python in the package | 92,447 | 111,648 | 19,200 fewer |
 
 Where the difference comes from:
 
 - **Dependencies.** napari-lite keeps imageio, lazy-loader, numpy,
   packaging, pandas, Pillow, pint, psygnal, pydantic, pydantic-extra-types,
   PyOpenGL, qtpy, scikit-image, scipy, superqt, toolz, tqdm,
-  typing-extensions, vispy and wrapt. It drops app-model, certifi,
-  jsonschema, magicgui, napari-console, napari-plugin-engine,
-  napari-resources, napari-svg, npe2, platformdirs, pydantic-settings,
-  pygments, pywin32 and PyYAML, and moves dask, cachey and psutil to the
-  `dask` extra and tifffile to the `tiff` extra. Most of the 65 fewer
-  installed packages are what those pulled in.
+  typing-extensions and vispy. It drops app-model, certifi, jsonschema,
+  magicgui, napari-console, napari-plugin-engine, napari-resources,
+  napari-svg, npe2, platformdirs, pydantic-settings, pygments, pywin32,
+  PyYAML and wrapt (one base class, now `utils/_object_proxy.py`), and
+  moves dask, cachey and psutil to the `dask` extra and tifffile to the
+  `tiff` extra. Most of the 66 fewer installed packages are what those
+  pulled in.
 - **Code.** Of napari's 556 modules at that commit, 398 are copied (the
   viewer model, layers, vispy rendering, the layer list, layer controls
   and button rows, dims widgets, events, colormaps, transforms, icons and
@@ -160,3 +164,36 @@ To repeat it: `pip install ".[pyqt6]"` and
 each `python bench/bench_imports.py --package <name> --repeat 3 --json ..`
 and `python bench/install_size.py --package <name> --json ..`, and
 `python bench/make_table.py *.json`.
+
+## What the first image stopped importing
+
+Profiling on 2026-10-17 (`python -X importtime`, cProfile, and fresh
+interpreters with candidate fixes applied by monkeypatch) showed that the
+copied code itself was not where the first image spent its time: a
+handful of imports fired on the first layer and the first paint. Each is
+now a `[[rewrite]]` rule in `tools/vendor.toml` (reapplied at every
+resync) with an own module where one was needed, and
+`tests/test_startup_imports.py` fails if one comes back.
+
+| what | cost it had | now |
+|---|---|---|
+| `_check_xarray`, run by every new layer, imported xarray (and pandas with it) whenever xarray is installed | 454 modules, about 1 s on this machine | runs only when xarray is already in `sys.modules`, where any xarray object must come from |
+| the thumbnail used `scipy.ndimage.zoom(order=0)` | 195 modules on the first image, and a zoom per slice | `utils/_zoom.py`: the same nearest-neighbour lookup in numpy (`tests/test_thumbnail_zoom.py` compares it with scipy) |
+| `canvas_to_world`, run on every draw, imported scipy.spatial first thing, in 2D too | about 100 modules and 0.75 s on the first 2D paint | the import sits in the 3D branch |
+| one helper imported from `vispy.visuals.tube` loaded every vispy visual and `vispy.gloo` with the layers | about 100 modules before any canvas | `utils/_tube.py`, a copy of that function (BSD) |
+| `progress` imported tqdm with the viewer model and the thread workers | about 50 modules (tqdm reads its own metadata at import) | imported where a progress bar is made; the own `utils/__init__.py` binds the names on first access |
+| wrapt, a dependency for one base class, imported asyncio | 46 modules in a window | `utils/_object_proxy.py`, the part of `wrapt.ObjectProxy` that napari uses; wrapt is no longer a dependency |
+
+In the local check environment (dev extras installed, so xarray and dask
+are present) the first image went from 3.6 s and 1,570 modules to 1.6 s
+and 804, the window from 5.7 s and 2,180 modules to 4.0 s and 1,470. The
+first three rows exist in napari itself and are worth upstream pull
+requests; after a resync that carries them the rules stop matching and
+can be dropped.
+
+What a shown viewer still loads that it does not need: dask, PyYAML,
+toolz and psutil (about 70 modules) through pint's import-time probe for
+dask, only when dask is installed; pygments through superqt's package
+init; the top-level `scipy` package through the same pint probe.
+PyOpenGL (193 modules) is needed: napari's markers select vispy's `gl+`
+backend.
