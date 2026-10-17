@@ -9,11 +9,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from napari_lite.plugins import NO_READERS, NO_SAMPLES, no_plugins
+from napari_lite.plugins import NO_SAMPLES, no_plugins, no_readers
 
 
 def get_readers(path: Any) -> dict[str, str]:
-    raise no_plugins(NO_READERS, path)
+    raise no_readers(path)
 
 
 def get_sample_data(plugin: str, sample: str) -> tuple[None, list]:

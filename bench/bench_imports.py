@@ -49,14 +49,18 @@ RUNNER = textwrap.dedent(
     import sys, time
     code = sys.argv[1]
     start = time.perf_counter()
-    exec(compile(code, '<bench>', 'exec'), {{}})
+    exec(compile(code, '<bench>', 'exec'), {})
     print(time.perf_counter() - start)
     """
 )
 
 
 def run_once(code: str) -> float | None:
-    env = {**os.environ, 'QT_QPA_PLATFORM': 'offscreen'}
+    # the Qt "offscreen" platform has no OpenGL on Windows and macOS; the
+    # native platform is used there (no window is shown by these snippets)
+    env = dict(os.environ)
+    if sys.platform.startswith('linux') and not env.get('DISPLAY'):
+        env.setdefault('QT_QPA_PLATFORM', 'offscreen')
     proc = subprocess.run(
         [sys.executable, '-c', RUNNER, code],
         capture_output=True,
@@ -65,6 +69,8 @@ def run_once(code: str) -> float | None:
         check=False,
     )
     if proc.returncode != 0:
+        last = proc.stderr.strip().splitlines()[-1:] or ['(no output)']
+        print(f'  failed: {last[0]}', file=sys.stderr)
         return None
     return float(proc.stdout.strip().splitlines()[-1])
 
