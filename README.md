@@ -62,21 +62,21 @@ napari installed.
 | Dask, zarr, xarray | Any array with `shape`, `dtype` and `__getitem__`; dask arrays with the `dask` extra (opportunistic cache, task fusion off while slicing); asynchronous slicing. | [Image data and numpy-like arrays](https://napari.org/stable/howtos/layers/image.html#image-data-and-numpy-like-arrays), [Using Dask and napari](https://napari.org/stable/tutorials/dask.html), [Dask nD image](https://napari.org/stable/gallery/dask_nD_image.html), [Performance](https://napari.org/stable/guides/performance.html) |
 | Fast import, small install | `import napari_lite` takes about 0.05 s and loads no numpy, Qt, vispy or pydantic; napari, npe2, magicgui, app-model and lxml are never imported; dask and scikit-image are imported on first use. Numbers in [docs/benchmarks.md](docs/benchmarks.md). | [napari performance](https://napari.org/stable/guides/performance.html) |
 
+Data is interpreted exactly as napari interprets it (RGB and multiscale
+are guessed, the channel axis never): [docs/design.md](docs/design.md).
+Where napari is installed, `tests/test_visual_napari.py` renders every
+layer type in 2D and 3D with both packages and compares the images.
+
 ## Planned
 
-- Benchmarks against napari on Linux, macOS and Windows from
-  `.github/workflows/bench.yml`; the numbers in
-  [docs/benchmarks.md](docs/benchmarks.md) are from one Windows machine so far.
-- Visual regression tests: every layer type in 2D and 3D compared with
-  napari screenshots.
 - Opt-in [layer list](https://napari.org/stable/getting_started/viewer.html#layer-list)
   and [layer controls](https://napari.org/stable/getting_started/viewer.html#layer-controls)
   (`viewer.add_layer_list()`, `viewer.add_layer_controls()`), loaded only
   when called; the editing tools and undo/redo through them.
-- A decision on data interpretation: keep napari's guessing of RGB and
-  channel axis, or require `rgb=` / `channel_axis=`.
-- Monthly resync with napari's main branch ([SYNC.md](SYNC.md)).
-- A PyPI release, after asking the napari maintainers about the name.
+- Monthly resync with napari's main branch ([SYNC.md](SYNC.md)); the
+  weekly upstream report opens an issue when napari's core changes.
+- A PyPI release ([docs/release.md](docs/release.md)), after asking the
+  napari maintainers about the name; TestPyPI until then.
 
 ## Not planned
 

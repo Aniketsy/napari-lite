@@ -1,9 +1,13 @@
 # napari-lite — issue backlog (standalone project)
 
-> Progress 2026-10-17: issues 00–19 (milestones M0 to M3) are done on `main`,
-> with two deviations recorded in the commits: pint stays an import-time
-> dependency and pandas a core dependency (docs/benchmarks.md, pyproject).
-> Next: issue 20 (visual tests), then 21–25.
+> Progress 2026-10-17: issues 00–20 and 23 are done on `main`, with two
+> deviations recorded in the commits: pint stays an import-time dependency
+> and pandas a core dependency (docs/benchmarks.md, pyproject). Issue 24:
+> napari's `main` is still the pinned commit, so there was nothing to
+> resync; a dry run of the routine is recorded in SYNC.md. Issue 25: README
+> and release workflow done (docs/release.md); asking the napari
+> maintainers about the name is open. Open: 21, 22 (layer list and
+> controls), the first real resync, the name question.
 
 Each `## NN · Title` section is one GitHub issue; `tools/create_issues.py` files them in order and
 turns `{{NN}}` into real issue numbers. Facts below were measured on napari ebfc4a0
