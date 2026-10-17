@@ -26,6 +26,7 @@ class ExperimentalSettings(EventedModel):
         TriangulationBackend.fastest_available
     )
     colormap_backend: ColormapBackend = ColormapBackend.fastest_available
+    dynamic_layer_controls: bool = False
 
     def _connect_events(self) -> None:
         """Keep the backend modules in sync with the two backend fields."""

@@ -1,20 +1,26 @@
 # napari-lite: own code
-"""Names imported by ``components/layerlist.py``; never instantiated here
-because ``create_context`` returns None."""
+"""Stand-ins for napari's layer-list context keys.
+
+``components/layerlist.py`` creates these and connects their ``update``
+to the list's events so that app-model menus follow the selection.
+napari-lite's layer menu looks at the layer list itself, so nothing is
+tracked here.
+"""
 
 from __future__ import annotations
 
 from typing import Any
 
-
-class _NoContext:
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        raise RuntimeError('napari-lite has no app-model context')
+__all__ = ['LayerListContextKeys', 'LayerListSelectionContextKeys']
 
 
-class LayerListContextKeys(_NoContext):
-    pass
+class LayerListContextKeys:
+    def __init__(self, ctx: Any = None) -> None:
+        self._ctx = ctx
+
+    def update(self, event: Any = None) -> None:
+        return None
 
 
-class LayerListSelectionContextKeys(_NoContext):
+class LayerListSelectionContextKeys(LayerListContextKeys):
     pass

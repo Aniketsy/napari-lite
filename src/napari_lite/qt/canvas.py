@@ -45,6 +45,15 @@ if TYPE_CHECKING:
     from qtpy.QtCore import QObject
     from qtpy.QtGui import QCloseEvent, QImage, QKeyEvent
 
+    from napari_lite._qt.containers import QtLayerList
+    from napari_lite._qt.layer_controls import QtLayerControlsContainer
+    from napari_lite._qt.widgets.qt_viewer_buttons import (
+        QtLayerButtons,
+        QtViewerButtons,
+    )
+    from napari_lite._qt.widgets.qt_viewer_dock_widget import (
+        QtViewerDockWidget,
+    )
     from napari_lite._vispy.layers.base import VispyBaseLayer
     from napari_lite.components import ViewerModel
     from napari_lite.layers import Layer
@@ -116,6 +125,10 @@ class QtCanvas(QWidget):
         The dimension sliders.
     status : QtStatusLine or None
         The status line.
+    controls, layers, layerButtons, viewerButtons : QWidget
+        napari's layer controls, layer list and the two button rows,
+        built on first access; ``dockLayerControls`` and ``dockLayerList``
+        wrap them in dock widgets the way the viewer window shows them.
     """
 
     _instances: ClassVar[WeakSet[QtCanvas]] = WeakSet()
@@ -141,6 +154,12 @@ class QtCanvas(QWidget):
         self._key_map_handler.keymap_providers = [viewer]
         self._font_manager = QtFontManager()
         self._overlay_font = QGuiApplication.font().family()
+        self._controls: QtLayerControlsContainer | None = None
+        self._layers: QtLayerList | None = None
+        self._layersButtons: QtLayerButtons | None = None
+        self._viewerButtons: QtViewerButtons | None = None
+        self._dockLayerList: QtViewerDockWidget | None = None
+        self._dockLayerControls: QtViewerDockWidget | None = None
 
         settings = get_settings()
         self.canvas: VispyCanvas = VispyCanvas(
@@ -273,6 +292,99 @@ class QtCanvas(QWidget):
         max_depth = 2.0 / (10.0 * np.finfo(np.float32).eps)
         for camera in [self.canvas.camera, *self.canvas.grid_cameras]:
             camera._3D_camera.depth_value = min(128 * diameter, max_depth)
+
+    # ------------------------------------------------------------------
+    # the layer panel: napari's layer list, layer controls, button rows
+    # ------------------------------------------------------------------
+
+    @property
+    def controls(self) -> QtLayerControlsContainer:
+        """The controls of the selected layer."""
+        if self._controls is None:
+            from napari_lite._qt.layer_controls import (
+                QtLayerControlsContainer,
+            )
+
+            self._controls = QtLayerControlsContainer(self.viewer)
+        return self._controls
+
+    @property
+    def layers(self) -> QtLayerList:
+        """The layer list."""
+        if self._layers is None:
+            from napari_lite._qt.containers import QtLayerList
+
+            self._layers = QtLayerList(self.viewer.layers)
+        return self._layers
+
+    @property
+    def layerButtons(self) -> QtLayerButtons:
+        """New points, shapes and labels layers; delete the selected."""
+        if self._layersButtons is None:
+            from napari_lite._qt.widgets.qt_viewer_buttons import (
+                QtLayerButtons,
+            )
+
+            self._layersButtons = QtLayerButtons(self.viewer)
+        return self._layersButtons
+
+    @property
+    def viewerButtons(self) -> QtViewerButtons:
+        """2D/3D, roll, transpose, grid and home (napari's console button
+        too, which the viewer window hides)."""
+        if self._viewerButtons is None:
+            from napari_lite._qt.widgets.qt_viewer_buttons import (
+                QtViewerButtons,
+            )
+
+            self._viewerButtons = QtViewerButtons(self.viewer)
+        return self._viewerButtons
+
+    @property
+    def dockLayerList(self) -> QtViewerDockWidget:
+        """Layer buttons, layer list and viewer buttons in a dock widget."""
+        if self._dockLayerList is None:
+            from napari_lite._qt.widgets.qt_viewer_dock_widget import (
+                QtViewerDockWidget,
+            )
+
+            panel = QWidget()
+            panel.setObjectName('layerList')
+            layout = QVBoxLayout()
+            layout.addWidget(self.layerButtons)
+            layout.addWidget(self.layers)
+            layout.addWidget(self.viewerButtons)
+            layout.setContentsMargins(8, 4, 8, 6)
+            panel.setLayout(layout)
+            self._dockLayerList = QtViewerDockWidget(
+                self,
+                panel,
+                name='layer list',
+                area='left',
+                allowed_areas=['left', 'right'],
+                object_name='layer list',
+                close_btn=False,
+            )
+        return self._dockLayerList
+
+    @property
+    def dockLayerControls(self) -> QtViewerDockWidget:
+        """The layer controls in a dock widget."""
+        if self._dockLayerControls is None:
+            from napari_lite._qt.widgets.qt_viewer_dock_widget import (
+                QtViewerDockWidget,
+            )
+
+            self._dockLayerControls = QtViewerDockWidget(
+                self,
+                self.controls,
+                name='layer controls',
+                area='left',
+                allowed_areas=['left', 'right'],
+                object_name='layer controls',
+                close_btn=False,
+            )
+        return self._dockLayerControls
 
     # ------------------------------------------------------------------
     # the hint in the empty canvas

@@ -101,11 +101,17 @@ include-package-data = true
 where = ["src"]
 namespaces = false
 
-# The only non-Python file in the package: the template that
-# utils/_register.py turns into the add_* methods.  napari's icons and
-# stylesheets are not copied (VENDORED.json), so they are not listed.
+# Non-Python files in the package: the template read by utils/_register.py,
+# napari's icons and the stylesheet (themed icons are generated at run time).
 [tool.setuptools.package-data]
-napari_lite = ["utils/*.py_tmpl"]
+napari_lite = [
+    "utils/*.py_tmpl",
+    "resources/icons/*.svg",
+    "resources/*.gif",
+    "resources/*.ico",
+    "resources/*.icns",
+    "_qt/qt_resources/styles/*.qss",
+]
 
 [tool.pytest.ini_options]
 minversion = "8"

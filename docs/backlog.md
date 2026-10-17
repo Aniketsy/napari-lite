@@ -6,8 +6,10 @@
 > napari's `main` is still the pinned commit, so there was nothing to
 > resync; a dry run of the routine is recorded in SYNC.md. Issue 25: README
 > and release workflow done (docs/release.md); asking the napari
-> maintainers about the name is open. Open: 21, 22 (layer list and
-> controls), the first real resync, the name question.
+> maintainers about the name is open. Issues 21 and 22 done 2026-10-17:
+> napari's layer list, layer controls and button rows, shown by default
+> like napari (decision of the project owner). Open: the first real
+> resync, the name question.
 
 Each `## NN · Title` section is one GitHub issue; `tools/create_issues.py` files them in order and
 turns `{{NN}}` into real issue numbers. Facts below were measured on napari ebfc4a0
@@ -361,13 +363,20 @@ milestone: M4 Full feature set · labels: new-code · depends: {{20}}
 #5940 open question; brisvag's view: lite core knows nothing of these GUIs, but users can add them.
 
 ### Tasks
-- [ ] Add `napari._qt.containers` and `napari._qt.layer_controls` to `extra_modules` in `vendor.toml`;
-      re-vendor; list new crossings.
-- [ ] `viewer.add_layer_list()`, `viewer.add_layer_controls()`: created lazily, docked beside the canvas.
-- [ ] Thumbnails off by default (JoOkuma, #5940; napari #6657).
+- [x] Add `napari._qt.containers` and `napari._qt.layer_controls` to `extra_modules` in `vendor.toml`;
+      re-vendor; list new crossings. Also the button rows, `qt_viewer_dock_widget`, `qt_resources`
+      (stylesheet) and `resources` (icons): 112 more modules; new crossings into `settings`,
+      `utils.theme`, `_app_model` and `_qt._qapp_model`, all shimmed (`_qt/_qapp_model/_menus.py`
+      is the layer list's context menu without app-model).
+- [x] Shown by default, like napari (changed from opt-in on 2026-10-17 at the owner's request):
+      `QtCanvas` builds the widgets on first access (`layers`, `controls`, `layerButtons`,
+      `viewerButtons`, `dockLayerList`, `dockLayerControls`); the window docks the two panels;
+      `dock.setVisible(False)` hides one.
+- [x] Thumbnails stay on, as in napari.
 
 ### Done when
-- [ ] Importing `napari_lite` still loads no container or control modules until those calls.
+- [x] Importing `napari_lite`, its model or `QtCanvas` loads no container or control modules
+      (`tests/test_layer_panel.py`).
 
 ---
 
@@ -375,8 +384,9 @@ milestone: M4 Full feature set · labels: new-code · depends: {{20}}
 milestone: M4 Full feature set · labels: new-code · depends: {{21}}
 
 ### Tasks
-- [ ] Labels paint/fill/erase, Shapes and Points add/select/move through the opt-in controls and key bindings.
-- [ ] Undo/redo works (copied `utils/history.py` behaviour, without settings file).
+- [x] Labels paint/fill/erase, Shapes and Points add/select/move through the mode buttons of the
+      layer controls and the key bindings (napari's widgets, unchanged).
+- [x] Undo/redo through the key bindings (Ctrl+Z, Ctrl+Shift+Z); no settings file involved.
 
 ---
 

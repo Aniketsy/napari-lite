@@ -3,9 +3,11 @@
 
 napari's main window carries menus, a status bar, the layer list and
 layer-control docks, the console, a welcome screen and the command palette.
-napari-lite's window has the canvas, the dims sliders and a status line,
-plus ``add_dock_widget`` so users (and the opt-in layer list and controls
-of issue 21) can dock their own widgets next to the canvas.
+napari-lite's window has the canvas, the dims sliders, a status bar and, in
+napari's left column, the layer controls and the layer list with their
+button rows (all built by ``QtCanvas`` on first access), plus
+``add_dock_widget`` for users' own widgets.  No menus, console, welcome
+screen or command palette.
 
 ``Window`` keeps the attribute names code written for napari relies on:
 ``viewer.window._qt_window`` (the QMainWindow), ``viewer.window.qt_viewer``
@@ -29,15 +31,19 @@ from qtpy.QtWidgets import (
     QWidget,
 )
 
-from napari_lite._qt.qt_event_loop import get_qapp
+from napari_lite._qt.qt_event_loop import get_qapp, register_theme_icons
+from napari_lite._qt.qt_resources import get_stylesheet
 from napari_lite._qt.utils import QImg2array
+from napari_lite._qt.widgets.qt_viewer_dock_widget import (
+    QtViewerDockWidget,
+)
 from napari_lite.qt.canvas import QtCanvas, QtStatusLine
 from napari_lite.settings import get_settings
 from napari_lite.utils.interactions import Shortcut
 from napari_lite.utils.io import imsave
 from napari_lite.utils.misc import in_jupyter
 from napari_lite.utils.task_status import Status, TaskStatusManager
-from napari_lite.utils.theme import Theme, get_system_theme, get_theme
+from napari_lite.utils.theme import get_system_theme
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -48,13 +54,6 @@ if TYPE_CHECKING:
     from napari_lite.utils.events import Event
 
 __all__ = ['Window']
-
-_DOCK_AREAS = {
-    'left': Qt.DockWidgetArea.LeftDockWidgetArea,
-    'right': Qt.DockWidgetArea.RightDockWidgetArea,
-    'top': Qt.DockWidgetArea.TopDockWidgetArea,
-    'bottom': Qt.DockWidgetArea.BottomDockWidgetArea,
-}
 
 
 def _empty_canvas_hint() -> str:
@@ -149,6 +148,13 @@ class _QtMainWindow(QMainWindow):
         self.status_thread = _NoThread()
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         self.setCentralWidget(self._qt_viewer)
+        # napari's left column: the layer controls above the layer list
+        for dock in (
+            self._qt_viewer.dockLayerControls,
+            self._qt_viewer.dockLayerList,
+        ):
+            self.addDockWidget(dock.qt_area, dock)
+        self._qt_viewer.viewerButtons.consoleButton.hide()  # no console
         self.setStatusBar(ViewerStatusBar(viewer, self))
         self.setWindowTitle(viewer.title)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
@@ -281,12 +287,12 @@ class Window:
         widget: Any,
         *,
         name: str = '',
-        area: str = 'right',
+        area: str | None = None,
         allowed_areas: Sequence[str] | None = None,
         add_vertical_stretch: bool = True,
         tabify: bool = False,
         menu: Any = None,
-    ) -> QDockWidget:
+    ) -> QtViewerDockWidget:
         """Dock ``widget`` (a QWidget or a magicgui widget) next to the canvas.
 
         Parameters
@@ -295,12 +301,13 @@ class Window:
             The widget to dock; a magicgui widget's ``native`` widget is used.
         name : str
             Title of the dock; a generic name is made up if empty.
-        area : {'left', 'right', 'top', 'bottom'}
-            Where to dock (default 'right').
+        area : {'left', 'right', 'top', 'bottom'}, optional
+            Where to dock; default: the ``application.plugin_widget_positions``
+            setting for ``name``, else 'right'.
         allowed_areas : sequence of str, optional
             Areas the dock may be moved to; all by default.
         add_vertical_stretch : bool
-            Accepted for compatibility with napari; ignored.
+            Push a short widget to the top of a left or right dock.
         tabify : bool
             Tab the new dock with the others in the same area.
         menu : object
@@ -308,36 +315,27 @@ class Window:
 
         Returns
         -------
-        QDockWidget
+        QtViewerDockWidget
+            napari's dock widget: its title bar floats and hides it, keys
+            pressed in it reach the viewer.
         """
         if not name:
             with contextlib.suppress(AttributeError):
                 name = widget.objectName()
             name = name or f'Dock widget {self._unnamed_dockwidget_count}'
             self._unnamed_dockwidget_count += 1
-        inner = getattr(widget, 'native', widget)  # magicgui -> QWidget
-        if not isinstance(inner, QWidget):
-            raise TypeError(
-                '"widget" must be a QWidget or a magicgui Widget, got '
-                f'{type(widget).__name__}'
-            )
-        dock = QDockWidget(name, self._qt_window)
-        dock.setObjectName(name)
-        dock.setWidget(inner)
-        if allowed_areas:
-            flags = Qt.DockWidgetArea(0)
-            for allowed in allowed_areas:
-                flags |= _DOCK_AREAS[allowed]
-            dock.setAllowedAreas(flags)
-        qt_area = _DOCK_AREAS[area]
-        self._qt_window.addDockWidget(qt_area, dock)
-        if tabify:
-            for other in self._wrapped_dock_widgets.values():
-                if other is not dock and (
-                    self._qt_window.dockWidgetArea(other) == qt_area
-                ):
-                    self._qt_window.tabifyDockWidget(other, dock)
-                    break
+        if area is None:
+            positions = get_settings().application.plugin_widget_positions
+            area = positions.get(name, 'right')
+        dock = QtViewerDockWidget(
+            self._qt_viewer,
+            widget,
+            name=name,
+            area=area,
+            allowed_areas=allowed_areas,
+            add_vertical_stretch=add_vertical_stretch,
+        )
+        self._add_viewer_dock_widget(dock, tabify=tabify)
         if hasattr(widget, 'reset_choices'):
             # keep magicgui layer dropdowns in sync with the layer list
             layers_events = self.viewer.layers.events
@@ -345,28 +343,58 @@ class Window:
             layers_events.removed.connect(widget.reset_choices)
             layers_events.reordered.connect(widget.reset_choices)
             layers_events.renamed.connect(widget.reset_choices)
-        self._wrapped_dock_widgets[name] = dock
+        self._wrapped_dock_widgets[dock.name] = dock
         return dock
 
-    def remove_dock_widget(self, widget: Any, menu: Any = None) -> None:
-        """Remove a dock added with ``add_dock_widget`` (the dock, or the
-        widget inside it, or its name)."""
-        if widget == 'all':
-            for name in list(self._wrapped_dock_widgets):
-                self._remove_dock(name)
-            return
-        inner = getattr(widget, 'native', widget)
-        for name, dock in list(self._wrapped_dock_widgets.items()):
-            if widget in (dock, name) or dock.widget() is inner:
-                self._remove_dock(name)
-                return
-        raise LookupError(
-            f'Could not find a dock widget containing {widget!r}'
-        )
+    def _add_viewer_dock_widget(
+        self, dock: QtViewerDockWidget, tabify: bool = False
+    ) -> None:
+        """Add ``dock`` to the main window with napari's placement rules."""
+        others = [
+            dw
+            for dw in self._qt_window.findChildren(QDockWidget)
+            if self._qt_window.dockWidgetArea(dw) == dock.qt_area
+        ]
+        self._qt_window.addDockWidget(dock.qt_area, dock)
+        if others:
+            if tabify:
+                self._qt_window.tabifyDockWidget(others[-1], dock)
+                dock.show()
+                dock.raise_()
+            elif dock.area in ('right', 'left'):
+                docks = [*others, dock]
+                # sizes that push the lower docks up
+                sizes = list(range(1, len(docks) * 4, 4))
+                self._qt_window.resizeDocks(
+                    docks, sizes, Qt.Orientation.Vertical
+                )
+        dock.setFloating(False)  # napari #3663
 
-    def _remove_dock(self, name: str) -> None:
-        dock = self._wrapped_dock_widgets.pop(name)
+    def remove_dock_widget(self, widget: Any, menu: Any = None) -> None:
+        """Remove a dock added with ``add_dock_widget``: the dock itself,
+        the widget inside it, its name, or ``'all'``."""
+        if widget == 'all':
+            for dock in list(self._wrapped_dock_widgets.values()):
+                self.remove_dock_widget(dock)
+            return
+        if isinstance(widget, QDockWidget):
+            dock = widget
+        elif isinstance(widget, str) and widget in self._wrapped_dock_widgets:
+            dock = self._wrapped_dock_widgets[widget]
+        else:
+            inner = getattr(widget, 'native', widget)
+            for dock in self._qt_window.findChildren(QDockWidget):
+                if dock.widget() is inner:
+                    break
+            else:
+                raise LookupError(
+                    f'Could not find a dock widget containing {widget!r}'
+                )
+        if dock.widget():
+            dock.widget().setParent(None)
         self._qt_window.removeDockWidget(dock)
+        name = getattr(dock, 'name', dock.objectName())
+        self._wrapped_dock_widgets.pop(name, None)
         dock.deleteLater()
 
     @property
@@ -403,6 +431,12 @@ class Window:
                 'Please create a new one.'
             ) from e
         self._qt_viewer.dims._resize_axis_labels()
+        # the controls dock takes its minimum height, the layer list the rest
+        self._qt_window.resizeDocks(
+            [self._qt_viewer.dockLayerControls, self._qt_viewer.dockLayerList],
+            [self._qt_viewer.dockLayerControls.minimumHeight(), 10000],
+            Qt.Orientation.Vertical,
+        )
         app = QApplication.instance()
         if (
             app is not None
@@ -428,13 +462,14 @@ class Window:
     # ------------------------------------------------------------------
 
     def _update_theme(self, event: Event | None = None) -> None:
-        """Color the window after the viewer's theme (a small stylesheet;
-        napari builds its full QSS from ``_qt/qt_resources``)."""
+        """Apply napari's stylesheet in the viewer's theme, with the
+        theme's icons in place."""
         with contextlib.suppress(AttributeError, RuntimeError, ValueError):
             theme_name = self.viewer.theme
             if theme_name == 'system':
                 theme_name = get_system_theme()
-            self._qt_window.setStyleSheet(stylesheet(get_theme(theme_name)))
+            register_theme_icons(theme_name)
+            self._qt_window.setStyleSheet(get_stylesheet(theme_name))
 
     def _title_changed(self, event: Event) -> None:
         if hasattr(self, '_qt_window'):
@@ -508,30 +543,3 @@ class Window:
     ) -> None:
         img = self._screenshot(flash=flash, canvas_only=canvas_only)
         QApplication.clipboard().setImage(img)
-
-
-def stylesheet(theme: Theme) -> str:
-    """A compact Qt stylesheet with the theme's colors."""
-    background = theme.background.as_rgb()
-    foreground = theme.foreground.as_rgb()
-    primary = theme.primary.as_rgb()
-    highlight = theme.highlight.as_rgb()
-    current = theme.current.as_rgb()
-    text = theme.text.as_rgb()
-    return f"""
-QWidget {{ background-color: {background}; color: {text}; }}
-QLabel {{ background-color: transparent; }}
-QToolTip {{ background-color: {foreground}; color: {text};
-            border: 1px solid {primary}; padding: 2px; }}
-QDockWidget::title {{ background-color: {foreground}; padding: 4px; }}
-QSlider::groove:horizontal {{ background-color: {foreground}; height: 6px;
-                              border-radius: 3px; }}
-QSlider::handle:horizontal {{ background-color: {highlight}; width: 12px;
-                              margin: -4px 0; border-radius: 6px; }}
-QSlider::handle:horizontal:hover {{ background-color: {current}; }}
-QScrollBar {{ background-color: {foreground}; }}
-QPushButton {{ background-color: {primary}; border: none; padding: 4px;
-               border-radius: 3px; }}
-QPushButton:hover {{ background-color: {highlight}; }}
-QPushButton:checked {{ background-color: {current}; }}
-"""

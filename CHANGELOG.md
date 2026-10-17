@@ -12,6 +12,14 @@ importable as `napari_lite` without napari installed.
   status bar and `add_dock_widget`; `QtCanvas` for use in other Qt layouts.
 - A hint in the empty canvas with the ways to load data (the command
   line, `add_image`) and the key-bindings shortcut; `QtCanvas(hint=...)`.
+- napari's layer list, layer controls and the layer and viewer button
+  rows in the window, as napari's own widgets: thumbnails, visibility,
+  the layer list's context menu (layer operations, copy and paste of
+  scale and transforms), the mode buttons of every layer type. `QtCanvas`
+  builds them on first access (`layers`, `controls`, `layerButtons`,
+  `viewerButtons`, `dockLayerList`, `dockLayerControls`). The window uses
+  napari's stylesheet; the themed icons are written under the temp
+  directory on first use.
 - All seven layer types in 2D and 3D with napari's rendering, overlays,
   grid mode, screenshots and `export_figure`.
 - napari's default key bindings for the viewer and every layer
@@ -30,8 +38,8 @@ importable as `napari_lite` without napari installed.
 
 - No plugins: `viewer.open()`, `open_sample()`, `layer.save()` raise
   `NotImplementedError`; load data with your own library.
-- No console, menus, command palette, preferences dialog, settings file,
-  welcome screen, layer list or layer controls (the last two are planned
-  as opt-in widgets).
+- No console, menus, command palette, preferences dialog, settings file
+  or welcome screen; the layer list's context menu has napari's layer
+  entries and no plugin entries.
 - dask and scikit-image are imported on first use; pandas stays a
   dependency (the layer features tables), pint is imported with the layers.

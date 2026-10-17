@@ -63,6 +63,7 @@ class ApplicationSettings(EventedModel):
         BrushSizeOnMouseModifiers.ALT
     )
     new_labels_dtype: LabelDTypes = LabelDTypes.uint8
+    plugin_widget_positions: dict[str, str] = Field(default_factory=dict)
 
     def _connect_events(self) -> None:
         """Push the two settings that live in module globals (same as napari)."""

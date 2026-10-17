@@ -27,11 +27,14 @@ from napari_lite.utils.notifications import (
 if TYPE_CHECKING:
     from IPython import InteractiveShell
 
-__all__ = ['get_qapp', 'quit_app', 'run']
+__all__ = ['get_qapp', 'quit_app', 'register_theme_icons', 'run']
 
 APP_NAME = 'napari-lite'
 ORG_NAME = 'napari-lite'
 ORG_DOMAIN = 'napari-lite.local'
+
+# themes whose icons are written and registered as a Qt search path
+_theme_icons_registered: set[str] = set()
 
 # store reference to QApplication to prevent garbage collection
 _app_ref: QApplication | None = None
@@ -133,9 +136,45 @@ def get_qapp(
         notification_manager.notification_ready.connect(
             show_console_notification
         )
+        from napari_lite.settings import get_settings
+
+        register_theme_icons(get_settings().appearance.theme)
 
     _app_ref = app  # prevent garbage collection
     return app
+
+
+def register_theme_icons(theme_id: str) -> str:
+    """Write the icons in the colors of ``theme_id`` (once per napari-lite
+    version and color set) and register the directory as the Qt search
+    path ``theme_<id>:/`` that napari's stylesheet refers to.
+
+    Returns the directory.  napari writes these icons to its cache
+    directory when a theme is registered; napari-lite writes them under
+    the temp directory when a Qt application first needs them.
+    """
+    from qtpy.QtCore import QDir
+
+    from napari_lite._version import __version__
+    from napari_lite.resources._icons import (
+        ICONS,
+        _theme_path,
+        build_theme_svgs,
+    )
+    from napari_lite.utils.theme import get_theme
+
+    path = _theme_path(theme_id)
+    if theme_id not in _theme_icons_registered:
+        stamp = path / 'napari-lite.txt'
+        colors = sorted(get_theme(theme_id).to_rgb_dict().items())
+        wanted = f'{__version__} {len(ICONS)} {colors}'
+        current = stamp.read_text(encoding='utf-8') if stamp.exists() else ''
+        if current != wanted:
+            build_theme_svgs(theme_id, 'builtin')
+            stamp.write_text(wanted, encoding='utf-8')
+        QDir.addSearchPath(f'theme_{theme_id}', str(path))
+        _theme_icons_registered.add(theme_id)
+    return str(path)
 
 
 def quit_app() -> None:

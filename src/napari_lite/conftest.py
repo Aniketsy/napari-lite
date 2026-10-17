@@ -11,6 +11,7 @@ not ported yet.
 
 from __future__ import annotations
 
+import inspect
 import logging
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager, suppress
@@ -22,6 +23,7 @@ from unittest.mock import MagicMock
 import numpy as np
 import pytest
 
+from napari_lite._app_model._app import NoAppModel
 from napari_lite.components import LayerList
 from napari_lite.layers import Image, Labels, Points, Shapes, Vectors
 
@@ -38,6 +40,13 @@ NEEDS_VIEWER = 'needs napari_lite.Viewer with a window (issue 13)'
 NEEDS_PLUGINS = 'needs npe2 plugins (napari-lite has none)'
 NEEDS_APP_MODEL = 'needs app-model (napari-lite has none)'
 NEEDS_INFO = 'needs napari.utils.info (application feature)'
+NEEDS_MENUS = 'needs menus (napari-lite has none)'
+
+# names in a test's source that mean napari's application side
+_NOT_IN_LITE = {
+    'get_app_model': NEEDS_APP_MODEL,
+    'window_menu': NEEDS_MENUS,
+}
 
 # test modules that are not run (relative to this directory)
 collect_ignore = [
@@ -46,6 +55,10 @@ collect_ignore = [
     # asserts napari's wording of the Qt version error; _qt/__init__.py is
     # own code with its own message
     '_qt/_tests/test_qt_version_check.py',
+    # npe2 theme plugins and napari's platform directories; utils/theme.py
+    # and utils/_platformdirs.py are own code
+    'utils/_tests/test_theme.py',
+    'utils/_tests/test_appdirs.py',
 ]
 
 
@@ -57,9 +70,7 @@ def _skip_fixture(reason: str):
     return _fixture
 
 
-qt_viewer = _skip_fixture(
-    "needs napari's QtViewer (layer list, controls, console)"
-)
+qt_viewer = _skip_fixture("needs napari's QtViewer")
 builtins = _skip_fixture(NEEDS_PLUGINS)
 tmp_plugin = _skip_fixture(NEEDS_PLUGINS)
 napari_svg_name = _skip_fixture(NEEDS_PLUGINS)
@@ -492,9 +503,19 @@ def pytest_runtest_makereport(item, call):
 
 
 def pytest_collection_modifyitems(session, config, items) -> None:
-    """Run the copied tests in napari's order: utils, layers, components,
-    then the vispy and Qt folders (napari's conftest does the same; the
-    suite is tuned for it, e.g. timing tests run before Qt tests)."""
+    """Skip the copied tests that call app-model, and run the rest in
+    napari's order: utils, layers, components, then the vispy and Qt
+    folders (napari's conftest does the same; the suite is tuned for it,
+    e.g. timing tests run before Qt tests)."""
+    for item in items:
+        function = getattr(item, 'function', None)
+        try:
+            source = inspect.getsource(function) if function else ''
+        except (OSError, TypeError):
+            source = ''
+        for marker, reason in _NOT_IN_LITE.items():
+            if marker in source:
+                item.add_marker(pytest.mark.skip(reason=reason))
     prefixes = [
         'napari_lite/utils',
         'napari_lite/layers',
@@ -515,6 +536,19 @@ def pytest_collection_modifyitems(session, config, items) -> None:
                 index = i
         buckets[index].append(item)
     items[:] = [item for bucket in buckets for item in bucket]
+
+
+@pytest.hookimpl(wrapper=True)
+def pytest_runtest_call(item):
+    """A copied test that reaches app-model while running is skipped."""
+    try:
+        return (yield)
+    except NoAppModel:
+        pytest.skip(NEEDS_APP_MODEL)
+    except ModuleNotFoundError as e:
+        if e.name == 'app_model':
+            pytest.skip(NEEDS_APP_MODEL)
+        raise
 
 
 def pytest_runtest_setup(item) -> None:

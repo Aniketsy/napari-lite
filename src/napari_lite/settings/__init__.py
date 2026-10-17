@@ -58,6 +58,9 @@ class NapariSettings(EventedModel):
     def save(self, path: Any = None, **kwargs: Any) -> None:
         """napari-lite settings are not persisted; kept for API compatibility."""
 
+    def _maybe_save(self) -> None:
+        """napari saves here when the settings came from a file."""
+
 
 _SETTINGS: NapariSettings | None = None
 
