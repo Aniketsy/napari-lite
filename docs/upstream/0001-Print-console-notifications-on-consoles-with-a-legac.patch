@@ -1,0 +1,89 @@
+From 2ed948d7082642b3566f1d864ca88c93c335fc1f Mon Sep 17 00:00:00 2001
+From: Aniket Singh Yadav <singhyadavaniket43@gmail.com>
+Date: Sat, 17 Oct 2026 21:25:29 +0530
+Subject: [PATCH] Print console notifications on consoles with a legacy
+ encoding
+
+show_console_notification printed with a bare print(). When stdout has a
+legacy encoding, cp1252 on Windows whenever the output is piped or
+redirected, a message with a character outside it (the shift arrow of a
+shortcut, for one) raised UnicodeEncodeError inside print; the except
+around it logged "An error occurred while trying to format an error and
+show it in console ... You can try to uninstall IPython" and the message
+itself was lost. Encode with errors='replace' first, so the console shows
+the message with those characters as '?'.
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
+---
+ .../utils/_tests/test_notification_manager.py | 30 +++++++++++++++++++
+ src/napari/utils/notifications.py             |  8 ++++-
+ 2 files changed, 37 insertions(+), 1 deletion(-)
+
+diff --git a/src/napari/utils/_tests/test_notification_manager.py b/src/napari/utils/_tests/test_notification_manager.py
+index e8cea2b5..2b1b2184 100644
+--- a/src/napari/utils/_tests/test_notification_manager.py
++++ b/src/napari/utils/_tests/test_notification_manager.py
+@@ -7,7 +7,9 @@ import pytest
+ from napari._tests.utils import DEFAULT_TIMEOUT_SECS
+ from napari.utils.notifications import (
+     Notification,
++    NotificationSeverity,
+     notification_manager,
++    show_console_notification,
+     show_debug,
+     show_error,
+     show_info,
+@@ -181,3 +183,31 @@ def test_notification_manager_no_warning_duplication():
+ 
+         fun()
+         assert len(notification_manager.records) == 1
++
++
++def test_show_console_notification_with_a_legacy_console_encoding(
++    monkeypatch,
++):
++    """A character the console cannot encode (cp1252 when Windows pipes
++    the output) is replaced in the printed message: print must not raise
++    inside the handler, which logged an error and lost the message."""
++    import io
++
++    from napari.settings import get_settings
++
++    monkeypatch.setattr(
++        get_settings().application,
++        'console_notification_level',
++        NotificationSeverity.INFO,
++    )
++    raw = io.BytesIO()
++    monkeypatch.setattr(
++        sys,
++        'stdout',
++        io.TextIOWrapper(raw, encoding='cp1252', errors='strict'),
++    )
++    show_console_notification(
++        Notification('press \u21e7 to select', 'warning')
++    )
++    sys.stdout.flush()
++    assert b'press ? to select' in raw.getvalue()
+diff --git a/src/napari/utils/notifications.py b/src/napari/utils/notifications.py
+index 9900fc77..24959b3d 100644
+--- a/src/napari/utils/notifications.py
++++ b/src/napari/utils/notifications.py
+@@ -392,7 +392,13 @@ def show_console_notification(notification: Notification) -> None:
+         ):
+             return
+ 
+-        print(notification)  # noqa: T201
++        text = str(notification)
++        encoding = getattr(sys.stdout, 'encoding', None)
++        if encoding:
++            # a console with a legacy encoding (cp1252 when Windows pipes the
++            # output) cannot print every character; replace them, do not fail
++            text = text.encode(encoding, errors='replace').decode(encoding)
++        print(text)  # noqa: T201
+     except Exception:
+         logging.getLogger('napari').exception(
+             'An error occurred while trying to format an error and show it in console.\n'
+-- 
+2.50.1.windows.1
+

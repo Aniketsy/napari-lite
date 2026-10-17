@@ -10,6 +10,11 @@ importable as `napari_lite` without napari installed.
 
 - `napari_lite.Viewer`, `imshow`, `run`, `current_viewer`; a window with a
   status bar and `add_dock_widget`; `QtCanvas` for use in other Qt layouts.
+- The `napari-lite` command (`python -m napari_lite` too): one layer per
+  file, images through imageio, `.npy`/`.npz` through numpy, TIFF with the
+  `tiff` extra; `--labels`, `--ndisplay`, `--title`. A file that is missing
+  or that no reader can open is reported with exit status 2 before any
+  window opens; closing the window ends the command with status 0.
 - A hint in the empty canvas with the ways to load data (the command
   line, `add_image`) and the key-bindings shortcut; `QtCanvas(hint=...)`.
 - napari's layer list, layer controls and the layer and viewer button
@@ -41,6 +46,10 @@ importable as `napari_lite` without napari installed.
 - No console, menus, command palette, preferences dialog, settings file
   or welcome screen; the layer list's context menu has napari's layer
   entries and no plugin entries.
+- Console notifications print on a console with a legacy encoding (cp1252
+  when Windows pipes the output): the characters it lacks become `?`,
+  where napari's `print` raised and a misleading error was logged in place
+  of the message (`docs/upstream.md`, patch 4).
 - dask is imported on first use; pandas stays a dependency (the layer
   features tables), pint is imported with the layers.
 - scikit-image is not a dependency: `utils/_draw.py` (a line, a polygon,
