@@ -14,7 +14,9 @@ merge between napari's changes and ours.
    `app_modules` in `tools/vendor.toml`) instead of editing the callers.
 3. **Edits to copied files stay small** and carry a `# napari-lite:` comment
    saying why. If an edit can be expressed as a text substitution, put it in
-   `literal_rewrites` in `vendor.toml` so it is reapplied on every resync.
+   `vendor.toml` so it is reapplied on every resync: `literal_rewrites` for
+   one line, a `[[rewrite]]` table for several. The tool fails when a rule
+   matches nothing, which is how a napari change to that code is noticed.
 4. **Own files start with `# napari-lite: own code`** on the first line. The
    tool never overwrites them. If an own file replaces a *copied* path (for
    example `utils/__init__.py`), do it in this order so the merge stays clean:

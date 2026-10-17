@@ -21,7 +21,11 @@ The tool reads ``tools/vendor.toml``:
 * ``data``         non-Python files to copy (globs relative to ``src/napari``)
 * ``literal_rewrites`` ``{"from x import": "from y import"}`` text
                    substitutions applied to every copied file after the
-                   ``napari`` -> ``napari_lite`` rewrite.
+                   ``napari`` -> ``napari_lite`` rewrite.  ``[[rewrite]]``
+                   tables with ``old`` and ``new`` are the same thing for
+                   multi-line text.  The run fails when a substitution
+                   matches nothing: napari moved the code, the rule needs
+                   a look.
 
 Crawling starts at ``roots`` and follows every absolute ``napari.*`` import
 (napari forbids relative imports) plus the submodule names given to
@@ -92,13 +96,20 @@ class Config:
     @classmethod
     def load(cls, path: Path) -> Config:
         raw = tomllib.loads(path.read_text(encoding='utf-8'))
+        rewrites = dict(raw.get('literal_rewrites', {}))
+        for table in raw.get('rewrite', []):
+            old, new = table['old'], table['new']
+            if not old or old in rewrites:
+                first = old.strip().splitlines()[:1]
+                sys.exit(f'empty or duplicate [[rewrite]] in {path}: {first}')
+            rewrites[old] = new
         return cls(
             pin=raw['pin'],
             roots=list(raw.get('roots', [])),
             app_modules=list(raw.get('app_modules', [])),
             extra_modules=list(raw.get('extra_modules', [])),
             data=list(raw.get('data', [])),
-            literal_rewrites=dict(raw.get('literal_rewrites', {})),
+            literal_rewrites=rewrites,
             skip_modules=list(raw.get('skip_modules', [])),
             own_modules=list(raw.get('own_modules', [])),
         )
@@ -386,11 +397,20 @@ def why(result: Result, cfg: Config, target: str) -> list[str]:
 # --------------------------------------------------------------------------
 
 
-def rewrite(text: str, literal: dict[str, str]) -> str:
+def rewrite(
+    text: str, literal: dict[str, str], counts: dict[str, int] | None = None
+) -> str:
+    """Apply the package rename and the literal substitutions to ``text``.
+
+    ``counts`` (old -> number of occurrences so far) is updated when given,
+    so that a substitution that matches nothing can be reported.
+    """
     text = _FROM_PKG.sub(f'from {DST_PKG} import', text)
     text = _IMPORT_PKG.sub(f'import {DST_PKG}', text)
     text = _MODULE_REF.sub(DST_PKG, text)
     for old, new in literal.items():
+        if counts is not None:
+            counts[old] = counts.get(old, 0) + text.count(old)
         text = text.replace(old, new)
     return text
 
@@ -405,11 +425,16 @@ def is_own_code(path: Path) -> bool:
 
 def write_tree(
     src: Path, dst: Path, result: Result, cfg: Config
-) -> tuple[list[str], list[str]]:
-    """Write copied modules; return (written, kept_own_code) relative paths."""
+) -> tuple[list[str], list[str], list[str]]:
+    """Write copied modules.
+
+    Returns the relative paths written, the own-code paths kept, and the
+    literal substitutions that matched no file at all.
+    """
     written: list[str] = []
     kept: list[str] = []
     wanted: set[Path] = set()
+    counts: dict[str, int] = dict.fromkeys(cfg.literal_rewrites, 0)
     for mod in [*result.copied.values(), *result.tests.values()]:
         rel = mod.path.relative_to(src)
         target = dst / rel
@@ -420,7 +445,7 @@ def write_tree(
         target.parent.mkdir(parents=True, exist_ok=True)
         text = mod.path.read_text(encoding='utf-8')
         target.write_text(
-            rewrite(text, cfg.literal_rewrites),
+            rewrite(text, cfg.literal_rewrites, counts),
             encoding='utf-8',
             newline='\n',
         )
@@ -433,7 +458,9 @@ def write_tree(
             (dst / rel).parent.mkdir(parents=True, exist_ok=True)
             (dst / rel).write_text(
                 rewrite(
-                    init.read_text(encoding='utf-8'), cfg.literal_rewrites
+                    init.read_text(encoding='utf-8'),
+                    cfg.literal_rewrites,
+                    counts,
                 ),
                 encoding='utf-8',
                 newline='\n',
@@ -475,7 +502,8 @@ def write_tree(
     for path in sorted(dst.rglob('*'), reverse=True):
         if path.is_dir() and not any(path.iterdir()):
             path.rmdir()
-    return written, kept
+    unmatched = [old for old, n in counts.items() if n == 0]
+    return written, kept, unmatched
 
 
 # --------------------------------------------------------------------------
@@ -700,7 +728,17 @@ def main(argv: list[str] | None = None) -> int:
     if args.diff:
         return diff_manifest(info, result, sha)
 
-    written, kept = write_tree(src, args.dest, result, cfg)
+    written, kept, unmatched = write_tree(src, args.dest, result, cfg)
+    if unmatched:
+        print(
+            f'{len(unmatched)} rewrite(s) in {args.config.name} matched no '
+            'copied file (napari moved the code?).  Fix or drop the rule, '
+            'then run again:',
+            file=sys.stderr,
+        )
+        for old in unmatched:
+            print(f'  {old.strip().splitlines()[0]}', file=sys.stderr)
+        return 1
     manifest = {
         'napari_commit': sha,
         'pin': cfg.pin,
