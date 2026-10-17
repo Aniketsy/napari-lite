@@ -15,7 +15,6 @@
     "napari.utils.colormaps",
     "napari.utils.transforms",
     "napari.utils.progress",
-    "napari.utils._dask_utils",
     "napari.utils.shortcuts",
     "napari.utils._env_detection"
   ],
@@ -38,8 +37,8 @@
     "napari._event_loop"
   ],
   "modules_total": 556,
-  "modules_copied": 254,
-  "lines_copied": 76236,
+  "modules_copied": 253,
+  "lines_copied": 76074,
   "tests_copied": 169,
   "tests_skipped": {
     "napari._qt._tests.test_plugin_widgets": [
@@ -596,17 +595,16 @@
       "napari._vispy.canvas",
       "napari._vispy.layers.shapes"
     ],
-    "dask": [
-      "napari.components.histogram",
-      "napari.layers.utils.layer_utils",
-      "napari.layers.utils.stack_utils",
-      "napari.utils._dask_utils"
-    ],
     "magicgui": [
       "napari._qt.qthreading",
       "napari.layers._source",
       "napari.layers.base.base",
       "napari.types"
+    ],
+    "dask": [
+      "napari.components.histogram",
+      "napari.layers.utils.layer_utils",
+      "napari.layers.utils.stack_utils"
     ],
     "numba": [
       "napari.layers.shapes._accelerated_triangulate_numba",
@@ -656,9 +654,6 @@
     ],
     "imageio": [
       "napari.utils.io"
-    ],
-    "psutil": [
-      "napari.utils._dask_utils"
     ],
     "pydantic_settings": [
       "napari.utils.events.debugging"
@@ -881,7 +876,6 @@
     "napari.layers.vectors.vectors",
     "napari.settings._constants",
     "napari.types",
-    "napari.utils._dask_utils",
     "napari.utils._dtype",
     "napari.utils._env_detection",
     "napari.utils._indexing",
