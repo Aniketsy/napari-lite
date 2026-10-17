@@ -89,7 +89,9 @@ THREE_D = textwrap.dedent(
 
     viewer = napari_lite.Viewer(show=True)
     layer = viewer.add_image(np.zeros((8, 32, 32), dtype=np.uint8))
-    layer.affine = np.array([[0.8, -0.6, 0, 1], [0.6, 0.8, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+    layer.affine = np.array(
+        [[1, 0, 0, 0], [0, 0.8, -0.6, 1], [0, 0.6, 0.8, 0], [0, 0, 0, 1]]
+    )
     layer.rotate  # reads the decomposition of the affine
     viewer.add_tracks(np.array([[0, 0, 1.0, 2.0, 3.0], [0, 1, 1.5, 2.5, 3.5]]))
     viewer.dims.ndisplay = 3
@@ -97,7 +99,7 @@ THREE_D = textwrap.dedent(
     for _ in range(20):
         app.processEvents()
     viewer.scene.camera.angles = (10, 20, 30)
-    viewer.scene.camera.view_direction = (0, 1, 0)
+    viewer.scene.camera.set_view_direction((0, 0, 1))
     viewer.canvas_to_world((5, 5))
     for _ in range(20):
         app.processEvents()
