@@ -117,3 +117,104 @@ data = [
 # layers/shapes/_shapes_models/_tests/test_shapes_models.py names the module
 # that provides the pure-python triangulation backend
 "TriangulationBackend.pure_python: 'napari'," = "TriangulationBackend.pure_python: 'napari_lite',"
+
+# Multi-line substitutions, same effect as ``literal_rewrites``; the tool
+# fails when ``old`` no longer occurs anywhere, so a napari change that
+# moves the code is noticed at resync.  Keep the ``# napari-lite:`` comment
+# in ``new`` (SYNC.md rule 3).
+
+# utils/_xarray_utils.py: every layer checks whether its data is an xarray
+# object by importing xarray, which imports pandas; with xarray installed
+# the first image paid about a second and 450 modules for nothing.  An
+# xarray object can only exist once xarray is in sys.modules.
+[[rewrite]]
+old = '''
+from typing import TYPE_CHECKING, NamedTuple, cast
+
+import numpy as np
+'''
+new = '''
+import sys
+from typing import TYPE_CHECKING, NamedTuple, cast
+
+import numpy as np
+'''
+
+[[rewrite]]
+old = '''
+    # xarray is an optional dependency, so it may not be importable.
+    try:
+        import xarray as xr
+    except ImportError:
+        return _XarrayProps()
+'''
+new = '''
+    # napari-lite: an xarray object can only exist once xarray is imported.
+    # Importing it here would cost every environment that has it installed
+    # (xarray brings pandas) on the first layer, with no xarray data around.
+    if 'xarray' not in sys.modules:
+        return _XarrayProps()
+    # xarray is an optional dependency, so it may not be importable.
+    try:
+        import xarray as xr
+    except ImportError:
+        return _XarrayProps()
+'''
+
+# components/viewer_model.py: canvas_to_world runs on every draw and
+# imported scipy.spatial first thing, in 2D too, where it is unused.  The
+# first paint of a 2D viewer stalled on that import.
+[[rewrite]]
+old = '''
+        from scipy.spatial.transform import Rotation as R
+
+        ndisplay = self.dims.ndisplay
+        camera = self.scene.camera
+'''
+new = '''
+        ndisplay = self.dims.ndisplay
+        camera = self.scene.camera
+'''
+
+[[rewrite]]
+old = '''
+            # consistency (zyx actually describes a different rotation order)
+            rot = R.from_euler('xyz', camera.angles, degrees=True)
+'''
+new = '''
+            # consistency (zyx actually describes a different rotation order)
+            # napari-lite: imported here, not at the top of the method: this
+            # runs on every draw, and scipy.spatial is only needed in 3D
+            from scipy.spatial.transform import Rotation as R
+
+            rot = R.from_euler('xyz', camera.angles, degrees=True)
+'''
+
+# layers/image/image.py and layers/labels/labels.py: the thumbnail is a
+# nearest-neighbour downsampling; scipy.ndimage was imported for it on the
+# first image and on every slice (utils/_zoom.py is own code).
+[[rewrite]]
+old = '''
+        """Update thumbnail with current image data and colormap."""
+        from scipy import ndimage as ndi
+'''
+new = '''
+        """Update thumbnail with current image data and colormap."""
+        # napari-lite: nearest-neighbour zoom in numpy; scipy.ndimage is not
+        # imported for a thumbnail
+        from napari_lite.utils import _zoom as ndi
+'''
+
+[[rewrite]]
+old = '''
+        limits.
+        """
+        from scipy import ndimage as ndi
+'''
+new = '''
+        limits.
+        """
+        # napari-lite: nearest-neighbour zoom in numpy; scipy.ndimage is not
+        # imported for a thumbnail
+        from napari_lite.utils import _zoom as ndi
+'''
