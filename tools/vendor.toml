@@ -361,6 +361,18 @@ new = '''
         return self._id2idxs[track_id]
 '''
 
+# utils/transforms/transforms.py: toolz was a dependency for ``identity``
+# and ``pipe``; utils/_toolz.py has the two (dask still brings toolz with
+# the ``dask`` extra).
+[[rewrite]]
+old = '''
+import toolz as tz
+'''
+new = '''
+# napari-lite: identity and pipe (utils/_toolz.py); toolz is not a dependency
+from napari_lite.utils import _toolz as tz
+'''
+
 [[rewrite]]
 old = '''
             # only import if needed

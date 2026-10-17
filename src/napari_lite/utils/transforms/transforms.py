@@ -5,7 +5,8 @@ from typing import TYPE_CHECKING, Generic, TypeVar, overload
 import numpy as np
 import numpy.typing as npt
 import pint
-import toolz as tz
+# napari-lite: identity and pipe (utils/_toolz.py); toolz is not a dependency
+from napari_lite.utils import _toolz as tz
 from psygnal import Signal
 
 from napari_lite.utils.events import EventedList
