@@ -37,11 +37,14 @@ git -C ../napari checkout <new-sha>
 python tools/vendor.py --napari ../napari --diff     # crossings/modules vs VENDORED.json
 git commit -am "vendor.toml: pin napari <new-sha>"
 
-# 2. on vendor: bring the tool over, run it, commit the copy
+# 2. on vendor: bring the tool over, run it, commit the copy.
+#    Start from a clean working tree (commit or stash own files first): only
+#    the tool's outputs belong in a vendor commit.
+git status --short            # must be empty
 git switch vendor
 git checkout main -- tools/
 python tools/vendor.py --napari ../napari
-git add -A
+git add src/napari_lite VENDORED.json tools
 git commit -m "vendor: napari <new-sha>"
 
 # 3. on main: merge, resolve, test
