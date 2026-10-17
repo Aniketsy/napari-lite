@@ -410,7 +410,9 @@ def _color_random(n, *, colorspace='lab', tolerance=0.0, seed=0.5):
     rgb : array of float, shape (n, 3)
         RGB colors chosen uniformly at random from given colorspace.
     """
-    import skimage.color as colorconv
+    # napari-lite: own luv2rgb and lab2rgb (utils/_colorconv.py);
+    # scikit-image is not a dependency
+    from napari_lite.utils import _colorconv as colorconv
 
     factor = 6  # about 1/5 of random LUV tuples are inside the space
     expand_factor = 2

@@ -6,7 +6,10 @@ import typing
 from typing import TYPE_CHECKING, overload
 
 import numpy as np
-from skimage import draw, measure
+# napari-lite: own line, polygon, points_in_poly and flood (utils/_draw.py),
+# so scikit-image is not a dependency
+from napari_lite.utils import _draw as draw
+from napari_lite.utils import _draw as measure
 from vispy.geometry import Triangulation
 
 # napari-lite: own copy of vispy's helper (utils/_tube.py); importing
