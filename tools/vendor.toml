@@ -361,6 +361,189 @@ new = '''
         return self._id2idxs[track_id]
 '''
 
+# pandas is the ``features`` extra (backlog issue 28).  layers/utils/
+# layer_utils.py keeps napari's code for real feature tables; a stand-in
+# (layers/utils/_lite_features.py) serves a layer without features in a
+# process that has not imported pandas, and the layers hand out a real
+# DataFrame through ``_FeatureTable.dataframe`` whenever pandas is there.
+[[rewrite]]
+old = '''
+            return getattr(import_module('pandas'), attr)
+'''
+new = '''
+            # napari-lite: the import error names the ``features`` extra
+            return getattr(_lite_features.pandas(), attr)
+'''
+
+[[rewrite]]
+old = '''
+    pd = _LazyPandas()
+'''
+new = '''
+    pd = _LazyPandas()
+
+# napari-lite: the features table without pandas until a feature is given
+from napari_lite.layers.utils import _lite_features  # noqa: E402
+'''
+
+[[rewrite]]
+old = '''
+        A pandas DataFrame that stores the given features.
+    """
+    return features
+'''
+new = '''
+        A pandas DataFrame that stores the given features.
+    """
+    # napari-lite: a stand-in becomes a DataFrame here when pandas is there
+    return _lite_features.to_dataframe(features)
+'''
+
+[[rewrite]]
+old = '''
+    def values(self) -> pd.DataFrame:
+        """The feature values table."""
+        return self._values
+'''
+new = '''
+    def values(self) -> pd.DataFrame:
+        """The feature values table."""
+        return self._values
+
+    @property
+    def dataframe(self) -> pd.DataFrame:
+        """The table as the layer hands it out: a real DataFrame whenever
+        pandas can be imported (napari-lite, layers/utils/_lite_features.py)."""
+        return _lite_features.materialize(self)
+
+    @property
+    def defaults_dataframe(self) -> pd.DataFrame:
+        """The defaults as the layer hands them out (napari-lite)."""
+        return _lite_features.materialize_defaults(self)
+'''
+
+[[rewrite]]
+old = '''
+        self._values = pd.concat([self._values, to_append], ignore_index=True)
+'''
+new = '''
+        # napari-lite: no pandas while both tables are stand-ins
+        self._values = _lite_features.concat(self._values, to_append)
+'''
+
+[[rewrite]]
+old = '''
+    if isinstance(features, pd.DataFrame):
+        features = features.reset_index(drop=True)
+'''
+new = '''
+    # napari-lite: no columns and no pandas in the process: the stand-in
+    features = _lite_features.unwrap(features)
+    if _lite_features.use_lite(features):
+        return _lite_features.lite_values(features, num_data)
+    if isinstance(features, pd.DataFrame):
+        features = features.reset_index(drop=True)
+'''
+
+[[rewrite]]
+old = '''
+    if defaults is None:
+        defaults = {c: _get_default_column(values[c]) for c in values.columns}
+'''
+new = '''
+    # napari-lite: a zero-column stand-in has one-row stand-in defaults
+    values = _lite_features.unwrap(values)
+    if isinstance(values, _lite_features.LiteFeatures):
+        return _lite_features.lite_defaults(defaults)
+    if defaults is None:
+        defaults = {c: _get_default_column(values[c]) for c in values.columns}
+'''
+
+# The layers: what they hand out is a DataFrame; what they read on their
+# own hot paths (text, status, tooltips) is the table as it is.
+[[rewrite]]
+old = '''
+        return self._feature_table.values
+'''
+new = '''
+        return self._feature_table.dataframe
+'''
+
+[[rewrite]]
+old = '''
+        return self._feature_table.defaults
+'''
+new = '''
+        return self._feature_table.defaults_dataframe
+'''
+
+[[rewrite]]
+old = '''
+            features=self.features,
+'''
+new = '''
+            features=self._feature_table.values,
+'''
+
+[[rewrite]]
+old = '''
+        self.text.refresh(self.features)
+'''
+new = '''
+        self.text.refresh(self._feature_table.values)
+'''
+
+[[rewrite]]
+old = '''
+            self.text.apply(self.features)
+'''
+new = '''
+            self.text.apply(self._feature_table.values)
+'''
+
+[[rewrite]]
+old = '''
+        self.text.string._apply(self.features)
+'''
+new = '''
+        self.text.string._apply(self._feature_table.values)
+'''
+
+[[rewrite]]
+old = '''
+        self.text.color._apply(self.features)
+'''
+new = '''
+        self.text.color._apply(self._feature_table.values)
+'''
+
+[[rewrite]]
+old = '''
+            'features': self.features.iloc[index].to_dict(),
+'''
+new = '''
+            'features': self._feature_table.values.iloc[index].to_dict(),
+'''
+
+[[rewrite]]
+old = '''
+        if self.features.shape[1] == 0:
+'''
+new = '''
+        if self._feature_table.values.shape[1] == 0:
+'''
+
+[[rewrite]]
+old = '''
+        if len(self._label_index) == 0 or self.features.shape[1] == 0:
+'''
+new = '''
+        if (
+            len(self._label_index) == 0
+            or self._feature_table.values.shape[1] == 0
+        ):
+'''
+
 # utils/transforms/transforms.py: toolz was a dependency for ``identity``
 # and ``pipe``; utils/_toolz.py has the two (dask still brings toolz with
 # the ``dask`` extra).

@@ -24,12 +24,13 @@ classifiers = [
 # Every package below is imported by a copied module (VENDORED.json,
 # "third_party_imports").  dask, cachey and psutil are in the [dask] extra:
 # the core imports them only when the data is a dask array.  wrapt,
-# scikit-image, scipy and toolz are listed there too: rewrite rules
+# scikit-image, scipy, toolz and pandas are listed there too: rewrite rules
 # (tools/vendor.toml) put own code in their place (utils/_object_proxy.py,
 # _draw.py, _colorconv.py, _rotation.py, _linalg.py, _morphology.py,
-# _tracks_index.py, _toolz.py); scipy stays an extra for spline-interpolated
-# shapes.  pydantic-extra-types' Color, used by the own utils/theme.py, is
-# copied into utils/_color.py.
+# _tracks_index.py, _toolz.py, layers/utils/_lite_features.py); scipy stays
+# an extra for spline-interpolated shapes and pandas is the features extra.
+# pydantic-extra-types' Color, used by the own utils/theme.py, is copied
+# into utils/_color.py.
 dependencies = [
     "numpy>=1.25",
     "vispy>=0.17.0,<0.18",
@@ -45,10 +46,6 @@ dependencies = [
     "packaging",
     "tqdm>=4.56.0",
     "typing_extensions>=4.12",
-    # pandas: Points, Shapes, Labels, Vectors and Tracks keep their features
-    # in a DataFrame, so it is needed as soon as one of them is created;
-    # it is imported on first use
-    "pandas>=1.5.0",
 ]
 
 [project.scripts]
@@ -72,6 +69,9 @@ pyside6 = [
 dask = ["dask[array]>=2022.1.1", "cachey>=0.2.1", "psutil>=5.9.4"]
 # spline interpolation of shapes (interpolation_order > 1)
 scipy = ["scipy>=1.14.0"]
+# layer features (``layer.features``, properties, text and colours by
+# feature, Tracks): a layer without features needs no pandas
+features = ["pandas>=1.5.0"]
 # faster Shapes triangulation and Labels color mapping
 fast-shapes = [
     "numba>=0.58.0",
@@ -80,7 +80,7 @@ fast-shapes = [
     "triangle; python_version <= '3.13'",
 ]
 tiff = ["tifffile>=2022.7.28"]
-all = ["napari-lite[pyqt6,scipy,dask,fast-shapes,tiff]"]
+all = ["napari-lite[pyqt6,features,scipy,dask,fast-shapes,tiff]"]
 dev = [
     "pytest>=8.3.5",
     "pytest-qt>=4.4.0",
@@ -93,6 +93,7 @@ dev = [
     # _morphology.py, _tracks_index.py) run against them
     "scikit-image>=0.20.0",
     "scipy>=1.14.0",
+    "pandas>=1.5.0",  # the feature tables of the copied tests
     "matplotlib>=3.6.1",  # vispy's get_colormap falls back to matplotlib names
     "pydantic-settings",  # utils/events/debugging: event tracing for developers
     "napari-lite[dask]",  # the copied dask tests

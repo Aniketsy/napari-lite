@@ -162,14 +162,21 @@ def test_first_image_imports_no_xarray_pandas_or_ndimage() -> None:
 def test_labels_and_shapes_import_no_ndimage_or_scikit_image() -> None:
     loaded = loaded_modules(FIRST_LABELS)
     assert 'napari_lite.layers' in loaded
-    uninvited = {'scipy.ndimage', 'skimage', 'networkx', 'tifffile'} & loaded
+    uninvited = {
+        'scipy.ndimage',
+        'skimage',
+        'networkx',
+        'tifffile',
+        # a layer without features needs no feature table in pandas
+        'pandas',
+    } & loaded
     assert not uninvited, f'labels and shapes imported {sorted(uninvited)}'
 
 
 def test_first_paint_in_2d_imports_no_scipy_spatial() -> None:
     loaded = loaded_modules(FIRST_PAINT)
     assert 'napari_lite._vispy' in loaded
-    uninvited = {'scipy.spatial', 'xarray', 'tqdm', 'wrapt'} & loaded
+    uninvited = {'scipy.spatial', 'xarray', 'tqdm', 'wrapt', 'pandas'} & loaded
     assert not uninvited, f'the first 2D paint imported {sorted(uninvited)}'
 
 
