@@ -84,6 +84,7 @@ dev = [
     "docstring_parser>=0.15",  # copied napari tests (utils/_test_utils.py)
     "xarray>=2023.5.0",  # copied napari tests import it at module level
     "zarr>=3.0.8",  # copied napari tests import it at module level
+    "matplotlib>=3.6.1",  # vispy's get_colormap falls back to matplotlib names
     "ruff",
 ]
 
