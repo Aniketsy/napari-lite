@@ -347,14 +347,16 @@ def decompose_linear_matrix(
         1-D array of upper triangular values or an n-D matrix if lower
         triangular.
     """
-    import scipy.linalg
+    # napari-lite: numpy QR and RQ (utils/_linalg.py); the signs are
+    # normalized below, so scipy's factors are not needed
+    from napari_lite.utils._linalg import qr, rq
 
     n = matrix.shape[0]
 
     if upper_triangular:
-        rotate, tri = scipy.linalg.qr(matrix)
+        rotate, tri = qr(matrix)
     else:
-        upper_tri, rotate = scipy.linalg.rq(matrix.T)
+        upper_tri, rotate = rq(matrix.T)
         rotate = rotate.T
         tri = upper_tri.T
 

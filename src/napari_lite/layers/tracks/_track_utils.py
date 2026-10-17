@@ -126,8 +126,9 @@ class TrackManager:
     @data.setter
     def data(self, data: list | np.ndarray) -> None:
         """set the vertex data and build the vispy arrays for display"""
-        from scipy.sparse import coo_matrix
-        from scipy.spatial import cKDTree
+        # napari-lite: the nearest-vertex lookup and the id index in numpy
+        # (utils/_tracks_index.py); scipy is not a dependency
+        from napari_lite.utils._tracks_index import IdIndex, NearestVertices
 
         # convert data to a numpy array if it is not already one
         data = np.asarray(data)
@@ -144,7 +145,7 @@ class TrackManager:
         self._points = self._data[self._ordered_points_idx, 1:]
 
         # build a tree of the track data to allow fast lookup of nearest track
-        self._kdtree = cKDTree(self._points)
+        self._kdtree = NearestVertices(self._points)
 
         # make the lookup table
         # NOTE(arl): it's important to convert the time index to an integer
@@ -156,12 +157,7 @@ class TrackManager:
 
         # make a second lookup table using a sparse matrix to convert track id
         # to the vertex indices
-        self._id2idxs = coo_matrix(
-            (
-                np.broadcast_to(1, self.track_ids.size),  # just dummy ones
-                (self.track_ids, np.arange(self.track_ids.size)),
-            )
-        ).tocsr()
+        self._id2idxs = IdIndex(self.track_ids)
 
         # Invalidate cached track end times when data changes
         self._track_end_times = None
@@ -250,7 +246,7 @@ class TrackManager:
 
     def _vertex_indices_from_id(self, track_id: int) -> npt.NDArray:
         """return the vertices corresponding to a track id"""
-        return self._id2idxs[track_id].nonzero()[1]
+        return self._id2idxs[track_id]
 
     def _validate_track_data(self, data: np.ndarray) -> np.ndarray:
         """validate the coordinate data"""
