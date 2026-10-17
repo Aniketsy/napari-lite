@@ -79,11 +79,13 @@ def _camera_rotation_matrix(
     angles: Vector3D,
 ) -> npt.NDArray[np.float64]:
     """Return the camera rotation matrix for the given Euler angles."""
-    from scipy.spatial.transform import Rotation as R
+    # napari-lite: numpy rotation with scipy's conventions
+    # (utils/_rotation.py); scipy is not a dependency
+    from napari_lite.utils._rotation import matrix_from_euler
 
     # we take the opposite of the angles to match scipy's XYZ conventions
     # while retaining napari behaviour
-    return R.from_euler('XYZ', -np.asarray(angles), degrees=True).as_matrix()
+    return matrix_from_euler('XYZ', -np.asarray(angles), degrees=True)
 
 
 @lru_cache
@@ -142,7 +144,9 @@ def angles_from_view_and_up_directions(
     3-tuple of float
         Euler angles (rx, ry, rz) of the camera in 3D viewing, in degrees.
     """
-    from scipy.spatial.transform import Rotation as R
+    # napari-lite: numpy rotation with scipy's conventions
+    # (utils/_rotation.py); scipy is not a dependency
+    from napari_lite.utils._rotation import euler_from_matrix
 
     # normalize view direction
     view_raw = np.asarray(view_direction, dtype=float)
@@ -165,6 +169,6 @@ def angles_from_view_and_up_directions(
     # gimbal locks are expected, not an issue
     with warnings.catch_warnings():
         warnings.simplefilter('ignore', UserWarning)
-        angles = R.from_matrix(rotation).as_euler('XYZ', degrees=True)
+        angles = euler_from_matrix('XYZ', rotation, degrees=True)
     # scipy has inverted convention
     return tuple(-angles)

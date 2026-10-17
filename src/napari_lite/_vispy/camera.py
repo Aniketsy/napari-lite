@@ -77,11 +77,13 @@ def _quaternion_to_matrix(
     np.ndarray
         The (3, 3) rotation matrix in VisPy (xyz) coordinates.
     """
-    from scipy.spatial.transform import Rotation
+    # napari-lite: numpy rotation with scipy's conventions
+    # (utils/_rotation.py); scipy is not a dependency
+    from napari_lite.utils._rotation import matrix_from_quat
 
     w, x, y, z = quat.w, quat.x, quat.y, quat.z
     # order is nonstandard!
-    return Rotation.from_quat([x, z, y, w]).as_matrix().T
+    return matrix_from_quat([x, z, y, w]).T
 
 
 def _matrix_to_quaternion(
@@ -91,9 +93,11 @@ def _matrix_to_quaternion(
 
     The inverse of :func:`_quaternion_to_matrix`.
     """
-    from scipy.spatial.transform import Rotation
+    # napari-lite: numpy rotation with scipy's conventions
+    # (utils/_rotation.py); scipy is not a dependency
+    from napari_lite.utils._rotation import quat_from_matrix
 
-    qx, qy, qz, qw = Rotation.from_matrix(matrix.T).as_quat()
+    qx, qy, qz, qw = quat_from_matrix(matrix.T)
     # order is nonstandard!
     return Quaternion(qw, qx, qz, qy)
 

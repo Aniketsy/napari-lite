@@ -239,7 +239,9 @@ def get_contours(
     -------
     A new label image in which only the boundaries of the input image are kept.
     """
-    from scipy import ndimage as ndi
+    # napari-lite: numpy dilation and erosion for these symmetric
+    # footprints (utils/_morphology.py); scipy is not a dependency
+    from napari_lite.utils import _morphology as ndi
 
     struct_elem = ndi.generate_binary_structure(labels.ndim, 1)
 

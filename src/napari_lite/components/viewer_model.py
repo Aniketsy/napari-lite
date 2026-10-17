@@ -1014,12 +1014,11 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
             # note that while we call napari axes "zyx", in terms of angles to
             # rot conversion we need to treat them as normal xyz for internal
             # consistency (zyx actually describes a different rotation order)
-            # napari-lite: imported here, not at the top of the method: this
-            # runs on every draw, and scipy.spatial is only needed in 3D
-            from scipy.spatial.transform import Rotation as R
+            # napari-lite: numpy rotation with scipy's conventions
+            # (utils/_rotation.py); scipy is not a dependency
+            from napari_lite.utils._rotation import matrix_from_euler
 
-            rot = R.from_euler('xyz', camera.angles, degrees=True)
-            rot_matrix = rot.as_matrix()
+            rot_matrix = matrix_from_euler('xyz', camera.angles, degrees=True)
             # the depth is set to zero because we want the position at the
             # plane of the camera center.
             # Any modifications should be done by callers afterwards.

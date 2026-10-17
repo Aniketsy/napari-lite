@@ -102,7 +102,13 @@ class PolygonBase(Shape):
 
         if self.interpolation_order > 1:
             # only import if needed
-            from scipy.interpolate import splev, splprep
+            try:
+                from scipy.interpolate import splev, splprep
+            except ImportError as error:  # napari-lite: scipy is an extra
+                raise ImportError(
+                    'spline interpolation of shapes needs scipy: '
+                    'pip install "napari-lite[scipy]"'
+                ) from error
 
             data_spline = remove_path_duplicates(data, closed=True)
 

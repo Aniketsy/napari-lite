@@ -2271,7 +2271,8 @@ class Points(Layer):
         np.ndarray
             The output binary mask array of the given shape containing this layer's points as balls.
         """
-        from scipy.stats import gmean  # only import if needed
+        # napari-lite: numpy (utils/_linalg.py); scipy is not a dependency
+        from napari_lite.utils._linalg import gmean
 
         if data_to_world is None:
             data_to_world = self._data_to_world
