@@ -392,7 +392,14 @@ def show_console_notification(notification: Notification) -> None:
         ):
             return
 
-        print(notification)  # noqa: T201
+        text = str(notification)
+        encoding = getattr(sys.stdout, 'encoding', None)
+        if encoding:
+            # napari-lite: a console with a legacy encoding (cp1252 when
+            # Windows pipes the output) cannot print every character;
+            # replace them rather than fail
+            text = text.encode(encoding, errors='replace').decode(encoding)
+        print(text)  # noqa: T201
     except Exception:
         logging.getLogger('napari').exception(
             'An error occurred while trying to format an error and show it in console.\n'
