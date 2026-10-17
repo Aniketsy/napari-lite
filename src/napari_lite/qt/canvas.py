@@ -28,6 +28,7 @@ from qtpy.QtGui import QGuiApplication
 from qtpy.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 from superqt import QElidingLabel
 
+import napari_lite.qt._viewer_actions  # noqa: F401  (re-registers two actions)
 from napari_lite._qt.utils import QImg2array, use_tabular_numerals
 from napari_lite._qt.widgets.qt_dims import QtDims
 from napari_lite._vispy import VispyCanvas, create_vispy_layer

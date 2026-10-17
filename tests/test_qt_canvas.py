@@ -85,6 +85,23 @@ def test_keys_reach_viewer_and_layer(canvas, qtbot) -> None:
     assert viewer.dims.current_step[0] == step + 1
 
 
+def test_actions_without_app_parts(canvas, qtbot) -> None:
+    """The console toggle and the shortcuts list have napari-lite versions."""
+    from napari_lite.qt.shortcuts_dialog import QtShortcutsDialog
+    from napari_lite.utils.action_manager import action_manager
+
+    viewer = canvas.viewer
+    action_manager.trigger('napari:toggle_console_visibility', viewer)
+    assert 'no console' in viewer.status
+    dialog = action_manager.trigger('napari:show_shortcuts', viewer)
+    qtbot.addWidget(dialog)
+    assert isinstance(dialog, QtShortcutsDialog)
+    text = dialog.browser.toPlainText()
+    assert 'Toggle 2D/3D view' in text
+    assert 'Ctrl+Y' in text
+    dialog.close()
+
+
 def test_mouse_enter_sets_status(canvas) -> None:
     canvas._enter_canvas()
     assert canvas.viewer.mouse_over_canvas
