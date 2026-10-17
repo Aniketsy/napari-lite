@@ -10,7 +10,6 @@ from typing import (
 
 from superqt.utils import _qthreading
 
-from napari_lite.utils.progress import progress
 from napari_lite.utils.task_status import Status
 from napari_lite.viewer import current_viewer
 
@@ -166,6 +165,9 @@ def create_worker(
                 RuntimeWarning,
             )
             total = 0
+
+        # napari-lite: imported on first use (tqdm comes with it)
+        from napari_lite.utils.progress import progress
 
         with progress._all_instances.events.changed.blocker():
             pbar = progress(total=total, desc=desc)

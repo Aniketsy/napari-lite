@@ -8,7 +8,11 @@ from typing import TYPE_CHECKING, overload
 import numpy as np
 from skimage import draw, measure
 from vispy.geometry import Triangulation
-from vispy.visuals.tube import _frenet_frames
+
+# napari-lite: own copy of vispy's helper (utils/_tube.py); importing
+# vispy.visuals.tube would load every vispy visual and vispy.gloo with the
+# layers, before any canvas exists
+from napari_lite.utils._tube import _frenet_frames
 
 from napari_lite.layers.shapes import (
     _accelerated_triangulate_dispatch as _triangulate_dispatch,
