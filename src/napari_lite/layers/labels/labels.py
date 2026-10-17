@@ -683,7 +683,7 @@ class Labels(ScalarFieldBase):
         ----------
         .. [1] https://data-apis.org/dataframe-protocol/latest/API.html
         """
-        return self._feature_table.values
+        return self._feature_table.dataframe
 
     @features.setter
     def features(
@@ -2341,7 +2341,10 @@ class Labels(ScalarFieldBase):
         dims_displayed: list[int] | None = None,
         world: bool = False,
     ) -> list:
-        if len(self._label_index) == 0 or self.features.shape[1] == 0:
+        if (
+            len(self._label_index) == 0
+            or self._feature_table.values.shape[1] == 0
+        ):
             return []
 
         value = self.get_value(

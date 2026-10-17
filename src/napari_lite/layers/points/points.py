@@ -514,7 +514,7 @@ class Points(Layer):
 
         self._text = TextManager._from_layer(
             text=text,
-            features=self.features,
+            features=self._feature_table.values,
         )
 
         self._border_width_is_relative = False
@@ -637,7 +637,7 @@ class Points(Layer):
             self._face.events.blocker_all(),
         ):
             self._feature_table.resize(len(data))
-            self.text.apply(self.features)
+            self.text.apply(self._feature_table.values)
             if len(data) < cur_npoints:
                 # If there are now fewer points, remove the size and colors of the
                 # extra ones
@@ -711,7 +711,7 @@ class Points(Layer):
         ----------
         .. [1]: https://data-apis.org/dataframe-protocol/latest/API.html
         """
-        return self._feature_table.values
+        return self._feature_table.dataframe
 
     @features.setter
     def features(
@@ -725,7 +725,7 @@ class Points(Layer):
         self._update_color_manager(
             self._border, self._feature_table, 'border_color'
         )
-        self.text.refresh(self.features)
+        self.text.refresh(self._feature_table.values)
         self.events.properties()
         self.events.features()
 
@@ -735,7 +735,7 @@ class Points(Layer):
 
         See `features` for more details on the type of this property.
         """
-        return self._feature_table.defaults
+        return self._feature_table.defaults_dataframe
 
     @feature_defaults.setter
     def feature_defaults(
@@ -822,7 +822,7 @@ class Points(Layer):
     def text(self, text):
         self._text._update_from_layer(
             text=text,
-            features=self.features,
+            features=self._feature_table.values,
         )
 
     def refresh_text(self) -> None:
@@ -830,7 +830,7 @@ class Points(Layer):
 
         This is generally used if the features were updated without changing the data
         """
-        self.text.refresh(self.features)
+        self.text.refresh(self._feature_table.values)
 
     def _get_ndim(self) -> int:
         """Determine number of dimensions of the layer."""
@@ -1552,7 +1552,7 @@ class Points(Layer):
         """
         # This may be triggered when the string encoding instance changed,
         # in which case it has no cached values, so generate them here.
-        self.text.string._apply(self.features)
+        self.text.string._apply(self._feature_table.values)
         return self.text.view_text(self._view_indices)
 
     @property
@@ -1577,7 +1577,7 @@ class Points(Layer):
     @property
     def _view_text_color(self) -> np.ndarray:
         """Get the colors of the text elements at the given indices."""
-        self.text.color._apply(self.features)
+        self.text.color._apply(self._feature_table.values)
         return self.text._view_color(self._view_indices)
 
     @property
@@ -2080,7 +2080,7 @@ class Points(Layer):
 
         info = {
             'data': self.data[index],
-            'features': self.features.iloc[index].to_dict(),
+            'features': self._feature_table.values.iloc[index].to_dict(),
             'face_color': self.face_color[index],
             'border_color': self.border_color[index],
             'size': self.size[index],
@@ -2425,7 +2425,7 @@ class Points(Layer):
         dims_displayed: list[int] | None = None,
         world: bool = False,
     ) -> list:
-        if self.features.shape[1] == 0:
+        if self._feature_table.values.shape[1] == 0:
             return []
 
         value = self.get_value(

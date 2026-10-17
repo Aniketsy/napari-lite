@@ -178,7 +178,7 @@ class TrackManager:
         ----------
         .. [1]: https://data-apis.org/dataframe-protocol/latest/API.html
         """
-        return self._feature_table.values
+        return self._feature_table.dataframe
 
     @features.setter
     def features(

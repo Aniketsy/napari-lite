@@ -623,7 +623,7 @@ class Shapes(Layer):
 
         self._text = TextManager._from_layer(
             text=text,
-            features=self.features,
+            features=self._feature_table.values,
         )
 
         self.refresh()
@@ -789,7 +789,7 @@ class Shapes(Layer):
         ----------
         .. [1]: https://data-apis.org/dataframe-protocol/latest/API.html
         """
-        return self._feature_table.values
+        return self._feature_table.dataframe
 
     @features.setter
     def features(
@@ -815,7 +815,7 @@ class Shapes(Layer):
                 RuntimeWarning,
             )
 
-        self.text.refresh(self.features)
+        self.text.refresh(self._feature_table.values)
 
         self.events.properties()
         self.events.features()
@@ -826,7 +826,7 @@ class Shapes(Layer):
 
         See `features` for more details on the type of this property.
         """
-        return self._feature_table.defaults
+        return self._feature_table.defaults_dataframe
 
     @feature_defaults.setter
     def feature_defaults(
@@ -1655,7 +1655,7 @@ class Shapes(Layer):
         """
         # This may be triggered when the string encoding instance changed,
         # in which case it has no cached values, so generate them here.
-        self.text.string._apply(self.features)
+        self.text.string._apply(self._feature_table.values)
         return self.text.view_text(self._view_indices)
 
     @property
@@ -1693,7 +1693,7 @@ class Shapes(Layer):
     @property
     def _view_text_color(self) -> np.ndarray:
         """Get the colors of the text elements at the given indices."""
-        self.text.color._apply(self.features)
+        self.text.color._apply(self._feature_table.values)
         return self.text._view_color(self._view_indices)
 
     @property
@@ -2282,7 +2282,7 @@ class Shapes(Layer):
             total_shapes = n_new_shapes + self.nshapes
             self._feature_table.resize(total_shapes)
             if hasattr(self, 'text'):
-                self.text.apply(self.features)
+                self.text.apply(self._feature_table.values)
 
         if edge_color is None:
             edge_color = self._get_new_shape_color(
@@ -2388,7 +2388,7 @@ class Shapes(Layer):
     def text(self, text):
         self._text._update_from_layer(
             text=text,
-            features=self.features,
+            features=self._feature_table.values,
         )
 
     def refresh_text(self):
@@ -2396,7 +2396,7 @@ class Shapes(Layer):
 
         This is generally used if the properties were updated without changing the data
         """
-        self.text.refresh(self.features)
+        self.text.refresh(self._feature_table.values)
 
     @property
     def _normalized_scale_factor(self):
@@ -2936,7 +2936,7 @@ class Shapes(Layer):
             'edge_color': self.edge_color[index],
             'face_color': self.face_color[index],
             'z_index': self.z_index[index],
-            'features': self.features.iloc[index].to_dict(),
+            'features': self._feature_table.values.iloc[index].to_dict(),
         }
         return info
 

@@ -541,7 +541,7 @@ class Surface(IntensityVisualizationMixin, Layer):
         ----------
         .. [1]: https://data-apis.org/dataframe-protocol/latest/API.html
         """
-        return self._feature_table.values
+        return self._feature_table.dataframe
 
     @features.setter
     def features(
@@ -557,7 +557,7 @@ class Surface(IntensityVisualizationMixin, Layer):
 
         See `features` for more details on the type of this property.
         """
-        return self._feature_table.defaults
+        return self._feature_table.defaults_dataframe
 
     @feature_defaults.setter
     def feature_defaults(
