@@ -22,8 +22,8 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Visualization",
 ]
 # Every package below is imported by a copied module (VENDORED.json,
-# "third_party_imports").  Lines marked TEMP are removed by the issue named
-# in the comment; issue 19 removes the last of them.
+# "third_party_imports").  dask, cachey and psutil are in the [dask] extra:
+# the core imports them only when the data is a dask array.
 dependencies = [
     "numpy>=1.25",
     "scipy>=1.14.0",
@@ -43,14 +43,12 @@ dependencies = [
     "tqdm>=4.56.0",
     "typing_extensions>=4.12",
     "wrapt>=1.14.1",
-    "magicgui>=0.7.0",  # TEMP issue 08
-    "npe2>=0.9.0",  # TEMP issue 07
-    "dask[array]>=2022.1.1",  # TEMP issue 18: moves to the [dask] extra
-    "cachey>=0.2.1",  # TEMP issue 18: dask's Cache (utils/_dask_utils.py) imports it
-    "pandas>=1.5.0",  # TEMP issue 18: moves to the [features] extra
-    "scikit-image>=0.20.0",  # TEMP issue 18: shapes utils only
-    "psutil>=5.9.4",  # TEMP issue 18: dask cache size in utils/_dask_utils
-    "pydantic-settings",  # TEMP issue 09: utils/events/debugging
+    # pandas: Points, Shapes, Labels, Vectors and Tracks keep their features
+    # in a DataFrame, so it is needed as soon as one of them is created;
+    # it is imported on first use
+    "pandas>=1.5.0",
+    # scikit-image: shapes masks and triangle culling, imported on first use
+    "scikit-image>=0.20.0",
 ]
 
 [project.urls]
@@ -66,8 +64,9 @@ pyqt6 = [
 pyside6 = [
     "PySide6>=6.7,!=6.11.0,!=6.11.1",
 ]
+# viewing dask arrays (opportunistic cache, task fusion off while slicing)
 dask = ["dask[array]>=2022.1.1", "cachey>=0.2.1", "psutil>=5.9.4"]
-features = ["pandas>=1.5.0"]
+# faster Shapes triangulation and Labels color mapping
 fast-shapes = [
     "numba>=0.58.0",
     "PartSegCore-compiled-backend>=0.15.11",
@@ -75,7 +74,7 @@ fast-shapes = [
     "triangle; python_version <= '3.13'",
 ]
 tiff = ["tifffile>=2022.7.28"]
-all = ["napari-lite[pyqt6,dask,features,fast-shapes,tiff]"]
+all = ["napari-lite[pyqt6,dask,fast-shapes,tiff]"]
 dev = [
     "pytest>=8.3.5",
     "pytest-qt>=4.4.0",
@@ -84,6 +83,8 @@ dev = [
     "xarray>=2023.5.0",  # copied napari tests import it at module level
     "zarr>=3.0.8",  # copied napari tests import it at module level
     "matplotlib>=3.6.1",  # vispy's get_colormap falls back to matplotlib names
+    "pydantic-settings",  # utils/events/debugging: event tracing for developers
+    "napari-lite[dask]",  # the copied dask tests
     "ruff",
 ]
 

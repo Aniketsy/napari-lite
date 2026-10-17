@@ -14,7 +14,6 @@ from typing import (
     TypeVar,
 )
 
-import dask
 import numpy as np
 
 from napari_lite.utils.action_manager import action_manager
@@ -316,6 +315,10 @@ def calc_data_range(
                 [_nanmin(data[idx]) for idx in idxs],
             ]
         # compute everything in one go
+        # napari-lite: dask is imported here, not at module level, so
+        # that it is only loaded when the data is a dask array
+        import dask
+
         reduced_data = dask.compute(*reduced_data)
     else:
         reduced_data = data

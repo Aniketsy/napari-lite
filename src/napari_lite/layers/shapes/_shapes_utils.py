@@ -6,7 +6,6 @@ import typing
 from typing import TYPE_CHECKING, overload
 
 import numpy as np
-from skimage import draw, measure
 from vispy.geometry import Triangulation
 from vispy.visuals.tube import _frenet_frames
 
@@ -660,6 +659,9 @@ def _cull_triangles_not_in_poly(vertices, triangles, poly):
     culled_triangles: np.ndarray[np.intp], shape (P, 3), P ≤ M
         A subset of the input triangles.
     """
+    # napari-lite: scikit-image is imported on first use (also below)
+    from skimage import measure
+
     centers = np.mean(vertices[triangles], axis=1)
     in_poly = measure.points_in_poly(centers, poly)
     return triangles[in_poly]
@@ -1059,6 +1061,8 @@ def path_to_indices(
 
     Vertices outside the mask are clipped to its border.
     """
+    from skimage import draw  # napari-lite: imported on first use
+
     mask_shape = np.asarray(mask_shape, dtype=int)
     vertices = np.round(np.clip(vertices, 0, mask_shape - 1)).astype(int)
 
@@ -1078,6 +1082,8 @@ def poly_to_indices(
     mask_shape: typing.Sequence[int], vertices: npt.NDArray
 ) -> tuple[npt.NDArray, npt.NDArray]:
     """Row and column indices of the pixels inside a polygon."""
+    from skimage import draw  # napari-lite: imported on first use
+
     rows, cols = draw.polygon(
         vertices[:, 0], vertices[:, 1], tuple(mask_shape)
     )

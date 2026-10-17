@@ -84,6 +84,58 @@ def test_imports_without_napari(module: str) -> None:
     assert not found, f'import {module} loaded forbidden packages: {found}'
 
 
+FIRST_IMAGE = textwrap.dedent(
+    """
+    import importlib.abc
+    import json
+    import sys
+
+    import numpy as np
+
+    BLOCKED = set(json.loads(sys.argv[2]))
+
+    class Block(importlib.abc.MetaPathFinder):
+        def find_spec(self, name, path=None, target=None):
+            if name.split('.')[0] in BLOCKED:
+                raise ImportError(f'{name} is blocked in this test')
+            return None
+
+    sys.meta_path.insert(0, Block())
+    from napari_lite.components import ViewerModel
+
+    viewer = ViewerModel()
+    viewer.add_image(np.zeros((4, 8, 8)))
+    viewer.add_labels(np.zeros((8, 8), dtype=np.uint8))
+    loaded = {m.split('.')[0] for m in sys.modules}
+    print(json.dumps({'loaded': sorted(loaded), 'seconds': 0}))
+    """
+)
+
+# loaded only when the data asks for them (issue 18)
+ON_FIRST_USE = {'dask', 'cachey', 'psutil', 'skimage'}
+
+
+def test_heavy_dependencies_wait_for_first_use() -> None:
+    proc = subprocess.run(
+        [
+            sys.executable,
+            '-c',
+            FIRST_IMAGE,
+            'unused',
+            json.dumps(sorted(BLOCKED)),
+        ],
+        capture_output=True,
+        text=True,
+        timeout=300,
+        check=False,
+    )
+    assert proc.returncode == 0, proc.stderr
+    loaded = set(json.loads(proc.stdout.strip().splitlines()[-1])['loaded'])
+    assert not (FORBIDDEN & loaded), FORBIDDEN & loaded
+    early = ON_FIRST_USE & loaded
+    assert not early, f'loaded before first use: {early}'
+
+
 def test_bare_import_is_light() -> None:
     """``import napari_lite`` loads no Qt, vispy or pydantic (issue 03)."""
     info = import_in_subprocess('napari_lite')
