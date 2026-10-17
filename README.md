@@ -94,6 +94,8 @@ and memory is mostly shared: Qt, vispy and the first OpenGL context.
 - A PyPI release ([docs/release.md](docs/release.md)), after asking the
   napari maintainers about the name; TestPyPI until then.
 
+Status and roadmap: [docs/roadmap.md](docs/roadmap.md).
+
 ## Not planned
 
 [Plugins](https://napari.org/stable/plugins/index.html) (readers, writers,

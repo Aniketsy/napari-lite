@@ -97,9 +97,13 @@ dev = [
 zip-safe = false
 include-package-data = true
 
+# namespaces: the icon and stylesheet folders have no __init__.py; without
+# this setuptools warns that it may stop shipping them
 [tool.setuptools.packages.find]
 where = ["src"]
-namespaces = false
+include = ["napari_lite*"]
+exclude = ["*__pycache__*"]
+namespaces = true
 
 # Non-Python files in the package: the template read by utils/_register.py,
 # napari's icons and the stylesheet (themed icons are generated at run time).
