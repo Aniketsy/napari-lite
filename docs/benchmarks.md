@@ -82,8 +82,9 @@ ever shown; without the extra those lines disappear.
 
 Decisions from backlog issue 18:
 
-- dask and scikit-image are imported on first use: when a dask array is
-  given to a layer, and for Labels colours and Shapes masks.
+- dask is imported on first use, when a dask array is given to a layer;
+  scikit-image is no longer a dependency at all (own code draws the
+  Shapes masks and makes the Labels colours).
 - pandas stays a dependency, imported when the first Points, Shapes,
   Labels, Vectors or Tracks layer is created: those layers keep their
   features in a DataFrame.
@@ -122,24 +123,28 @@ window 5.0 s and 248 MB.
 | memory with a viewer window shown | 223 MB | 276 MB | 19% less |
 | modules loaded by importing the package | 77 | 207 | 2.7x fewer |
 | modules loaded at the first image | 729 | 1,357 | 1.9x fewer |
-| installed size (all packages) | 613 MB | 761 MB | 148 MB less |
-| packages installed | 40 | 106 | 66 fewer |
-| direct dependencies | 19 | 37 | 18 fewer |
-| Python modules in the package | 442 | 524 | 82 fewer |
-| lines of Python in the package | 92,447 | 111,648 | 19,200 fewer |
+| installed size (all packages) | 570 MB | 761 MB | 191 MB less |
+| packages installed | 37 | 106 | 69 fewer |
+| direct dependencies | 18 | 37 | 19 fewer |
+| Python modules in the package | 444 | 524 | 80 fewer |
+| lines of Python in the package | 92,745 | 111,648 | 18,900 fewer |
 
 Where the difference comes from:
 
 - **Dependencies.** napari-lite keeps imageio, lazy-loader, numpy,
   packaging, pandas, Pillow, pint, psygnal, pydantic, pydantic-extra-types,
-  PyOpenGL, qtpy, scikit-image, scipy, superqt, toolz, tqdm,
-  typing-extensions and vispy. It drops app-model, certifi, jsonschema,
-  magicgui, napari-console, napari-plugin-engine, napari-resources,
-  napari-svg, npe2, platformdirs, pydantic-settings, pygments, pywin32,
-  PyYAML and wrapt (one base class, now `utils/_object_proxy.py`), and
-  moves dask, cachey and psutil to the `dask` extra and tifffile to the
-  `tiff` extra. Most of the 66 fewer installed packages are what those
-  pulled in.
+  PyOpenGL, qtpy, scipy, superqt, toolz, tqdm, typing-extensions and
+  vispy. It drops app-model, certifi, jsonschema, magicgui,
+  napari-console, napari-plugin-engine, napari-resources, napari-svg,
+  npe2, platformdirs, pydantic-settings, pygments, pywin32, PyYAML, wrapt
+  (one base class, now `utils/_object_proxy.py`) and scikit-image with
+  networkx and tifffile (four drawing functions and two colour
+  conversions, now `utils/_draw.py` and `utils/_colorconv.py`), and moves
+  dask, cachey and psutil to the `dask` extra and tifffile to the `tiff`
+  extra. Most of the 69 fewer installed packages are what those pulled
+  in. Of the 570 MB, 330 MB are Qt, numpy, vispy and PyOpenGL, the floor
+  of any Qt viewer in Python; scipy (134 MB) and pandas (63 MB) are the
+  next blocks to go (backlog issues 27 and 28).
 - **Code.** Of napari's 556 modules at that commit, 398 are copied (the
   viewer model, layers, vispy rendering, the layer list, layer controls
   and button rows, dims widgets, events, colormaps, transforms, icons and

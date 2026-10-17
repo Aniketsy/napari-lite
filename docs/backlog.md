@@ -10,6 +10,12 @@
 > napari's layer list, layer controls and button rows, shown by default
 > like napari (decision of the project owner). Open: the first real
 > resync, the name question.
+>
+> Later on 2026-10-17: the first image and the first paint stopped
+> importing xarray, scipy and tqdm (docs/benchmarks.md, "What the first
+> image stopped importing"), and issues 26 to 29 were added for the
+> install size. Issue 26 is done: scikit-image, networkx and tifffile are
+> gone, 570 MB in 37 packages. Next: 27 (scipy as an extra).
 
 Each `## NN · Title` section is one GitHub issue; `tools/create_issues.py` files them in order and
 turns `{{NN}}` into real issue numbers. Facts below were measured on napari ebfc4a0

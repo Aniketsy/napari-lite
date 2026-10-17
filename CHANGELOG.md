@@ -41,8 +41,14 @@ importable as `napari_lite` without napari installed.
 - No console, menus, command palette, preferences dialog, settings file
   or welcome screen; the layer list's context menu has napari's layer
   entries and no plugin entries.
-- dask and scikit-image are imported on first use; pandas stays a
-  dependency (the layer features tables), pint is imported with the layers.
+- dask is imported on first use; pandas stays a dependency (the layer
+  features tables), pint is imported with the layers.
+- scikit-image is not a dependency: `utils/_draw.py` (a line, a polygon,
+  points in a polygon, a flood fill) and `utils/_colorconv.py` (Luv and
+  Lab to RGB) stand in for the six functions napari used, pixel for pixel
+  and colour for colour; networkx and tifffile leave with it, 43 MB in
+  all. `pip install napari-lite[pyqt6]` is 570 MB in 37 packages against
+  napari's 761 MB in 106.
 - The first image and the first paint import only what they use: the
   check for xarray data runs only when xarray is already imported (napari
   imports it, and pandas with it, whenever it is installed); thumbnails
