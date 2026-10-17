@@ -32,9 +32,13 @@ else:
 
     class _LazyPandas:
         def __getattr__(self, attr: str) -> Any:
-            return getattr(import_module('pandas'), attr)
+            # napari-lite: the import error names the ``features`` extra
+            return getattr(_lite_features.pandas(), attr)
 
     pd = _LazyPandas()
+
+# napari-lite: the features table without pandas until a feature is given
+from napari_lite.layers.utils import _lite_features  # noqa: E402
 
 
 class Extent(NamedTuple):
@@ -931,7 +935,8 @@ def features_to_pandas_dataframe(features: Any) -> pd.DataFrame:
     pd.DataFrame
         A pandas DataFrame that stores the given features.
     """
-    return features
+    # napari-lite: a stand-in becomes a DataFrame here when pandas is there
+    return _lite_features.to_dataframe(features)
 
 
 class _FeatureTable:
@@ -967,6 +972,17 @@ class _FeatureTable:
     def values(self) -> pd.DataFrame:
         """The feature values table."""
         return self._values
+
+    @property
+    def dataframe(self) -> pd.DataFrame:
+        """The table as the layer hands it out: a real DataFrame whenever
+        pandas can be imported (napari-lite, layers/utils/_lite_features.py)."""
+        return _lite_features.materialize(self)
+
+    @property
+    def defaults_dataframe(self) -> pd.DataFrame:
+        """The defaults as the layer hands them out (napari-lite)."""
+        return _lite_features.materialize_defaults(self)
 
     def set_values(self, values, *, num_data=None) -> None:
         """Sets the feature values table."""
@@ -1065,7 +1081,8 @@ class _FeatureTable:
         to_append : pd.DataFrame
             The features to append.
         """
-        self._values = pd.concat([self._values, to_append], ignore_index=True)
+        # napari-lite: no pandas while both tables are stand-ins
+        self._values = _lite_features.concat(self._values, to_append)
 
     def remove(self, indices: Any) -> None:
         """Remove rows from this by index.
@@ -1158,6 +1175,10 @@ def _validate_features(
     --------
     :class:`_FeatureTable` : See initialization for parameter descriptions.
     """
+    # napari-lite: no columns and no pandas in the process: the stand-in
+    features = _lite_features.unwrap(features)
+    if _lite_features.use_lite(features):
+        return _lite_features.lite_values(features, num_data)
     if isinstance(features, pd.DataFrame):
         features = features.reset_index(drop=True)
     elif isinstance(features, dict):
@@ -1181,6 +1202,10 @@ def _validate_feature_defaults(
     --------
     :class:`_FeatureTable` : See initialization for parameter descriptions.
     """
+    # napari-lite: a zero-column stand-in has one-row stand-in defaults
+    values = _lite_features.unwrap(values)
+    if isinstance(values, _lite_features.LiteFeatures):
+        return _lite_features.lite_defaults(defaults)
     if defaults is None:
         defaults = {c: _get_default_column(values[c]) for c in values.columns}
     else:
