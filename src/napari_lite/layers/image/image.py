@@ -532,7 +532,9 @@ class Image(IntensityVisualizationMixin, ScalarFieldBase):
 
     def _update_thumbnail(self) -> None:
         """Update thumbnail with current image data and colormap."""
-        from scipy import ndimage as ndi
+        # napari-lite: nearest-neighbour zoom in numpy; scipy.ndimage is not
+        # imported for a thumbnail
+        from napari_lite.utils import _zoom as ndi
 
         # black thumbnail if there is no data in the slice
         if self._slice.empty:
