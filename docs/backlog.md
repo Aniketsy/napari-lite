@@ -14,13 +14,14 @@
 > Later on 2026-10-17: the first image and the first paint stopped
 > importing xarray, scipy and tqdm (docs/benchmarks.md, "What the first
 > image stopped importing"), and issues 26 to 29 were added for the
-> install size. Issues 26, 27 and 29 are done: scikit-image, networkx,
-> tifffile, scipy, toolz and pydantic-extra-types are gone (scipy stays as
-> the `scipy` extra for spline-interpolated shapes; imageio stays, the
-> command line reads with it), 434 MB in 34 packages with 15 direct
-> dependencies against 613, 40 and 19 in the morning. The upstream
-> patches and asks of issue 29 are in docs/upstream.md, not yet filed.
-> Open: 28 (pandas as the `features` extra, a go/no-go decision).
+> install size. Issues 26 to 29 are done: scikit-image, networkx,
+> tifffile, scipy, toolz, pydantic-extra-types and pandas are gone (scipy
+> stays as the `scipy` extra for spline-interpolated shapes, pandas as the
+> `features` extra; imageio stays, the command line reads with it), 370 MB
+> in 31 packages with 14 direct dependencies against 613, 40 and 19 in the
+> morning. The upstream patches and asks of issue 29 are in
+> docs/upstream.md, not yet filed. The size backlog is empty; 330 MB of
+> the install are Qt, numpy, vispy and PyOpenGL.
 
 Each `## NN · Title` section is one GitHub issue; `tools/create_issues.py` files them in order and
 turns `{{NN}}` into real issue numbers. Facts below were measured on napari ebfc4a0

@@ -61,10 +61,18 @@ importable as `napari_lite` without napari installed.
   toolz functions the transforms use are in `utils/_toolz.py`, and the
   `Color` class of pydantic-extra-types is copied unchanged into
   `utils/_color.py` under its MIT licence, so themes accept exactly the
-  same colours as before. `pip install napari-lite[pyqt6]` is 434 MB in
-  34 packages with 15 direct dependencies, against napari's 761 MB in 106
-  with 37. The three findings that apply to napari itself are patches in
-  `docs/upstream.md`.
+  same colours as before.
+- pandas is the `features` extra. A layer without features is served by a
+  zero-column stand-in (`layers/utils/_lite_features.py`) in a process
+  that has not imported pandas; `layer.features` and `feature_defaults`
+  still hand out a real DataFrame whenever pandas can be imported, and
+  once pandas is in the process, by the user or by a feature, every table
+  is a DataFrame as in napari. Without pandas installed the first feature
+  raises an ImportError naming the extra; Tracks needs it. Points, Shapes
+  and Labels without features no longer import pandas's 530 modules.
+  `pip install napari-lite[pyqt6]` is 370 MB in 31 packages with 14 direct
+  dependencies, against napari's 761 MB in 106 with 37. The three findings
+  that apply to napari itself are patches in `docs/upstream.md`.
 - The first image and the first paint import only what they use: the
   check for xarray data runs only when xarray is already imported (napari
   imports it, and pandas with it, whenever it is installed); thumbnails

@@ -122,22 +122,23 @@ window 5.0 s and 248 MB.
 | memory after the first image | 70 MB | 112 MB | 38% less |
 | memory with a viewer window shown | 222 MB | 276 MB | 20% less |
 | modules loaded by importing the package | 77 | 207 | 2.7x fewer |
-| modules loaded at the first image | 701 | 1,357 | 1.9x fewer |
-| installed size (all packages) | 434 MB | 761 MB | 327 MB less |
-| packages installed | 34 | 106 | 72 fewer |
-| direct dependencies | 15 | 37 | 22 fewer |
-| Python modules in the package | 450 | 524 | 74 fewer |
-| lines of Python in the package | 93,861 | 111,648 | 17,800 fewer |
+| modules loaded at the first image | 702 | 1,357 | 1.9x fewer |
+| installed size (all packages) | 370 MB | 761 MB | 391 MB less |
+| packages installed | 31 | 106 | 75 fewer |
+| direct dependencies | 14 | 37 | 23 fewer |
+| Python modules in the package | 451 | 524 | 73 fewer |
+| lines of Python in the package | 94,267 | 111,648 | 17,400 fewer |
 
-The times are those of the run after scipy left; the later removal of
-toolz and pydantic-extra-types changed module counts and sizes only, and a
-rerun of the window on this machine moves by half a second either way.
+The times are those of the run after scipy left; the later removals of
+toolz, pydantic-extra-types and pandas changed module counts and sizes
+only, and a rerun of the window on this machine moves by half a second
+either way.
 
 Where the difference comes from:
 
 - **Dependencies.** napari-lite keeps imageio, lazy-loader, numpy,
-  packaging, pandas, Pillow, pint, psygnal, pydantic, PyOpenGL, qtpy,
-  superqt, tqdm, typing-extensions and vispy. It drops app-model, certifi,
+  packaging, Pillow, pint, psygnal, pydantic, PyOpenGL, qtpy, superqt,
+  tqdm, typing-extensions and vispy. It drops app-model, certifi,
   jsonschema, magicgui, napari-console, napari-plugin-engine,
   napari-resources, napari-svg, npe2, platformdirs, pydantic-settings,
   pygments, pywin32, PyYAML, wrapt (one base class, now
@@ -147,13 +148,16 @@ Where the difference comes from:
   two morphology filters and the Tracks lookups, now `utils/_rotation.py`,
   `_linalg.py`, `_morphology.py` and `_tracks_index.py`; spline-interpolated
   shapes keep it as the `scipy` extra), toolz (two functions, now
-  `utils/_toolz.py`) and pydantic-extra-types (its `Color` class copied
-  into `utils/_color.py` under its MIT licence), and moves dask, cachey and
-  psutil to the `dask` extra and tifffile to the `tiff` extra. Most of the
-  72 fewer installed packages are what those pulled in. Of the 434 MB,
-  330 MB are Qt, numpy, vispy and PyOpenGL, the floor of any Qt viewer in
-  Python; pandas (63 MB) is the next block to go (backlog issue 28).
-  imageio stays: the command line reads what it reads.
+  `utils/_toolz.py`), pydantic-extra-types (its `Color` class copied into
+  `utils/_color.py` under its MIT licence) and pandas (the `features`
+  extra: a layer without features is served by a zero-column stand-in,
+  `layers/utils/_lite_features.py`, until pandas is in the process, and
+  `layer.features` hands out a real DataFrame whenever pandas can be
+  imported), and moves dask, cachey and psutil to the `dask` extra and
+  tifffile to the `tiff` extra. Most of the 75 fewer installed packages
+  are what those pulled in. Of the 370 MB, 330 MB are Qt, numpy, vispy and
+  PyOpenGL, the floor of any Qt viewer in Python. imageio stays: the
+  command line reads what it reads.
 - **Code.** Of napari's 556 modules at that commit, 398 are copied (the
   viewer model, layers, vispy rendering, the layer list, layer controls
   and button rows, dims widgets, events, colormaps, transforms, icons and
@@ -211,16 +215,31 @@ dask, only when dask is installed; pygments through superqt's package
 init. PyOpenGL (193 modules) is needed: napari's markers select vispy's
 `gl+` backend.
 
-The same day, scikit-image, scipy, toolz and pydantic-extra-types left the
-dependencies (backlog issues 26, 27 and 29). The own modules that stand in
-for them are compared with the libraries element by element in
+The same day, scikit-image, scipy, toolz, pydantic-extra-types and pandas
+left the dependencies (backlog issues 26 to 29). The own modules that stand
+in for them are compared with the libraries element by element in
 `tests/test_draw.py`, `test_colorconv.py`, `test_rotation.py`,
 `test_linalg.py`, `test_morphology.py`, `test_tracks_index.py`,
-`test_toolz.py` and `test_color.py`, which run in the `dev` environment;
-the `no-extras` CI job installs `napari-lite[pyqt6]` alone, checks that
-none of those packages comes with it, and runs the own tests against that
-install. The three findings that apply to napari itself are patches in
-[docs/upstream.md](upstream.md). Besides the install size, the first 3D view no longer stalls
+`test_toolz.py`, `test_color.py` and `test_lite_features.py`, which run in
+the `dev` environment; the `no-extras` CI job installs `napari-lite[pyqt6]`
+alone, checks that none of those packages comes with it, and runs the own
+tests against that install. The three findings that apply to napari itself
+are patches in [docs/upstream.md](upstream.md).
+
+pandas deserves a word, since `layer.features` is a DataFrame by API.
+Every Points, Shapes, Labels, Vectors or Surface layer builds a feature
+table on creation, which imported pandas (about 530 modules) for layers
+that never get a feature. Now: in a process where pandas has been
+imported, by the user or by a layer with features, every table is a
+DataFrame and the copied code runs unchanged. In a process that has not,
+a layer without features holds a zero-column stand-in that answers what
+the layer's own code asks of such a table, and the first read of
+`layer.features` or `feature_defaults`, or the first feature, turns it
+into a real DataFrame, importing pandas then. Without pandas installed the
+stand-in is what the layer hands out, and the first feature raises an
+ImportError naming the `features` extra; Tracks always has a `track_id`
+feature and needs the extra. `tests/test_lite_features.py` checks all of
+this in fresh interpreters. Besides the install size, the first 3D view no longer stalls
 on `scipy.spatial`, and the first Labels layer no longer imports
 `skimage.color`. One known trade: the Tracks layer finds the vertices
 nearest to the cursor by distance over all vertices instead of a KD-tree,

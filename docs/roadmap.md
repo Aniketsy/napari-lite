@@ -61,9 +61,9 @@ Numbers measured against napari from the same commit, on one machine
 | first image | 1.5 s | 3.3 s |
 | viewer window shown with an image | 3.7 s | 6.0 s |
 | memory with a window shown | 222 MB | 276 MB |
-| installed size | 434 MB | 761 MB |
-| packages installed | 34 | 106 |
-| direct dependencies | 15 | 37 |
+| installed size | 370 MB | 761 MB |
+| packages installed | 31 | 106 |
+| direct dependencies | 14 | 37 |
 
 ## Left out on purpose
 
@@ -140,15 +140,19 @@ widgets. The import-time and install-size gaps can still grow:
   own line, polygon, points-in-polygon, flood fill, Luv/Lab conversions,
   rotations, QR/RQ, morphology filters and Tracks lookups in numpy, each
   compared with the library it replaces in the tests; scipy stays the
-  `scipy` extra for spline-interpolated shapes), and so are toolz and
+  `scipy` extra for spline-interpolated shapes), and so are toolz,
   pydantic-extra-types (issue 29; imageio stays, the command line reads
-  with it). The three findings that apply to napari itself are ready as
-  patches, with the asks to superqt and pint, in
-  [docs/upstream.md](upstream.md). Next ([docs/backlog.md](backlog.md),
-  issue 28): pandas as the `features` extra (63 MB, a go/no-go decision).
-- Target: first image under 1 s and the install under 400 MB, measured by
-  the benchmark workflow; Qt, numpy, vispy and PyOpenGL are a 330 MB
-  floor.
+  with it) and pandas (issue 28, the `features` extra: layers without
+  features use a zero-column stand-in, `layer.features` is a DataFrame
+  whenever pandas is importable). The three findings that apply to napari
+  itself are ready as patches, with the asks to superqt and pint, in
+  [docs/upstream.md](upstream.md).
+- The install is at 370 MB, of which 330 MB are Qt, numpy, vispy and
+  PyOpenGL, the floor of any Qt viewer in Python; the size work is done.
+  What remains for a faster start is on the first-image and first-paint
+  paths: the colormap table built on first access, and the upstream
+  patches once napari takes them. Target for the first image: under 1 s
+  measured by the benchmark workflow.
 
 **0.2, easier to work with**
 

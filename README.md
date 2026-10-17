@@ -17,10 +17,12 @@ Not on PyPI yet. Install from GitHub with one of the two Qt bindings:
 pip install "napari-lite[pyqt6] @ git+https://github.com/Aniketsy/napari-lite"
 ```
 
-Extras: `pyqt6` or `pyside6` (one of them is needed), `dask` (dask
-arrays), `scipy` (spline-interpolated shapes), `fast-shapes` (compiled
-triangulation and label colouring), `tiff` (tifffile), `all`. Python 3.11
-to 3.13 on Linux, macOS and Windows.
+Extras: `pyqt6` or `pyside6` (one of them is needed), `features` (pandas:
+`layer.features` tables, properties, text and colours by feature, Tracks),
+`dask` (dask arrays), `scipy` (spline-interpolated shapes), `fast-shapes`
+(compiled triangulation and label colouring), `tiff` (tifffile), `all`.
+A layer without features needs no pandas. Python 3.11 to 3.13 on Linux,
+macOS and Windows.
 
 ```python
 import numpy as np
@@ -61,7 +63,7 @@ napari installed.
 | Threads | `napari_lite.qt.thread_worker`, `create_worker`, `FunctionWorker`, `GeneratorWorker`; `progress` and `cancelable_progress`. | [Multithreading in napari](https://napari.org/stable/guides/threading.html), [napari.qt.threading](https://napari.org/stable/api/napari.qt.threading.html), [progress](https://napari.org/stable/api/napari.utils.progress.html) |
 | Events | The same evented models and `events` attributes as napari on the viewer, dims, camera, layer list and every layer; notifications go to the console. | [Hooking up your own events](https://napari.org/stable/howtos/extending/connecting_events.html), [Events reference](https://napari.org/stable/guides/events_reference.html), [napari.utils.events](https://napari.org/stable/api/napari.utils.events.html), [notifications](https://napari.org/stable/api/napari.utils.notifications.html) |
 | Dask, zarr, xarray | Any array with `shape`, `dtype` and `__getitem__`; dask arrays with the `dask` extra (opportunistic cache, task fusion off while slicing); asynchronous slicing. | [Image data and numpy-like arrays](https://napari.org/stable/howtos/layers/image.html#image-data-and-numpy-like-arrays), [Using Dask and napari](https://napari.org/stable/tutorials/dask.html), [Dask nD image](https://napari.org/stable/gallery/dask_nD_image.html), [Performance](https://napari.org/stable/guides/performance.html) |
-| Fast import, small install | `import napari_lite` takes about 0.05 s and loads no numpy, Qt, vispy or pydantic; napari, npe2, magicgui, app-model and lxml are never imported; dask is imported on first use; scipy, scikit-image, wrapt, toolz and pydantic-extra-types are not dependencies, own code stands in for the few functions napari used from them (scipy is the `scipy` extra, needed for spline-interpolated shapes only). Numbers in [docs/benchmarks.md](docs/benchmarks.md). | [napari performance](https://napari.org/stable/guides/performance.html) |
+| Fast import, small install | `import napari_lite` takes about 0.05 s and loads no numpy, Qt, vispy or pydantic; napari, npe2, magicgui, app-model and lxml are never imported; dask is imported on first use; scipy, scikit-image, wrapt, toolz and pydantic-extra-types are not dependencies, own code stands in for the few functions napari used from them (scipy is the `scipy` extra, needed for spline-interpolated shapes only); pandas is the `features` extra, imported the first time a layer has features or `layer.features` is read, and a layer without features never needs it. Numbers in [docs/benchmarks.md](docs/benchmarks.md). | [napari performance](https://napari.org/stable/guides/performance.html) |
 
 Data is interpreted exactly as napari interprets it (RGB and multiscale
 are guessed, the channel axis never): [docs/design.md](docs/design.md).
@@ -85,11 +87,11 @@ thumbnail or a 2D draw, no tqdm, no vispy scene graph before a canvas.
 | first image (`ViewerModel` + `add_image`) | 1.5 s | 3.3 s |
 | viewer window shown with an image | 3.7 s | 6.0 s |
 | memory with a viewer window shown | 222 MB | 276 MB |
-| modules loaded at the first image | 701 | 1,357 |
-| installed size | 434 MB | 761 MB |
-| packages installed | 34 | 106 |
-| direct dependencies | 15 | 37 |
-| Python modules in the package | 450 | 524 |
+| modules loaded at the first image | 702 | 1,357 |
+| installed size | 370 MB | 761 MB |
+| packages installed | 31 | 106 |
+| direct dependencies | 14 | 37 |
+| Python modules in the package | 451 | 524 |
 
 ## Planned
 
