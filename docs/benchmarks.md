@@ -91,3 +91,67 @@ Decisions from backlog issue 18:
   `pint.Unit` fields that pydantic evaluates when the classes are created,
   and every layer's transform builds the unit registry, so deferring
   `import pint` would gain nothing for the first image.
+
+## napari-lite against napari at the same commit
+
+The table above compares with napari 0.9.2 from PyPI. This one compares
+like with like: napari installed from the very commit the copy was taken
+from (`ebfc4a0a`, version `0.10.0a1.dev22`), both packages in fresh
+environments made with `pip install <package>[pyqt6]` and nothing else,
+on the same Windows machine (Python 3.13.7, 2026-10-17, best of 3 fresh
+interpreters). The machine is about four times slower than the CI
+runners and had other work running, so read the ratios, not the seconds.
+Memory is the resident set at the end of the measured code; "modules" is
+`len(sys.modules)`.
+
+| | napari-lite | napari | napari-lite |
+|---|---|---|---|
+| import the package | 0.01 s | 0.21 s | 15x faster |
+| import the components (viewer model) | 1.50 s | 2.35 s | 1.6x faster |
+| first image: `ViewerModel` + `add_image` | 2.08 s | 3.29 s | 1.6x faster |
+| `Viewer(show=False)`, closed | 2.95 s | 4.79 s | 1.6x faster |
+| `Viewer` shown, one image painted, closed | 4.13 s | 6.10 s | 1.5x faster |
+| memory after importing the package | 14 MB | 26 MB | 1.8x less |
+| memory after the first image | 91 MB | 113 MB | 20% less |
+| memory with a viewer window shown | 236 MB | 276 MB | 15% less |
+| modules loaded by importing the package | 77 | 207 | 2.7x fewer |
+| modules loaded at the first image | 1,025 | 1,357 | 1.3x fewer |
+| installed size (all packages) | 607 MB | 761 MB | 154 MB less |
+| packages installed | 41 | 106 | 65 fewer |
+| direct dependencies | 20 | 37 | 17 fewer |
+| Python modules in the package | 286 | 524 | 238 fewer |
+| lines of Python in the package | 73,490 | 111,648 | 38,000 fewer |
+
+Where the difference comes from:
+
+- **Dependencies.** napari-lite keeps imageio, lazy-loader, numpy,
+  packaging, pandas, Pillow, pint, psygnal, pydantic, pydantic-extra-types,
+  PyOpenGL, qtpy, scikit-image, scipy, superqt, toolz, tqdm,
+  typing-extensions, vispy and wrapt. It drops app-model, certifi,
+  jsonschema, magicgui, napari-console, napari-plugin-engine,
+  napari-resources, napari-svg, npe2, platformdirs, pydantic-settings,
+  pygments, pywin32 and PyYAML, and moves dask, cachey and psutil to the
+  `dask` extra and tifffile to the `tiff` extra. Most of the 65 fewer
+  installed packages are what those pulled in.
+- **Code.** Of napari's 556 modules at that commit, 253 are copied (the
+  viewer model, layers, vispy rendering, dims widgets, events, colormaps,
+  transforms) and 303 are not: the main window, menus and command
+  palette, the preferences dialog and settings file, the npe2 plugin
+  manager with every reader, writer and sample, the layer list and layer
+  controls widgets (coming back as opt-ins), the IPython console, the
+  welcome screen, notifications and activity dialogs, app-model actions
+  and dependency injection, perf tracing, the command line. 36 own files
+  (3,900 lines) replace what the copied core needs from that side.
+- **Import.** `import napari_lite` resolves names on first use, so it
+  costs nothing until a viewer or layer is made; `import napari` runs the
+  installation check, the plugin discovery setup and the settings model.
+- **Startup.** Opening a window is faster by the layer list, layer
+  controls, menus, console and welcome screen that napari builds; what
+  remains (Qt, vispy, the first OpenGL context) is the same in both, which
+  is why the gap narrows from 15x at import to 1.5x with a window shown.
+
+To repeat it: `pip install ".[pyqt6]"` and
+`pip install "<napari checkout>[pyqt6]"` into two fresh venvs, then in
+each `python bench/bench_imports.py --package <name> --repeat 3 --json ..`
+and `python bench/install_size.py --package <name> --json ..`, and
+`python bench/make_table.py *.json`.

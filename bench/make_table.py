@@ -12,15 +12,30 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-MEASURES = [
-    ('import', 'import package'),
-    ('import_components', 'import components'),
-    ('first_image', 'first image (ViewerModel + add_image)'),
-    ('viewer_no_show', 'Viewer(show=False)'),
+# (key, label); keys of the ``seconds`` dict written by bench_imports.py
+TIMES = [
+    ('import', 'import the package'),
+    ('import_components', 'import the components (viewer model)'),
+    ('first_image', 'first image: ViewerModel + add_image'),
+    ('viewer_no_show', 'Viewer(show=False), closed'),
+    ('viewer_shown', 'Viewer shown, one image painted, closed'),
 ]
-SIZES = [
-    ('size_mb', 'installed size (MB)'),
+MEMORY = [
+    ('import', 'memory after importing the package'),
+    ('first_image', 'memory after the first image'),
+    ('viewer_shown', 'memory with a viewer window shown'),
+]
+MODULES = [
+    ('import', 'modules loaded by importing the package'),
+    ('first_image', 'modules loaded at the first image'),
+]
+# keys written by install_size.py
+INSTALL = [
+    ('size_mb', 'installed size, MB (all packages)'),
     ('package_count', 'packages installed'),
+    ('direct_dependencies', 'direct dependencies'),
+    ('package_modules', 'Python modules in the package'),
+    ('package_lines', 'lines of Python in the package'),
 ]
 
 
@@ -43,8 +58,67 @@ def load(paths: list[str]) -> dict[str, dict[str, dict]]:
     return table
 
 
-def fmt_seconds(value: float | None) -> str:
+def _seconds(value: float | None) -> str:
     return f'{value:.2f} s' if value is not None else 'n/a'
+
+
+def _mb(value: float | None) -> str:
+    return f'{value:.0f} MB' if value is not None else 'n/a'
+
+
+def _int(value: int | None) -> str:
+    return f'{value:,}' if value is not None else 'n/a'
+
+
+def _ratio(lite: float | None, nap: float | None) -> str:
+    if not lite or not nap:
+        return ''
+    return f'{nap / lite:.1f}x' if nap >= lite else f'{lite / nap:.1f}x more'
+
+
+def rows(packages: dict[str, dict], names: list[str]) -> list[str]:
+    out = []
+    lite, nap = packages.get('napari_lite', {}), packages.get('napari', {})
+
+    def line(label, fmt, values, lite_v, nap_v):
+        cells = ' | '.join(fmt(v) for v in values)
+        out.append(f'| {label} | {cells} | {_ratio(lite_v, nap_v)} |')
+
+    for key, label in TIMES:
+        values = [packages[n].get('seconds', {}).get(key) for n in names]
+        line(
+            label,
+            _seconds,
+            values,
+            lite.get('seconds', {}).get(key),
+            nap.get('seconds', {}).get(key),
+        )
+    for key, label in MEMORY:
+        values = [packages[n].get('rss_mb', {}).get(key) for n in names]
+        if any(v is not None for v in values):
+            line(
+                label,
+                _mb,
+                values,
+                lite.get('rss_mb', {}).get(key),
+                nap.get('rss_mb', {}).get(key),
+            )
+    for key, label in MODULES:
+        values = [packages[n].get('modules', {}).get(key) for n in names]
+        if any(v is not None for v in values):
+            line(
+                label,
+                _int,
+                values,
+                lite.get('modules', {}).get(key),
+                nap.get('modules', {}).get(key),
+            )
+    for key, label in INSTALL:
+        values = [packages[n].get(key) for n in names]
+        if any(v is not None for v in values):
+            fmt = _mb if key == 'size_mb' else _int
+            line(label, fmt, values, lite.get(key), nap.get(key))
+    return out
 
 
 def main(argv: list[str]) -> int:
@@ -57,20 +131,18 @@ def main(argv: list[str]) -> int:
         names = [p for p in ('napari_lite', 'napari') if p in packages]
         names += sorted(set(packages) - set(names))
         print(f'### {os_name}\n')
-        print('| | ' + ' | '.join(names) + ' |')
-        print('|---|' + '---|' * len(names))
-        for key, label in MEASURES:
-            cells = [
-                fmt_seconds(packages[n].get('seconds', {}).get(key))
-                for n in names
-            ]
-            print(f'| {label} | ' + ' | '.join(cells) + ' |')
-        for key, label in SIZES:
-            if any(key in packages[n] for n in names):
-                cells = [str(packages[n].get(key, 'n/a')) for n in names]
-                print(f'| {label} | ' + ' | '.join(cells) + ' |')
+        print('| | ' + ' | '.join(names) + ' | napari-lite advantage |')
+        print('|---|' + '---|' * (len(names) + 1))
+        print('\n'.join(rows(packages, names)))
         pythons = {packages[n].get('python') for n in names}
-        print(f'\nPython {", ".join(sorted(p for p in pythons if p))}\n')
+        versions = ', '.join(
+            f'{n} {packages[n]["version"]}'
+            for n in names
+            if packages[n].get('version')
+        )
+        print(
+            f'\nPython {", ".join(sorted(p for p in pythons if p))}; {versions}\n'
+        )
     return 0
 
 
