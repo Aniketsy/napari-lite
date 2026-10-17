@@ -283,3 +283,19 @@ new = '''
         with progress._all_instances.events.changed.blocker():
             pbar = progress(total=total, desc=desc)
 '''
+
+# utils/_proxies.py: wrapt was a dependency for one base class
+# (``wrapt.ObjectProxy``) and imported asyncio with it, 46 modules in a
+# viewer window; utils/_object_proxy.py is the part of it napari uses.
+[[rewrite]]
+old = '''
+import wrapt
+
+from napari_lite.utils import misc
+'''
+new = '''
+# napari-lite: own transparent proxy (utils/_object_proxy.py); wrapt was a
+# dependency for this one base class and imported asyncio with it
+from napari_lite.utils import _object_proxy as wrapt
+from napari_lite.utils import misc
+'''

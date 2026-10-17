@@ -5,8 +5,9 @@ import warnings
 from collections.abc import Callable, Hashable, Iterator, Mapping
 from typing import Any, Generic, TypeVar, Union
 
-import wrapt
-
+# napari-lite: own transparent proxy (utils/_object_proxy.py); wrapt was a
+# dependency for this one base class and imported asyncio with it
+from napari_lite.utils import _object_proxy as wrapt
 from napari_lite.utils import misc
 
 _T = TypeVar('_T')
