@@ -1057,7 +1057,9 @@ class Labels(ScalarFieldBase):
         like adjusting gamma or changing the data based on the contrast
         limits.
         """
-        from scipy import ndimage as ndi
+        # napari-lite: nearest-neighbour zoom in numpy; scipy.ndimage is not
+        # imported for a thumbnail
+        from napari_lite.utils import _zoom as ndi
 
         if not self._slicing_state.loaded or self._slice.empty:
             # ASYNC_TODO: Do not compute the thumbnail until we are loaded.

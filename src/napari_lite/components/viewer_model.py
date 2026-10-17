@@ -998,8 +998,6 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
         world_position : np.ndarray
             Canvas position (on the canvas plane) converted to world coordinates.
         """
-        from scipy.spatial.transform import Rotation as R
-
         ndisplay = self.dims.ndisplay
         camera = self.scene.camera
 
@@ -1017,6 +1015,10 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
             # note that while we call napari axes "zyx", in terms of angles to
             # rot conversion we need to treat them as normal xyz for internal
             # consistency (zyx actually describes a different rotation order)
+            # napari-lite: imported here, not at the top of the method: this
+            # runs on every draw, and scipy.spatial is only needed in 3D
+            from scipy.spatial.transform import Rotation as R
+
             rot = R.from_euler('xyz', camera.angles, degrees=True)
             rot_matrix = rot.as_matrix()
             # the depth is set to zero because we want the position at the
