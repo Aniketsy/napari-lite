@@ -39,6 +39,19 @@ def test_viewer_window_and_canvas(make_viewer) -> None:
     assert viewer.window._qt_window.windowTitle() == 'renamed'
 
 
+def test_status_bar(make_viewer) -> None:
+    viewer = make_viewer()
+    bar = viewer.window._status_bar
+    assert viewer.window.qt_viewer.status is None  # the line is in the bar
+    viewer.status = 'hello'
+    assert bar._status.text() == 'hello'
+    viewer.help = 'press h'
+    assert bar._help.text() == 'press h'
+    bar.setStatusText(layer_base='img', coordinates='[1 2]')
+    assert bar._status.text() == 'img'
+    assert bar._coordinates.text() == '[1 2]'
+
+
 def test_viewer_arguments(make_viewer) -> None:
     viewer = make_viewer(
         ndisplay=3, axis_labels=('z', 'y', 'x'), show_welcome_screen=True

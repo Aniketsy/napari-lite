@@ -24,13 +24,14 @@ from qtpy.QtWidgets import (
     QApplication,
     QDockWidget,
     QMainWindow,
+    QStatusBar,
     QToolTip,
     QWidget,
 )
 
 from napari_lite._qt.qt_event_loop import get_qapp
 from napari_lite._qt.utils import QImg2array
-from napari_lite.qt.canvas import QtCanvas
+from napari_lite.qt.canvas import QtCanvas, QtStatusLine
 from napari_lite.utils.io import imsave
 from napari_lite.utils.misc import in_jupyter
 from napari_lite.utils.task_status import Status, TaskStatusManager
@@ -68,6 +69,44 @@ class _NoThread:
         return None
 
 
+class ViewerStatusBar(QStatusBar):
+    """The window's status bar: napari-lite's status line (status text,
+    cursor coordinates, help) in a ``QStatusBar``, with the attribute and
+    method names of napari's ``ViewerStatusBar``."""
+
+    def __init__(self, viewer: ViewerModel, parent: QWidget | None = None):
+        super().__init__(parent)
+        self._line = QtStatusLine(viewer, self)
+        self.addWidget(self._line, 1)
+        self.setSizeGripEnabled(False)
+
+    @property
+    def _status(self):
+        return self._line._status
+
+    @property
+    def _coordinates(self):
+        return self._line._coordinates
+
+    @property
+    def _help(self):
+        return self._line._help
+
+    def setHelpText(self, text: str) -> None:
+        self._line._help.setText(text)
+
+    def setStatusText(
+        self,
+        text: str = '',
+        layer_base: str = '',
+        source_type: str | None = None,
+        plugin: str = '',
+        coordinates: str = '',
+    ) -> None:
+        self._line._status.setText(text or layer_base)
+        self._line._coordinates.setText(coordinates)
+
+
 class _QtMainWindow(QMainWindow):
     """The QMainWindow; ``_instances`` is ordered by last activation so
     ``current_viewer()`` returns the viewer the user worked with last."""
@@ -83,10 +122,12 @@ class _QtMainWindow(QMainWindow):
         super().__init__(parent)
         self._ev: QEventLoop | None = None
         self._window = window
-        self._qt_viewer = QtCanvas(viewer)
+        # the status line is the window's status bar, not part of the canvas
+        self._qt_viewer = QtCanvas(viewer, show_status=False)
         self.status_thread = _NoThread()
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         self.setCentralWidget(self._qt_viewer)
+        self.setStatusBar(ViewerStatusBar(viewer, self))
         self.setWindowTitle(viewer.title)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         _QtMainWindow._instances.append(self)
@@ -182,6 +223,10 @@ class Window:
     @property
     def viewer(self) -> ViewerModel:
         return self._qt_window._qt_viewer.viewer
+
+    @property
+    def _status_bar(self) -> ViewerStatusBar:
+        return self._qt_window.statusBar()
 
     def _register_task_status(
         self,

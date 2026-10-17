@@ -23,7 +23,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, Literal
 from weakref import WeakSet
 
 import numpy as np
-from qtpy.QtCore import Qt
+from qtpy.QtCore import QCoreApplication, Qt
 from qtpy.QtGui import QGuiApplication
 from qtpy.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 from superqt import QElidingLabel
@@ -125,6 +125,12 @@ class QtCanvas(QWidget):
     ) -> None:
         super().__init__(parent)
         self._instances.add(self)
+        # with a stylesheet active, fonts (e.g. tabular numerals) only
+        # propagate from parent to child widgets with this attribute
+        QCoreApplication.setAttribute(
+            Qt.ApplicationAttribute.AA_UseStyleSheetPropagationInWidgetStyles,
+            True,
+        )
         self.viewer = viewer
         self._key_map_handler = KeymapHandler()
         self._key_map_handler.keymap_providers = [viewer]
