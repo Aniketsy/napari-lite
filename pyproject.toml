@@ -47,6 +47,7 @@ dependencies = [
     "magicgui>=0.7.0",  # TEMP issue 08
     "npe2>=0.9.0",  # TEMP issue 07
     "dask[array]>=2022.1.1",  # TEMP issue 18: moves to the [dask] extra
+    "cachey>=0.2.1",  # TEMP issue 18: dask's Cache (utils/_dask_utils.py) imports it
     "pandas>=1.5.0",  # TEMP issue 18: moves to the [features] extra
     "scikit-image>=0.20.0",  # TEMP issue 18: shapes utils only
     "psutil>=5.9.4",  # TEMP issue 18: dask cache size in utils/_dask_utils
@@ -66,7 +67,7 @@ pyqt6 = [
 pyside6 = [
     "PySide6>=6.7,!=6.11.0,!=6.11.1",
 ]
-dask = ["dask[array]>=2022.1.1", "psutil>=5.9.4"]
+dask = ["dask[array]>=2022.1.1", "cachey>=0.2.1", "psutil>=5.9.4"]
 features = ["pandas>=1.5.0"]
 fast-shapes = [
     "numba>=0.58.0",
@@ -81,6 +82,8 @@ dev = [
     "pytest-qt>=4.4.0",
     "hypothesis>=6.8.0",
     "docstring_parser>=0.15",  # copied napari tests (utils/_test_utils.py)
+    "xarray>=2023.5.0",  # copied napari tests import it at module level
+    "zarr>=3.0.8",  # copied napari tests import it at module level
     "ruff",
 ]
 
