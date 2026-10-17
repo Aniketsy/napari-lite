@@ -72,18 +72,20 @@ layer type in 2D and 3D with both packages and compares the images.
 Both installed with `pip install <package>[pyqt6]` into fresh
 environments, napari from the same commit the copy was taken from; one
 Windows machine, so read the ratios ([details and the CI numbers on three
-OSes](docs/benchmarks.md)).
+OSes](docs/benchmarks.md)). The window shows napari's layer list and
+controls, the same widgets in both, so what is left of the startup time
+and memory is mostly shared: Qt, vispy and the first OpenGL context.
 
 | | napari-lite | napari |
 |---|---|---|
-| `import` the package | 0.01 s | 0.21 s |
-| first image (`ViewerModel` + `add_image`) | 2.1 s | 3.3 s |
-| viewer window shown with an image | 4.1 s | 6.1 s |
-| memory with a viewer window shown | 236 MB | 276 MB |
-| installed size | 607 MB | 761 MB |
+| `import` the package | 0.01 s | 0.22 s |
+| first image (`ViewerModel` + `add_image`) | 2.2 s | 3.2 s |
+| viewer window shown with an image | 5.0 s | 6.1 s |
+| memory with a viewer window shown | 248 MB | 273 MB |
+| installed size | 611 MB | 761 MB |
 | packages installed | 41 | 106 |
 | direct dependencies | 20 | 37 |
-| Python modules in the package | 286 | 524 |
+| Python modules in the package | 439 | 524 |
 
 ## Planned
 
