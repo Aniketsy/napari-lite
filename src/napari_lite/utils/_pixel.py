@@ -44,8 +44,12 @@ class PixelUnit(str):
         return get_unit_registry().pixel
 
     def __getattr__(self, name: str) -> Any:
-        # dimensionality, to, is_compatible_with, ...: pint's
-        if name.startswith('__'):
+        # dimensionality, to, is_compatible_with, ...: pint's.  Not the
+        # private ones: pint tells its own objects from strings by asking
+        # for ``_REGISTRY``, and a stand-in that answered would be compared
+        # as a quantity (never equal) instead of as the string 'pixel'
+        # (pint 0.25, the newest on Python 3.11; 0.26 checks strings first)
+        if name.startswith('_'):
             raise AttributeError(name)
         return getattr(self._pint_unit, name)
 

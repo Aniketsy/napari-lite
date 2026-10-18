@@ -112,3 +112,12 @@ def test_dims_and_layer_list_units(pixel) -> None:
 def test_registry_is_the_application_registry() -> None:
     assert get_unit_registry() is pint.get_application_registry()
     assert get_unit_registry().pixel == PIXEL
+
+
+def test_private_attributes_are_not_forwarded(pixel) -> None:
+    """pint tells its own objects from strings by ``_REGISTRY``; a stand-in
+    that answered would be compared as a quantity and never be equal
+    (pint 0.25, the version Python 3.11 gets)."""
+    with pytest.raises(AttributeError):
+        _ = PIXEL._REGISTRY
+    assert PIXEL.dimensionality == pixel.dimensionality
