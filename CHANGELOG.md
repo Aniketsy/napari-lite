@@ -46,8 +46,9 @@ importable as `napari_lite` without napari installed.
   `VENDORED.json`; `SYNC.md` for resyncs; a weekly upstream report.
 - Benchmarks (`bench/`) and a benchmark workflow on three OSes: import
   time, first image, first frame, the first layer of each kind, slice
-  stepping and a brush stroke, with the median and the first run next to
-  the best; `bench/first_frame.py` shows where the first frame's time
+  stepping and a brush stroke (vsync off, the same 640 x 480 canvas, the
+  mouse over it), with the median and the first run next to the best;
+  `bench/first_frame.py` shows where the first frame's time
   goes; `tools/readme_bench.py` writes the README's table from the
   workflow's Linux numbers.
 - Tests: napari-lite's own tests and napari's copied tests, run on Linux,
@@ -55,6 +56,10 @@ importable as `napari_lite` without napari installed.
 
 ### Different from napari
 
+- The status bar text (the value under the cursor, its coordinates, the
+  layer's help) is computed on the main thread at most 20 times a second,
+  the last cursor position always shown; napari computes it in a thread.
+  A slice step or a mouse move no longer pays for it every time.
 - No plugins: `viewer.open()` and `open_sample()` serve only the built-in
   formats and samples (see Added) and raise `NotImplementedError` for the
   rest, `layer.save()` always; load or save other data with your own

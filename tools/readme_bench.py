@@ -45,7 +45,7 @@ ROWS = [
         'first_labels_layer',
         'first Labels layer, on top of an image',
     ),
-    ('per_step', 'slice_step', 'slice step through a 3D image (CPU per step)'),
+    ('per_step', 'slice_step', 'slice step through a 3D image, per step'),
     ('rss_mb', 'viewer_shown', 'memory with a window shown'),
     ('size_mb', 'size_mb', 'installed size'),
     ('count', 'package_count', 'packages installed'),
@@ -124,8 +124,7 @@ def caption(lite: dict, nap: dict, run: dict | None) -> str:
         text += f', best of {repeat} fresh interpreters'
     text += '.'
     if run:
-        day = run.get('createdAt', '')[:10]
-        text += f' [Run {run["databaseId"]}]({run["url"]}), {day}.'
+        text += f' [Run {run["databaseId"]}]({run["url"]}).'
     text += (
         ' macOS and Windows, the spread, and how each row is measured:'
         ' [docs/benchmarks.md](docs/benchmarks.md).'
@@ -169,7 +168,7 @@ def latest_run() -> dict:
             '--limit',
             '1',
             '--json',
-            'databaseId,headSha,createdAt,url',
+            'databaseId,headSha,url',
         )
     )
     if not runs:
@@ -186,7 +185,7 @@ def run_info(run_id: str) -> dict:
             '--repo',
             REPO,
             '--json',
-            'databaseId,headSha,createdAt,url',
+            'databaseId,headSha,url',
         )
     )
 

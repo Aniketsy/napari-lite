@@ -280,3 +280,35 @@ def test_canvas_for_a_model_that_already_has_layers(qtbot, caplog) -> None:
     finally:
         window.close()
     assert not [r for r in caplog.records if r.levelno >= logging.WARNING]
+
+
+def test_status_follows_the_cursor_at_most_every_50_ms(canvas, qtbot) -> None:
+    """A cursor move updates the status at once; moves that follow within
+    50 ms are coalesced into one trailing update with the last position."""
+    viewer = canvas.viewer
+    viewer.add_image(np.arange(64, dtype=np.uint8).reshape(8, 8))
+    viewer.mouse_over_canvas = True
+    viewer.cursor.position = (2.0, 2.0)  # the cursor starts at (1, 1)
+    assert viewer.status['coordinates'] == '[2, 2]: 18'  # leading update
+    viewer.cursor.position = (3.0, 3.0)
+    viewer.cursor.position = (5.0, 5.0)
+    assert viewer.status['coordinates'] == '[2, 2]: 18'  # not yet
+    qtbot.waitUntil(
+        lambda: viewer.status['coordinates'] == '[5, 5]: 45', timeout=1000
+    )
+
+
+def test_closing_the_canvas_gives_the_status_back_to_the_model(qtbot) -> None:
+    from napari_lite.components import ViewerModel
+    from napari_lite.qt import QtCanvas
+
+    viewer = ViewerModel()
+    viewer.add_image(np.arange(64, dtype=np.uint8).reshape(8, 8))
+    viewer.mouse_over_canvas = True
+    widget = QtCanvas(viewer)
+    qtbot.addWidget(widget)
+    widget.close()
+    # every move updates the status at once again, as without a canvas
+    viewer.cursor.position = (2.0, 2.0)
+    viewer.cursor.position = (4.0, 4.0)
+    assert viewer.status['coordinates'] == '[4, 4]: 36'

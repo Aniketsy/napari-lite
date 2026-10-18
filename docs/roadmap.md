@@ -1,12 +1,12 @@
 # napari-lite: where it stands and where it goes
 
-Status on 2026-10-17, for version 0.1.0.
+Status for version 0.1.0.
 
 napari-lite is the napari viewer without the napari application: the
 layers, the canvas, the dims sliders, the layer list and layer controls,
 napari's key bindings and mouse tools, in a package that imports in 0.01 s
 and needs 41 packages instead of 106. The code is napari's own, copied from
-napari's `main` branch at commit `ebfc4a0a` (2026-10-16) by
+napari's `main` branch at commit `ebfc4a0a` by
 [`tools/vendor.py`](../tools/vendor.py), with 44 small files of our own
 (4,900 lines) where the copied core expects the application. Code written
 for napari runs on it with `import napari_lite as napari` as long as it
@@ -118,7 +118,7 @@ entries.
 
 **0.2, a lighter start**
 
-Done on 2026-10-17 ([docs/benchmarks.md](benchmarks.md), "What the first
+Done ([docs/benchmarks.md](benchmarks.md), "What the first
 image stopped importing"): the first image and the first paint import
 only what they use (no xarray probe, no scipy for a thumbnail or a 2D
 draw, no vispy scene graph with the layers, tqdm on first use, no wrapt),
@@ -132,11 +132,11 @@ widgets. The import-time and install-size gaps can still grow:
 - pint's import-time probe for dask (dask, PyYAML, toolz and psutil, about
   70 modules whenever dask is installed) made lazy in pint; superqt's
   package init made lazy (pygments and every widget come with the thread
-  workers today).
+  workers).
 - The colormap table built on first access (about 100 Colormap models at
   import), scipy-free rotation helpers for the 3D camera (scipy.spatial
   is 0.75 s on this machine the first time 3D is used).
-- scikit-image and scipy are out (done the same day, 177 MB together:
+- scikit-image and scipy are out (done, 177 MB together:
   own line, polygon, points-in-polygon, flood fill, Luv/Lab conversions,
   rotations, QR/RQ, morphology filters and Tracks lookups in numpy, each
   compared with the library it replaces in the tests; scipy stays the

@@ -88,9 +88,9 @@ def test_every_snippet_compiles(bench_imports) -> None:
 
 def test_summarize_keeps_best_median_and_first(bench_imports) -> None:
     runs = [
-        {'seconds': 2.0, 'rss_mb': 10, 'modules': 5, 'wall_seconds': 0.02},
-        {'seconds': 1.0, 'rss_mb': 11, 'modules': 5, 'wall_seconds': 0.03},
-        {'seconds': 1.5, 'rss_mb': 12, 'modules': 5, 'wall_seconds': 0.01},
+        {'seconds': 2.0, 'rss_mb': 10, 'modules': 5, 'cpu_seconds': 0.02},
+        {'seconds': 1.0, 'rss_mb': 11, 'modules': 5, 'cpu_seconds': 0.03},
+        {'seconds': 1.5, 'rss_mb': 12, 'modules': 5, 'cpu_seconds': 0.01},
     ]
     best = bench_imports.summarize(runs)
     assert best['seconds'] == 1.0
@@ -98,7 +98,7 @@ def test_summarize_keeps_best_median_and_first(bench_imports) -> None:
     assert best['median_seconds'] == 1.5
     assert best['first_seconds'] == 2.0
     assert best['runs'] == [2.0, 1.0, 1.5]
-    assert best['wall_seconds'] == 0.01
+    assert best['cpu_seconds'] == 0.01
     assert bench_imports.summarize([]) is None
 
 
@@ -112,13 +112,13 @@ def test_table_rows(make_table) -> None:
     labels = [line.split('|')[1].strip() for line in lines]
     assert 'first frame: a window with one image, to its first paint' in labels
     assert 'first Image layer in a shown empty viewer, drawn' in labels
-    assert 'slice step through a 32 x 512 x 512 image, CPU per step' in labels
+    assert 'slice step through a 32 x 512 x 512 image, per step' in labels
     # rows whose measurement is missing everywhere are left out
     assert not any('Points' in label for label in labels)
     by_label = dict(zip(labels, lines, strict=True))
     assert (
         '| 12.0 ms | 24.0 ms | 2.0x |'
-        in by_label['slice step through a 32 x 512 x 512 image, CPU per step']
+        in by_label['slice step through a 32 x 512 x 512 image, per step']
     )
     assert (
         '| 3.20 s | 6.40 s | 2.0x |'
@@ -144,7 +144,7 @@ def test_readme_block(readme_bench) -> None:
     assert len(readme_bench.table(lite, without)) == 10
     assert '| `import` the package | 0.01 s | 0.02 s | 2.0x faster |' in body
     assert (
-        '| slice step through a 3D image (CPU per step) | 12.0 ms | 24.0 ms |'
+        '| slice step through a 3D image, per step | 12.0 ms | 24.0 ms |'
         ' 2.0x faster |' in body
     )
     assert '| installed size | 370 MB | 740 MB | 50% less |' in body
@@ -157,16 +157,12 @@ def test_readme_block(readme_bench) -> None:
     run = {
         'databaseId': 123,
         'headSha': 'abcdef0123456789',
-        'createdAt': '2026-10-18T06:00:00Z',
         'url': 'https://github.com/x/y/actions/runs/123',
     }
     text = readme_bench.caption(lite, {**nap, 'version': '0.9.2'}, run)
     assert 'commit `abcdef0`' in text
     assert 'napari 0.9.2 from PyPI' in text
-    assert (
-        '[Run 123](https://github.com/x/y/actions/runs/123), 2026-10-18'
-        in text
-    )
+    assert '[Run 123](https://github.com/x/y/actions/runs/123).' in text
     assert 'best of 5 fresh interpreters' in text
     offline = readme_bench.caption(lite, nap, None)
     assert 'Run' not in offline and 'napari from PyPI' in offline

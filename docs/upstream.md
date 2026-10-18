@@ -1,11 +1,11 @@
 # Upstream: what napari-lite found that belongs in napari and its dependencies
 
-Three of the first-image fixes of 2026-10-17 (docs/benchmarks.md, "What
+Three of the first-image fixes (docs/benchmarks.md, "What
 the first image stopped importing") are not napari-lite specific: napari
 has the same code, and its users pay the same imports. They are carried
 here as `[[rewrite]]` rules in `tools/vendor.toml`; once napari takes
 them, the rules stop matching at the next resync and can be dropped. A
-fourth rule, from the functionality check of 2026-10-17, fixes a console
+fourth rule, from the functionality check, fixes a console
 encoding error that napari has too (patch 4).
 
 ## Patches for napari
@@ -51,14 +51,14 @@ pull request: push the branch to the fork and open it against
    error occurred while trying to format an error ... You can try to
    uninstall IPython" and the message was lost. Encoding with
    `errors='replace'` first shows the message with those characters as
-   `?`. Found by napari-lite's functionality check of 2026-10-17.
+   `?`. Found by napari-lite's functionality check.
 5. **Give layer controls to the layers that exist before the container**
    (`_qt/layer_controls/qt_layer_controls_container.py`, with a test). The
    container made controls only for layers inserted after it existed, so
    a `ViewerModel` that already held layers, handed to a `QtViewer` for
    embedding, raised `KeyError` in `_populate` on the first selection
    change and showed nothing for them. Existing layers are now added at
-   construction. Found on 2026-10-18 while profiling napari-lite, whose
+   construction. Found while profiling napari-lite, whose
    `QtCanvas(viewer)` takes the same path. The patch file is a plain
    `git diff` with a mail header (made without a commit); `git am` reads it.
 
@@ -74,7 +74,7 @@ by the same imports).
 which imports pygments. A viewer that needs only the thread workers and two
 sliders therefore loads 35 superqt modules and pygments (8.7 MB installed,
 a dependency pin for every user) at startup: 0.16 s of a viewer window's
-first frame on the benchmark machine (`-X importtime`, 2026-10-18), a
+first frame on the benchmark machine (`-X importtime`), a
 third of it `superqt.sliders._range_style`. Request: lazy attributes in
 `superqt/__init__.py` (PEP 562, as `napari.utils` does) and pygments as an
 optional dependency of the syntax highlighter.
@@ -99,3 +99,17 @@ functions, so this is a question to both projects rather than an ask:
 whether `OpenGL.GL` could resolve its version modules lazily.
 
 None has been filed yet; the texts above are ready to paste.
+
+## Observations for napari
+
+Measured while benchmarking, not patched; each would be a
+small pull request:
+
+- `SVGBufferIconEngine.paint` (`_qt/qt_resources/_svg.py`) builds a
+  `QSvgRenderer` and renders the icon on every paint. The layer list
+  repaints a layer's row twice per brush point or slice step, so a
+  stroke pays 0.4 ms per point for the layer-type icon alone; a pixmap
+  cached per size would remove it.
+- The brush circle overlay is two vispy `Ellipse` visuals with `agg`
+  borders: 1.5 ms per frame on an integrated GPU while painting. A
+  single line or markers visual would be cheaper.

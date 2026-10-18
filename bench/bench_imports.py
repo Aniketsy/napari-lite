@@ -34,12 +34,20 @@ first_points_layer (``add_points``, ``add_shapes``) to the canvas draw that
 first_shapes_layer shows the new layer: the first layer of that kind on
                    top of an image, so without the costs of the first
                    layer of all
-slice_step         CPU seconds per slice step through a 32 x 512 x 512
-                   float32 image, the canvas drawn after every step
-                   (``wall_seconds`` is kept next to it; on a screen with
-                   vsync the wall time is a multiple of the frame interval)
-paint_stroke       CPU seconds per point of a 30-point brush stroke on a
-                   512 x 512 Labels layer, the canvas drawn after every point
+slice_step         seconds per slice step through a 32 x 512 x 512 float32
+                   image: the median over 60 steps of the wall time from
+                   the step to the canvas drawn and the window idle again
+                   (``cpu_seconds``, the mean CPU time per step, is kept
+                   next to it; on Windows that clock ticks every 15.6 ms)
+paint_stroke       the same per point of a 60-point brush stroke on a
+                   512 x 512 Labels layer
+
+The window snippets after ``first_frame`` share one setup, so that two
+packages and two machines compare: vsync off (the swap interval of the
+default surface format), the window resized until the canvas is
+640 x 480, and ``viewer.mouse_over_canvas`` set, as it is while someone
+works (it decides whether the brush circle is drawn and the status
+updated; left to the real pointer it differs from run to run).
 
 The window measurements need a display: on Linux without one, Qt's
 offscreen platform is used (no OpenGL there, so they fail and are reported
@@ -66,8 +74,12 @@ _SHOWN_VIEWER = """
 import time
 import numpy as np
 import {pkg}
+from qtpy.QtGui import QSurfaceFormat
 from qtpy.QtWidgets import QApplication
 
+_format = QSurfaceFormat.defaultFormat()
+_format.setSwapInterval(0)  # no vsync: wall time per step is work, not waiting
+QSurfaceFormat.setDefaultFormat(_format)
 app = QApplication.instance() or QApplication([])
 v = {pkg}.Viewer()
 v.add_image(np.zeros((512, 512), dtype=np.uint8))
@@ -96,6 +108,22 @@ def settle(quiet=0.3):
             n, last = len(drawn), time.perf_counter()
 
 
+def drain():
+    # process events until two calls in a row find none
+    quiet = 0
+    while quiet < 2:
+        quiet = quiet + 1 if not app.processEvents() else 0
+
+
+settle()
+_native, _window = v.window._qt_viewer.canvas.native, v.window._qt_window
+for _ in range(3):  # the same canvas everywhere: 640 x 480
+    _dw, _dh = 640 - _native.width(), 480 - _native.height()
+    if _dw == 0 and _dh == 0:
+        break
+    _window.resize(_window.width() + _dw, _window.height() + _dh)
+    settle(0.2)
+v.mouse_over_canvas = True
 settle()
 """
 
@@ -119,17 +147,25 @@ _PER_STEP = (
     + """
 @SETUP@
 settle()
-for i in range(4):          # warm up: shaders, first slices, first stamps
+for i in range(6):          # warm up: shaders, first slices, first stamps
     step(i)
     wait_draw()
+    drain()
 settle()
-n = 30
-cpu0, wall0 = time.process_time(), time.perf_counter()
+n = 60
+walls = []
+cpu0 = time.process_time()
 for i in range(n):
-    step(i + 4)
+    t = time.perf_counter()
+    step(i + 6)
     wait_draw()
-_elapsed = (time.process_time() - cpu0) / n
-_extra = dict(wall_seconds=(time.perf_counter() - wall0) / n)
+    drain()
+    walls.append(time.perf_counter() - t)
+walls.sort()
+_elapsed = walls[n // 2]
+_extra = dict(
+    cpu_seconds=(time.process_time() - cpu0) / n, mean_seconds=sum(walls) / n
+)
 v.close()
 """
 )
@@ -243,7 +279,8 @@ MEASUREMENTS = {
             labels.selected_label = 2
 
             def step(i):
-                labels.paint((256, 40 + 12 * i), 2)
+                # two rows of 36 stamps 12 px apart: never the same pixels
+                labels.paint((200 + 80 * (i // 36), 40 + 12 * (i % 36)), 2)
             """
         ).strip(),
     ),
@@ -326,8 +363,9 @@ def summarize(runs: list[dict]) -> dict | None:
     best['median_seconds'] = statistics.median(seconds)
     best['first_seconds'] = seconds[0]
     best['runs'] = seconds
-    if 'wall_seconds' in best:
-        best['wall_seconds'] = min(r['wall_seconds'] for r in runs)
+    for key in ('cpu_seconds', 'mean_seconds'):
+        if key in best:
+            best[key] = min(r[key] for r in runs)
     return best
 
 
@@ -374,10 +412,10 @@ def main(argv: list[str] | None = None) -> int:
         'seconds': column('seconds'),
         'median_seconds': column('median_seconds'),
         'first_seconds': column('first_seconds'),
-        'wall_seconds': {
-            k: v['wall_seconds']
+        'cpu_seconds': {
+            k: v['cpu_seconds']
             for k, v in results.items()
-            if v and 'wall_seconds' in v
+            if v and 'cpu_seconds' in v
         },
         'rss_mb': column('rss_mb'),
         'modules': column('modules'),
@@ -392,8 +430,8 @@ def main(argv: list[str] | None = None) -> int:
         unit = 'ms' if name in ('slice_step', 'paint_stroke') else 's'
         scale = 1000 if unit == 'ms' else 1
         wall = (
-            f'  wall {run["wall_seconds"] * scale:6.1f} {unit}'
-            if 'wall_seconds' in run
+            f'  cpu {run["cpu_seconds"] * scale:6.1f} {unit}'
+            if 'cpu_seconds' in run
             else ''
         )
         print(

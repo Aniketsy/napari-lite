@@ -35,10 +35,10 @@ TIMES = [
         'first Shapes layer (50 rectangles) on top of an image, drawn',
     ),
 ]
-# per-step measurements, CPU seconds per step, shown in milliseconds
+# per-step measurements, seconds per step, shown in milliseconds
 PER_STEP = [
-    ('slice_step', 'slice step through a 32 x 512 x 512 image, CPU per step'),
-    ('paint_stroke', 'Labels brush stroke, CPU per point'),
+    ('slice_step', 'slice step through a 32 x 512 x 512 image, per step'),
+    ('paint_stroke', 'Labels brush stroke, per point'),
 ]
 MEMORY = [
     ('import', 'memory after importing the package'),
@@ -193,7 +193,8 @@ def main(argv: list[str]) -> int:
         print(
             f'\nPython {", ".join(sorted(p for p in pythons if p))}; {versions};'
             f' {note} of {", ".join(str(r) for r in sorted(repeats) if r)}'
-            ' fresh interpreters; per-step rows are CPU time per step.\n'
+            ' fresh interpreters; per-step rows are the median wall time per step,'
+            ' vsync off, 640 x 480 canvas.\n'
         )
     return 0
 

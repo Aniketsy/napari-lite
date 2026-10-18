@@ -27,6 +27,7 @@ from qtpy.QtCore import QCoreApplication, QEvent, Qt
 from qtpy.QtGui import QGuiApplication
 from qtpy.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 from superqt import QElidingLabel
+from superqt.utils import qthrottled
 
 import napari_lite.qt._viewer_actions  # noqa: F401  (re-registers two actions)
 from napari_lite._qt.utils import QImg2array, use_tabular_numerals
@@ -149,6 +150,7 @@ class QtCanvas(QWidget):
     ) -> None:
         super().__init__(parent)
         self._instances.add(self)
+        self._closed = False
         # with a stylesheet active, fonts (e.g. tabular numerals) only
         # propagate from parent to child widgets with this attribute
         QCoreApplication.setAttribute(
@@ -225,6 +227,20 @@ class QtCanvas(QWidget):
         viewer.dims.events.ndisplay.connect(self._update_camera_depth)
         viewer.layers.selection.events.active.connect(self._on_active_change)
         viewer.layers.events.inserted.connect(self._on_add_layer_change)
+        # The model computes the status text (value under the cursor,
+        # coordinates, help) on every cursor move, and every slice step
+        # moves the cursor.  napari's window takes that off the model and
+        # computes it in a thread, which also throttles it.  Here it stays
+        # on the main thread but runs at most every 50 ms, the last
+        # position always shown: a slice step or a mouse move no longer
+        # pays for the status and the relayout of its labels each time.
+        viewer.cursor.events.position.disconnect(
+            viewer.update_status_from_cursor
+        )
+        self._status_update = qthrottled(
+            viewer.update_status_from_cursor, timeout=50, leading=True
+        )
+        viewer.cursor.events.position.connect(self._on_cursor_position)
 
         # shortcuts from the settings, bound to the registered actions
         bind_shortcuts_from_settings()
@@ -620,9 +636,29 @@ class QtCanvas(QWidget):
     # lifecycle
     # ------------------------------------------------------------------
 
+    def _on_cursor_position(self) -> None:
+        self._status_update()
+
+    def _restore_status_updates(self) -> None:
+        """Give the status back to the model: computed on every cursor
+        move, as without a canvas."""
+        viewer = self.viewer
+        viewer.cursor.events.position.disconnect(self._on_cursor_position)
+        if not any(
+            other is not self and other.viewer is viewer
+            for other in self._instances
+        ):
+            viewer.cursor.events.position.connect(
+                viewer.update_status_from_cursor
+            )
+
     def closeEvent(self, event: QCloseEvent | None) -> None:
-        """Stop the animation thread and release the vispy canvas."""
-        self.dims.stop()
-        self.canvas.delete()
+        """Stop the animation thread and release the vispy canvas (once:
+        a widget closed by hand is closed again when it is deleted)."""
+        if not self._closed:
+            self._closed = True
+            self.dims.stop()
+            self.canvas.delete()
+            self._restore_status_updates()
         if event is not None:
             event.accept()

@@ -26,12 +26,22 @@ run right after a reboot is a cold one):
   with 1,000 points, `add_shapes` with 50 rectangles) to the canvas draw
   that shows the new layer, so the first layer of that kind with its
   imports, widgets and shaders.
-- `slice_step`: CPU time per slice step through a 32 x 512 x 512 float32
-  image, the canvas drawn after every step; `paint_stroke`: CPU time per
-  point of a 30-point brush stroke on a 512 x 512 Labels layer. CPU time
-  rather than wall time, because on a screen with vsync the wall time of
-  a drawn step is a multiple of the frame interval (the JSON keeps it as
-  `wall_seconds`).
+- `slice_step`: the median over 60 slice steps through a 32 x 512 x 512
+  float32 image of the wall time from the step to the canvas drawn and
+  the window idle again; `paint_stroke`: the same per point of a 60-point
+  brush stroke on a 512 x 512 Labels layer. Wall time with vsync off (the
+  swap interval of Qt's default surface format), because the clock of
+  `time.process_time` ticks every 15.6 ms on Windows and a swap with
+  vsync makes wall time a multiple of the frame interval; the CPU mean
+  is kept as `cpu_seconds`.
+- The window measurements after `first_frame` share one setup, so that
+  packages and machines compare: the window is resized until the canvas
+  is 640 x 480 (the two packages open windows of different sizes, and
+  the Labels shader is paid per pixel), and `viewer.mouse_over_canvas`
+  is set, as it is while someone works: it decides whether the brush
+  circle is drawn and the status bar updated, and left to the real
+  pointer it changed the brush stroke by 30% depending on which window
+  the pointer rested over.
 
 The README's table is written by `tools/readme_bench.py` from the Linux
 numbers of the latest Benchmarks run (`gh` downloads the artifacts; the
@@ -39,7 +49,7 @@ workflow's summary shows the same block); rows the run lacks are left
 out. `bench/first_frame.py` prints where the time to the first frame
 goes, stage by stage.
 
-## GitHub Actions, 2026-10-17
+## GitHub Actions
 
 [Run 39011278624](https://github.com/Aniketsy/napari-lite/actions/runs/39011278624):
 Python 3.13, PyQt6, napari-lite at commit `e16cde5` (napari core
@@ -94,7 +104,7 @@ What the numbers say:
 
 `python -X importtime -c "import napari_lite.components"`, self time per
 top-level package, in the local check environment (Windows, Python 3.13.7,
-`[dev,pyqt6]` extras, cold, 2026-10-17). Total 2.8 s on this machine,
+`[dev,pyqt6]` extras, cold). Total 2.8 s on this machine,
 0.55 s on the CI runner above; the shares are what matters.
 
 | package | seconds |
@@ -111,7 +121,7 @@ pint imports dask (and yaml through it) whenever dask is installed, so
 the `dask` extra costs about 0.3 s at import even when no dask array is
 ever shown; without the extra those lines disappear.
 
-Decisions on the heavy dependencies (2026-10-17):
+Decisions on the heavy dependencies:
 
 - dask is imported on first use, when a dask array is given to a layer;
   scikit-image is no longer a dependency at all (own code draws the
@@ -130,11 +140,11 @@ The table above compares with napari 0.9.2 from PyPI. This one compares
 like with like: napari installed from the very commit the copy was taken
 from (`ebfc4a0a`, version `0.10.0a1.dev22`), both packages in fresh
 environments made with `pip install <package>[pyqt6]` and nothing else,
-on the same Windows machine (Python 3.13.7, 2026-10-17, best of 3 fresh
+on the same Windows machine (Python 3.13.7, best of 3 fresh
 interpreters). The machine is about four times slower than the CI
 runners and had other work running, so read the ratios, not the seconds.
 Memory is the resident set at the end of the measured code; "modules" is
-`len(sys.modules)`. Measured again the same day after the layer panel went
+`len(sys.modules)`. Measured again after the layer panel went
 in (napari's layer list, layer controls and button rows in napari-lite's
 window) and once more after the first-image work of the next section;
 those are the numbers below. Before the panel, the window took 4.1 s and
@@ -150,12 +160,12 @@ window 5.0 s and 248 MB.
 | `Viewer(show=False)`, closed | 2.83 s | 4.61 s | 1.6x faster |
 | `Viewer` shown, one image painted, closed | 3.51 s | 5.98 s | 1.7x faster |
 | first frame: a window with one image, to its first paint | 3.69 s | 6.19 s | 1.7x faster |
-| first Image layer in a shown empty viewer, drawn | 0.16 s | 0.47 s | 2.9x faster |
-| first Labels layer on top of an image, drawn | 0.28 s | 1.00 s | 3.6x faster |
-| first Points layer (1,000 points) on top of an image, drawn | 0.10 s | 1.06 s | 10x faster |
-| first Shapes layer (50 rectangles) on top of an image, drawn | 0.63 s | 1.13 s | 1.8x faster |
-| slice step through a 32 x 512 x 512 image, CPU per step | 11.5 ms | 13.0 ms | 1.1x faster |
-| Labels brush stroke, CPU per point | 7.3 ms | 5.2 ms | same (noise, see below) |
+| first Image layer in a shown empty viewer, drawn | 0.16 s | 0.45 s | 2.8x faster |
+| first Labels layer on top of an image, drawn | 0.28 s | 0.86 s | 3.1x faster |
+| first Points layer (1,000 points) on top of an image, drawn | 0.10 s | 0.60 s | 6x faster |
+| first Shapes layer (50 rectangles) on top of an image, drawn | 0.61 s | 1.19 s | 2.0x faster |
+| slice step through a 32 x 512 x 512 image, per step | 14.6 ms | 15.2 ms | same |
+| Labels brush stroke, per point | 10.3 ms | 11.1 ms | same |
 | memory after importing the package | 14 MB | 26 MB | 1.8x less |
 | memory after the first image | 61 MB | 112 MB | 46% less |
 | memory with a viewer window shown | 217 MB | 276 MB | 21% less |
@@ -167,18 +177,32 @@ window 5.0 s and 248 MB.
 | Python modules in the package | 451 | 524 | 73 fewer |
 | lines of Python in the package | 94,267 | 111,648 | 17,400 fewer |
 
-The first-frame, first-layer and per-step rows were added on 2026-10-18
-in the same two environments (napari-lite reinstalled from the working
-tree), best of 3. Their first runs are worth a look: the first frame took
-26 s in napari-lite and 84 s in napari right after the installs, the
-byte-compilation of a fresh package on a cold disk, and the first Labels
-layer 1.3 s against 0.28 s once warm. The brush stroke row is noise:
-the batch gave 7.3 against 5.2 ms, six alternating reruns gave 7.8 to
-10.4 ms for napari-lite against 8.9 to 13.0 ms for napari, and under
-cProfile 9.4 against 12.5; the painting code is the same in both and
-most of a point is the window's repaint. The per-step rows need a
-quieter machine than this one to separate the two packages.
-The times were measured again on 2026-10-18, after pint left the first
+The first-frame, first-layer and per-step rows were added later, in the
+same two environments (napari-lite reinstalled from the working
+tree), best of 3; the per-step rows with the shared setup described
+above, which makes their three runs agree within 0.2 ms. Their first
+runs are worth a look: the first frame took 26 s in napari-lite and 84 s
+in napari right after the installs, the byte-compilation of a fresh
+package on a cold disk, and the first Labels layer 2.5 s against 0.28 s
+once warm.
+
+An earlier version of the per-step rows had napari-lite 40% slower on
+the brush stroke. Three things were wrong with the measurement, none
+with the code: the two windows opened at different sizes (a 597 px wide
+canvas against 319 px; the Labels fragment shader is paid per pixel, and
+the GL draw took 3.8 against 2.2 ms), the CPU clock ticks every 15.6 ms
+on Windows, and the mouse pointer happened to rest over napari-lite's
+window, which draws the brush circle (two antialiased ellipses, 1.5 ms a
+frame) and updates the status bar on every step. What a brush point
+costs with everything equal, in both packages: 1 ms of painting, 2 to
+4 ms of GL draw, 1.8 ms to repaint the layer list row twice (the layer
+icon is rendered from SVG each time), the rest in Qt's event handling.
+The status bar was the one real difference: napari computes it in a
+thread, napari-lite computed it on every cursor move on the main thread,
+2 ms of label relayout per slice step with the mouse over the canvas; it
+now runs at most every 50 ms (`QtCanvas`), which is where the slice
+step row comes from.
+The times were measured again after pint left the first
 image (below); the removals of toolz, pydantic-extra-types and pandas in
 between changed module counts and sizes only, and a rerun of the window
 on this machine moves by half a second either way. The README repeats the first rows of this table;
@@ -224,7 +248,7 @@ Where the difference comes from:
   screen, notification widgets and plugin discovery that napari builds;
   the layer list and layer controls are the same widgets in both (adding
   them to napari-lite's window cost 0.9 s and 12 MB by the window
-  benchmark of that day; the stage breakdown of 2026-10-18 below puts the
+  benchmark at the time; the stage breakdown below puts the
   panel at 0.2 s), and what remains
   (Qt, vispy, the first OpenGL context) is the same too, which is why the
   gap narrows from 17x at import to 1.2x with a window shown.
@@ -237,7 +261,7 @@ and `python bench/install_size.py --package <name> --json ..`, and
 
 ## What the first image stopped importing
 
-Profiling on 2026-10-17 (`python -X importtime`, cProfile, and fresh
+Profiling (`python -X importtime`, cProfile, and fresh
 interpreters with candidate fixes applied by monkeypatch) showed that the
 copied code itself was not where the first image spent its time: a
 handful of imports fired on the first layer and the first paint. Each is
@@ -250,7 +274,7 @@ resync) with an own module where one was needed, and
 | `_check_xarray`, run by every new layer, imported xarray (and pandas with it) whenever xarray is installed | 454 modules, about 1 s on this machine | runs only when xarray is already in `sys.modules`, where any xarray object must come from |
 | the thumbnail used `scipy.ndimage.zoom(order=0)` | 195 modules on the first image, and a zoom per slice | `utils/_zoom.py`: the same nearest-neighbour lookup in numpy (`tests/test_thumbnail_zoom.py` compares it with scipy) |
 | `canvas_to_world`, run on every draw, imported scipy.spatial first thing, in 2D too | about 100 modules and 0.75 s on the first 2D paint | the import sits in the 3D branch |
-| every layer's default units were pint's `pixel` unit, so the first layer imported pint and built its registry (2026-10-18) | 0.6 s and 340 modules for the import, 0.2 s for the registry, in a fresh environment; half of the first image | `utils/_pixel.py`: a pixel stand-in equal to pint's unit, pint with the first real unit; the registry then from pint's definition cache (0.02 s against 0.2 s). First image 1.51 s to 1.13 s, window 3.85 s to 3.51 s, 71 modules fewer |
+| every layer's default units were pint's `pixel` unit, so the first layer imported pint and built its registry | 0.6 s and 340 modules for the import, 0.2 s for the registry, in a fresh environment; half of the first image | `utils/_pixel.py`: a pixel stand-in equal to pint's unit, pint with the first real unit; the registry then from pint's definition cache (0.02 s against 0.2 s). First image 1.51 s to 1.13 s, window 3.85 s to 3.51 s, 71 modules fewer |
 | one helper imported from `vispy.visuals.tube` loaded every vispy visual and `vispy.gloo` with the layers | about 100 modules before any canvas | `utils/_tube.py`, a copy of that function (BSD) |
 | `progress` imported tqdm with the viewer model and the thread workers | about 50 modules (tqdm reads its own metadata at import) | imported where a progress bar is made; the own `utils/__init__.py` binds the names on first access |
 | wrapt, a dependency for one base class, imported asyncio | 46 modules in a window | `utils/_object_proxy.py`, the part of `wrapt.ObjectProxy` that napari uses; wrapt is no longer a dependency |
@@ -268,8 +292,8 @@ dask, only when dask is installed; pygments through superqt's package
 init. PyOpenGL (193 modules) is needed: napari's markers select vispy's
 `gl+` backend.
 
-The same day, scikit-image, scipy, toolz, pydantic-extra-types and pandas
-left the dependencies (the install-size work of that day). The own modules that stand
+Then scikit-image, scipy, toolz, pydantic-extra-types and pandas left
+the dependencies (the install-size work). The own modules that stand
 in for them are compared with the libraries element by element in
 `tests/test_draw.py`, `test_colorconv.py`, `test_rotation.py`,
 `test_linalg.py`, `test_morphology.py`, `test_tracks_index.py`,
@@ -303,7 +327,7 @@ a few milliseconds per status update for a million vertices.
 An issue proposed building the layer panel after the first paint ("the
 window before its panels"), on the strength of a cProfile run that
 charged the two docks 1.2 s of a 3.5 s window. Wall-clock marks
-(`bench/first_frame.py`, 2026-10-18, the local check environment on the
+(`bench/first_frame.py`, the local check environment on the
 same slow Windows machine, Python 3.13.7) tell a different story. A
 script that imports napari-lite, makes a viewer, adds a 512 x 512 image
 and shows the window reaches its first paint event after 3.07 s:

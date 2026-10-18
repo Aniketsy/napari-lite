@@ -2,8 +2,6 @@
 
 ## Data interpretation: the same rules as napari
 
-*Decided 2026-10-17.*
-
 napari guesses a few things about the data handed to `add_image`:
 
 - **RGB**: an array whose last axis has length 3 or 4, with the two axes

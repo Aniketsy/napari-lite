@@ -88,12 +88,12 @@ same for `main`) so that nothing in the working copy moves.
 
 ## Dry run log
 
-- 2026-10-17, napari `5bad6350` (a branch next to the pin, 17 copied
+- napari `5bad6350` (a branch next to the pin, 17 copied
   files differ): the vendor step and the merge took 2 minutes. One
   conflict, `layers/shapes/_shapes_utils.py`, where napari rewrote the
   path and polygon mask functions that carry napari-lite's first-use
   import of scikit-image (issue 18). Resolution by hand: keep napari's
   new functions, move the `from skimage import ...` lines back inside
   them. Everything else merged cleanly, own files untouched. napari's
-  `main` itself was still at the pinned commit that day, so no real
+  `main` itself was still at the pinned commit at the time, so no real
   resync was needed.
