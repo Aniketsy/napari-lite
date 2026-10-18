@@ -67,13 +67,15 @@ changes together: the first image fell from about 2.2 s and 1,026 loaded
 modules to 1.5 s and 729 (napari-lite's numbers; napari's own would move
 by the same imports).
 
-## Asks for two dependencies
+## Asks for the dependencies
 
 **superqt**: `superqt/__init__.py` imports every widget eagerly, and
 `superqt.combobox._color_combobox` imports `superqt.utils._code_syntax_highlight`,
 which imports pygments. A viewer that needs only the thread workers and two
 sliders therefore loads 35 superqt modules and pygments (8.7 MB installed,
-a dependency pin for every user) at startup. Request: lazy attributes in
+a dependency pin for every user) at startup: 0.16 s of a viewer window's
+first frame on the benchmark machine (`-X importtime`, 2026-10-18), a
+third of it `superqt.sliders._range_style`. Request: lazy attributes in
 `superqt/__init__.py` (PEP 562, as `napari.utils` does) and pygments as an
 optional dependency of the syntax highlighter.
 
@@ -85,4 +87,15 @@ dask, dask array or not. Request: import `dask.base` lazily, at the first
 operation that needs `compute`, `persist` or `visualize`, as `dask.array`
 already is through `_LazyDaskArray`.
 
-Neither has been filed yet; the texts above are ready to paste.
+**vispy**: `vispy/util/__init__.py` imports `fonts`, which loads FreeType
+and enumerates fonts, at package import: 0.3 s and 50 modules before any
+canvas exists, paid by `import vispy.color` alone. Request: import the
+font machinery on first use, in the text visual.
+
+**PyOpenGL, through vispy**: `vispy.gloo.gl.glplus` imports `OpenGL.GL`,
+which is 0.3 s and about 190 modules on the benchmark machine (every
+`OpenGL.raw.GL.VERSION` and `OpenGL.GL.VERSION` module). vispy needs the
+functions, so this is a question to both projects rather than an ask:
+whether `OpenGL.GL` could resolve its version modules lazily.
+
+None has been filed yet; the texts above are ready to paste.

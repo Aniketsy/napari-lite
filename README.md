@@ -58,6 +58,7 @@ on the canvas or chosen with `Ctrl+O`, a built-in sample with
 
 ## Faster and smaller than napari
 
+<!-- bench-table -->
 Both packages installed with `pip install <package>[pyqt6]` into fresh
 environments, napari from the commit the copy was taken from, on one
 Windows machine, so read the ratios rather than the seconds.
@@ -71,6 +72,7 @@ Windows machine, so read the ratios rather than the seconds.
 | installed size | 370 MB | 761 MB | 51% less |
 | packages installed | 31 | 106 | 71% fewer |
 | direct dependencies | 14 | 37 | 62% fewer |
+<!-- /bench-table -->
 
 napari-lite is lighter because it imports only what it uses (no xarray
 probe on every new layer, no scipy for a thumbnail or a 2D draw, no plugin
@@ -80,9 +82,10 @@ toolz and wrapt are numpy code, tested against the originals, pandas is an extra
 unit registry loads only when a layer gets a real unit (until then a
 layer carries a pixel stand-in equal to pint's pixel unit, the one
 visible difference: it is not a `pint.Unit` instance). What remains, Qt, vispy and the first OpenGL context, is the
-same in both, which is why the gap narrows from 22x at import to 1.7x
-with a window on screen. How it was measured, and the CI numbers on three
-operating systems: [docs/benchmarks.md](docs/benchmarks.md).
+same in both, which is why the gap narrows from the import to a window
+on screen. How each row is measured, the first frame, first layers and
+interaction, and the CI numbers on three operating systems:
+[docs/benchmarks.md](docs/benchmarks.md).
 
 ## Features
 

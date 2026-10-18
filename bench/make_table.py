@@ -3,6 +3,7 @@
 Markdown table (napari-lite next to napari, per OS).
 
     python bench/make_table.py results/*.json
+    python bench/make_table.py --median results/*.json   # best (median)
 """
 
 from __future__ import annotations
@@ -19,6 +20,25 @@ TIMES = [
     ('first_image', 'first image: ViewerModel + add_image'),
     ('viewer_no_show', 'Viewer(show=False), closed'),
     ('viewer_shown', 'Viewer shown, one image painted, closed'),
+    (
+        'first_frame',
+        'first frame: a window with one image, to its first paint',
+    ),
+    ('first_image_layer', 'first Image layer in a shown empty viewer, drawn'),
+    ('first_labels_layer', 'first Labels layer on top of an image, drawn'),
+    (
+        'first_points_layer',
+        'first Points layer (1,000 points) on top of an image, drawn',
+    ),
+    (
+        'first_shapes_layer',
+        'first Shapes layer (50 rectangles) on top of an image, drawn',
+    ),
+]
+# per-step measurements, CPU seconds per step, shown in milliseconds
+PER_STEP = [
+    ('slice_step', 'slice step through a 32 x 512 x 512 image, CPU per step'),
+    ('paint_stroke', 'Labels brush stroke, CPU per point'),
 ]
 MEMORY = [
     ('import', 'memory after importing the package'),
@@ -62,6 +82,10 @@ def _seconds(value: float | None) -> str:
     return f'{value:.2f} s' if value is not None else 'n/a'
 
 
+def _ms(value: float | None) -> str:
+    return f'{value * 1000:.1f} ms' if value is not None else 'n/a'
+
+
 def _mb(value: float | None) -> str:
     return f'{value:.0f} MB' if value is not None else 'n/a'
 
@@ -76,23 +100,45 @@ def _ratio(lite: float | None, nap: float | None) -> str:
     return f'{nap / lite:.1f}x' if nap >= lite else f'{lite / nap:.1f}x more'
 
 
-def rows(packages: dict[str, dict], names: list[str]) -> list[str]:
+def rows(
+    packages: dict[str, dict], names: list[str], median: bool = False
+) -> list[str]:
+    """The table rows for one OS; rows whose values are all missing are
+    left out, except the startup times, which say n/a."""
     out = []
     lite, nap = packages.get('napari_lite', {}), packages.get('napari', {})
 
-    def line(label, fmt, values, lite_v, nap_v):
-        cells = ' | '.join(fmt(v) for v in values)
-        out.append(f'| {label} | {cells} | {_ratio(lite_v, nap_v)} |')
-
-    for key, label in TIMES:
-        values = [packages[n].get('seconds', {}).get(key) for n in names]
-        line(
-            label,
-            _seconds,
-            values,
-            lite.get('seconds', {}).get(key),
-            nap.get('seconds', {}).get(key),
+    def line(label, fmt, values, lite_v, nap_v, medians=None):
+        cells = [fmt(v) for v in values]
+        if median and medians:
+            cells = [
+                f'{c} ({fmt(m)})' if m is not None else c
+                for c, m in zip(cells, medians, strict=True)
+            ]
+        out.append(
+            f'| {label} | {" | ".join(cells)} | {_ratio(lite_v, nap_v)} |'
         )
+
+    def timed(entries, fmt, always):
+        for key, label in entries:
+            values = [packages[n].get('seconds', {}).get(key) for n in names]
+            if not always and all(v is None for v in values):
+                continue
+            medians = [
+                packages[n].get('median_seconds', {}).get(key) for n in names
+            ]
+            line(
+                label,
+                fmt,
+                values,
+                lite.get('seconds', {}).get(key),
+                nap.get('seconds', {}).get(key),
+                medians,
+            )
+
+    timed(TIMES[:5], _seconds, always=True)
+    timed(TIMES[5:], _seconds, always=False)
+    timed(PER_STEP, _ms, always=False)
     for key, label in MEMORY:
         values = [packages[n].get('rss_mb', {}).get(key) for n in names]
         if any(v is not None for v in values):
@@ -122,10 +168,12 @@ def rows(packages: dict[str, dict], names: list[str]) -> list[str]:
 
 
 def main(argv: list[str]) -> int:
-    if not argv:
+    median = '--median' in argv
+    paths = [a for a in argv if a != '--median']
+    if not paths:
         print(__doc__)
         return 1
-    table = load(argv)
+    table = load(paths)
     for os_name in sorted(table):
         packages = table[os_name]
         names = [p for p in ('napari_lite', 'napari') if p in packages]
@@ -133,15 +181,19 @@ def main(argv: list[str]) -> int:
         print(f'### {os_name}\n')
         print('| | ' + ' | '.join(names) + ' | napari-lite advantage |')
         print('|---|' + '---|' * (len(names) + 1))
-        print('\n'.join(rows(packages, names)))
+        print('\n'.join(rows(packages, names, median)))
         pythons = {packages[n].get('python') for n in names}
         versions = ', '.join(
             f'{n} {packages[n]["version"]}'
             for n in names
             if packages[n].get('version')
         )
+        repeats = {packages[n].get('repeat') for n in names}
+        note = 'best' + (' (median)' if median else '')
         print(
-            f'\nPython {", ".join(sorted(p for p in pythons if p))}; {versions}\n'
+            f'\nPython {", ".join(sorted(p for p in pythons if p))}; {versions};'
+            f' {note} of {", ".join(str(r) for r in sorted(repeats) if r)}'
+            ' fresh interpreters; per-step rows are CPU time per step.\n'
         )
     return 0
 

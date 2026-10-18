@@ -1,25 +1,49 @@
 # napari-lite: own code
-"""Startup benchmarks: import time, time to first image, memory, modules.
+"""Startup and interaction benchmarks: import time, time to first image and
+first frame, first layer of each kind, slice stepping, painting, memory.
 
     python bench/bench_imports.py                      # napari_lite
     python bench/bench_imports.py --package napari     # same numbers for napari
     python bench/bench_imports.py --json out.json --repeat 5
+    python bench/bench_imports.py --only first_frame,slice_step
 
-Every measurement runs in a fresh interpreter; the best of ``--repeat``
-runs is kept, so the numbers are cold-start costs.  Each run also reports
-the resident memory and the number of imported modules at the end of the
-measured code.
+Every measurement runs in a fresh interpreter ``--repeat`` times.  The
+best run is the number reported (a cold-start cost with the least noise);
+the median and the first run are kept too, so the spread is visible and
+so is the first run, the one that found the OS caches as they were (only a
+reboot gives a truly cold one).  Each run also reports the resident memory
+and the number of imported modules at the end of the measured code.
 
 Measurements
 ------------
-import            ``import <package>``
-import_components ``import <package>.components``
-import_layers     ``import <package>.layers``
-first_image       ``ViewerModel().add_image(...)`` in a fresh process (the
-                  imports it triggers included)
-viewer_no_show    ``Viewer(show=False)`` and close it
-viewer_shown      ``Viewer()`` with its window shown and painted once, then
-                  closed (skipped if the package has no ``Viewer`` yet)
+import             ``import <package>``
+import_components  ``import <package>.components``
+import_layers      ``import <package>.layers``
+first_image        ``ViewerModel().add_image(...)`` in a fresh process (the
+                   imports it triggers included)
+viewer_no_show     ``Viewer(show=False)`` and close it
+viewer_shown       ``Viewer()`` with its window shown and painted once, then
+                   closed
+first_frame        from the start of the process to the first paint event
+                   of a viewer window that holds one 512 x 512 image
+first_image_layer  a viewer is shown, empty; the time from ``add_image`` to
+                   the canvas draw that shows the image: the first layer
+                   of all, its imports, widgets and shaders included
+first_labels_layer a viewer shows an image; the time from ``add_labels``
+first_points_layer (``add_points``, ``add_shapes``) to the canvas draw that
+first_shapes_layer shows the new layer: the first layer of that kind on
+                   top of an image, so without the costs of the first
+                   layer of all
+slice_step         CPU seconds per slice step through a 32 x 512 x 512
+                   float32 image, the canvas drawn after every step
+                   (``wall_seconds`` is kept next to it; on a screen with
+                   vsync the wall time is a multiple of the frame interval)
+paint_stroke       CPU seconds per point of a 30-point brush stroke on a
+                   512 x 512 Labels layer, the canvas drawn after every point
+
+The window measurements need a display: on Linux without one, Qt's
+offscreen platform is used (no OpenGL there, so they fail and are reported
+as such; CI gets a virtual display).
 """
 
 from __future__ import annotations
@@ -28,10 +52,87 @@ import argparse
 import json
 import os
 import platform
+import statistics
 import subprocess
 import sys
 import textwrap
 import time
+
+TIMEOUT = 300  # seconds for one run of one measurement
+
+# Shared by the window snippets: a shown viewer with one image, a ``drawn``
+# list that records every canvas draw, and two waits on it.
+_SHOWN_VIEWER = """
+import time
+import numpy as np
+import {pkg}
+from qtpy.QtWidgets import QApplication
+
+app = QApplication.instance() or QApplication([])
+v = {pkg}.Viewer()
+v.add_image(np.zeros((512, 512), dtype=np.uint8))
+drawn = []
+scene_canvas = v.window._qt_viewer.canvas._scene_canvas
+scene_canvas.events.draw.connect(lambda e: drawn.append(time.perf_counter()))
+
+
+def wait_draw(timeout=30.0):
+    # process events until the canvas has drawn once more
+    n = len(drawn)
+    deadline = time.perf_counter() + timeout
+    while len(drawn) == n:
+        if time.perf_counter() > deadline:
+            raise SystemExit('the canvas did not draw within %s s' % timeout)
+        app.processEvents()
+
+
+def settle(quiet=0.3):
+    # process events until the canvas has been still for ``quiet`` seconds
+    last = time.perf_counter()
+    n = len(drawn)
+    while time.perf_counter() - last < quiet:
+        app.processEvents()
+        if len(drawn) != n:
+            n, last = len(drawn), time.perf_counter()
+
+
+settle()
+"""
+
+_EMPTY_VIEWER = _SHOWN_VIEWER.replace(
+    'v.add_image(np.zeros((512, 512), dtype=np.uint8))' + chr(10), ''
+)
+
+_FIRST_LAYER = (
+    _SHOWN_VIEWER
+    + """
+t = time.perf_counter()
+@ADD@
+wait_draw()
+_elapsed = drawn[-1] - t
+v.close()
+"""
+)
+
+_PER_STEP = (
+    _SHOWN_VIEWER
+    + """
+@SETUP@
+settle()
+for i in range(4):          # warm up: shaders, first slices, first stamps
+    step(i)
+    wait_draw()
+settle()
+n = 30
+cpu0, wall0 = time.process_time(), time.perf_counter()
+for i in range(n):
+    step(i + 4)
+    wait_draw()
+_elapsed = (time.process_time() - cpu0) / n
+_extra = dict(wall_seconds=(time.perf_counter() - wall0) / n)
+v.close()
+"""
+)
 
 MEASUREMENTS = {
     'import': 'import {pkg}',
@@ -65,6 +166,87 @@ MEASUREMENTS = {
         v.close()
         """
     ),
+    'first_frame': textwrap.dedent(
+        """
+        import time
+        import numpy as np
+        import {pkg}
+        from qtpy.QtCore import QEvent, QObject
+        from qtpy.QtWidgets import QApplication
+
+        painted = []
+
+        class FirstPaint(QObject):
+            def eventFilter(self, obj, event):
+                if event.type() == QEvent.Type.Paint and not painted:
+                    painted.append(time.perf_counter())
+                return False
+
+        v = {pkg}.Viewer(show=False)
+        v.add_image(np.zeros((512, 512), dtype=np.uint8))
+        watch = FirstPaint()
+        v.window._qt_window.installEventFilter(watch)
+        v.show()
+        app = QApplication.instance()
+        deadline = time.perf_counter() + 30
+        while not painted:
+            if time.perf_counter() > deadline:
+                raise SystemExit('the window did not paint within 30 s')
+            app.processEvents()
+        _elapsed = painted[0] - _start
+        v.close()
+        """
+    ),
+    'first_image_layer': _EMPTY_VIEWER
+    + _FIRST_LAYER[len(_SHOWN_VIEWER) :].replace(
+        '@ADD@', 'v.add_image(np.zeros((512, 512), dtype=np.uint8))'
+    ),
+    'first_labels_layer': _FIRST_LAYER.replace(
+        '@ADD@', 'v.add_labels(np.zeros((512, 512), dtype=np.uint8))'
+    ),
+    'first_points_layer': _FIRST_LAYER.replace(
+        '@ADD@',
+        'v.add_points(np.random.default_rng(0).random((1000, 2)) * 512)',
+    ),
+    'first_shapes_layer': _FIRST_LAYER.replace(
+        '@ADD@',
+        textwrap.dedent(
+            """
+            corners = np.random.default_rng(0).random((50, 1, 2)) * 480
+            boxes = corners + np.array([[0, 0], [0, 30], [30, 30], [30, 0]])
+            v.add_shapes(list(boxes), shape_type='rectangle')
+            """
+        ).strip(),
+    ),
+    'slice_step': _PER_STEP.replace(
+        '@SETUP@',
+        textwrap.dedent(
+            """
+            stack = v.add_image(
+                np.random.default_rng(0).random((32, 512, 512), dtype=np.float32)
+            )
+            v.layers[0].visible = False
+
+            def step(i):
+                # 7 is coprime with 32: every step lands on a new slice
+                v.dims.set_current_step(0, (7 * i + 3) % 32)
+            """
+        ).strip(),
+    ),
+    'paint_stroke': _PER_STEP.replace(
+        '@SETUP@',
+        textwrap.dedent(
+            """
+            labels = v.add_labels(np.zeros((512, 512), dtype=np.uint8))
+            labels.mode = 'paint'
+            labels.brush_size = 20
+            labels.selected_label = 2
+
+            def step(i):
+                labels.paint((256, 40 + 12 * i), 2)
+            """
+        ).strip(),
+    ),
 }
 
 RUNNER = textwrap.dedent(
@@ -72,8 +254,11 @@ RUNNER = textwrap.dedent(
     import json, sys, time
     code = sys.argv[1]
     start = time.perf_counter()
-    exec(compile(code, '<bench>', 'exec'), {})
-    elapsed = time.perf_counter() - start
+    scope = {'_start': start, '_elapsed': None, '_extra': {}}
+    exec(compile(code, '<bench>', 'exec'), scope)
+    elapsed = scope['_elapsed']
+    if elapsed is None:
+        elapsed = time.perf_counter() - start
 
     def rss_mb():
         if sys.platform == 'win32':
@@ -99,25 +284,31 @@ RUNNER = textwrap.dedent(
         peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
         return peak / 1e6 if sys.platform == 'darwin' else peak / 1e3
 
-    print(json.dumps({'seconds': elapsed, 'rss_mb': rss_mb(),
-                      'modules': len(sys.modules)}))
+    result = {'seconds': elapsed, 'rss_mb': rss_mb(), 'modules': len(sys.modules)}
+    result.update(scope['_extra'])
+    print(json.dumps(result))
     """
 )
 
 
 def run_once(code: str) -> dict | None:
     # the Qt "offscreen" platform has no OpenGL on Windows and macOS; the
-    # native platform is used there (no window is shown by these snippets)
+    # native platform is used there
     env = dict(os.environ)
     if sys.platform.startswith('linux') and not env.get('DISPLAY'):
         env.setdefault('QT_QPA_PLATFORM', 'offscreen')
-    proc = subprocess.run(
-        [sys.executable, '-c', RUNNER, code],
-        capture_output=True,
-        text=True,
-        env=env,
-        check=False,
-    )
+    try:
+        proc = subprocess.run(
+            [sys.executable, '-c', RUNNER, code],
+            capture_output=True,
+            text=True,
+            env=env,
+            check=False,
+            timeout=TIMEOUT,
+        )
+    except subprocess.TimeoutExpired:
+        print(f'  failed: no result within {TIMEOUT} s', file=sys.stderr)
+        return None
     if proc.returncode != 0:
         last = proc.stderr.strip().splitlines()[-1:] or ['(no output)']
         print(f'  failed: {last[0]}', file=sys.stderr)
@@ -125,12 +316,31 @@ def run_once(code: str) -> dict | None:
     return json.loads(proc.stdout.strip().splitlines()[-1])
 
 
-def bench(package: str, repeat: int) -> dict[str, dict | None]:
+def summarize(runs: list[dict]) -> dict | None:
+    """The best run, with the median and first-run seconds and all the
+    runs' seconds next to it."""
+    if not runs:
+        return None
+    best = dict(min(runs, key=lambda r: r['seconds']))
+    seconds = [r['seconds'] for r in runs]
+    best['median_seconds'] = statistics.median(seconds)
+    best['first_seconds'] = seconds[0]
+    best['runs'] = seconds
+    if 'wall_seconds' in best:
+        best['wall_seconds'] = min(r['wall_seconds'] for r in runs)
+    return best
+
+
+def bench(
+    package: str, repeat: int, only: list[str] | None = None
+) -> dict[str, dict | None]:
     results: dict[str, dict | None] = {}
     for name, template in MEASUREMENTS.items():
+        if only and name not in only:
+            continue
         code = template.format(pkg=package)
         runs = [r for r in (run_once(code) for _ in range(repeat)) if r]
-        results[name] = min(runs, key=lambda r: r['seconds']) if runs else None
+        results[name] = summarize(runs)
     return results
 
 
@@ -139,28 +349,58 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument('--package', default='napari_lite')
     parser.add_argument('--repeat', type=int, default=3)
     parser.add_argument('--json', metavar='FILE', help='write results here')
+    parser.add_argument(
+        '--only',
+        metavar='NAMES',
+        help='comma-separated measurement names to run (default: all)',
+    )
     args = parser.parse_args(argv)
+    only = args.only.split(',') if args.only else None
+    unknown = set(only or ()) - set(MEASUREMENTS)
+    if unknown:
+        parser.error(f'unknown measurements: {", ".join(sorted(unknown))}')
 
-    results = bench(args.package, args.repeat)
+    results = bench(args.package, args.repeat, only)
+
+    def column(key: str) -> dict:
+        return {k: (v or {}).get(key) for k, v in results.items()}
+
     record = {
         'package': args.package,
         'python': platform.python_version(),
         'platform': platform.platform(),
         'timestamp': time.strftime('%Y-%m-%dT%H:%M:%S'),
         'repeat': args.repeat,
-        'seconds': {k: (v or {}).get('seconds') for k, v in results.items()},
-        'rss_mb': {k: (v or {}).get('rss_mb') for k, v in results.items()},
-        'modules': {k: (v or {}).get('modules') for k, v in results.items()},
+        'seconds': column('seconds'),
+        'median_seconds': column('median_seconds'),
+        'first_seconds': column('first_seconds'),
+        'wall_seconds': {
+            k: v['wall_seconds']
+            for k, v in results.items()
+            if v and 'wall_seconds' in v
+        },
+        'rss_mb': column('rss_mb'),
+        'modules': column('modules'),
     }
     width = max(len(k) for k in results)
     print(f'{args.package} on Python {record["python"]} ({sys.platform})')
+    print(f'  {"":<{width}}     best   median    first')
     for name, run in results.items():
         if run is None:
             print(f'  {name:<{width}}     failed')
             continue
+        unit = 'ms' if name in ('slice_step', 'paint_stroke') else 's'
+        scale = 1000 if unit == 'ms' else 1
+        wall = (
+            f'  wall {run["wall_seconds"] * scale:6.1f} {unit}'
+            if 'wall_seconds' in run
+            else ''
+        )
         print(
-            f'  {name:<{width}}  {run["seconds"]:7.3f} s'
-            f'  {run["rss_mb"]:6.0f} MB  {run["modules"]:5d} modules'
+            f'  {name:<{width}}  {run["seconds"] * scale:7.3f}'
+            f'  {run["median_seconds"] * scale:7.3f}'
+            f'  {run["first_seconds"] * scale:7.3f} {unit}'
+            f'  {run["rss_mb"]:6.0f} MB  {run["modules"]:5d} modules{wall}'
         )
     if args.json:
         with open(args.json, 'w', encoding='utf-8') as fh:

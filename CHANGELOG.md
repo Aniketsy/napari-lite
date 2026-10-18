@@ -44,7 +44,12 @@ importable as `napari_lite` without napari installed.
 - `tools/vendor.py` and the `vendor` branch: a reproducible copy of napari
   with every crossing into napari's application code listed in
   `VENDORED.json`; `SYNC.md` for resyncs; a weekly upstream report.
-- Benchmarks (`bench/`) and a benchmark workflow on three OSes.
+- Benchmarks (`bench/`) and a benchmark workflow on three OSes: import
+  time, first image, first frame, the first layer of each kind, slice
+  stepping and a brush stroke, with the median and the first run next to
+  the best; `bench/first_frame.py` shows where the first frame's time
+  goes; `tools/readme_bench.py` writes the README's table from the
+  workflow's Linux numbers.
 - Tests: napari-lite's own tests and napari's copied tests, run on Linux,
   macOS and Windows with Python 3.11 to 3.13 and without napari.
 

@@ -8,6 +8,37 @@ in fresh environments, `pip install napari-lite[pyqt6]` against
 to trust; a developer machine gives different ones depending on what else
 is running.
 
+What `bench_imports.py` measures, each in a fresh interpreter, `--repeat`
+times (the best run is the number in the tables; the JSON keeps the median
+and the first run too, and `make_table.py --median` prints both; only a
+run right after a reboot is a cold one):
+
+- `import`, `import_components`, `import_layers`: the import alone.
+- `first_image`: `ViewerModel().add_image(...)`, the imports it triggers
+  included.
+- `viewer_no_show`, `viewer_shown`: a `Viewer` made and closed, without
+  and with its window shown and painted once.
+- `first_frame`: from the start of the process to the first paint event
+  of a window that holds one 512 x 512 image, what the user of a script
+  waits for.
+- `first_labels_layer`, `first_points_layer`, `first_shapes_layer`: a
+  viewer already shows an image; the time from `add_labels` (`add_points`
+  with 1,000 points, `add_shapes` with 50 rectangles) to the canvas draw
+  that shows the new layer, so the first layer of that kind with its
+  imports, widgets and shaders.
+- `slice_step`: CPU time per slice step through a 32 x 512 x 512 float32
+  image, the canvas drawn after every step; `paint_stroke`: CPU time per
+  point of a 30-point brush stroke on a 512 x 512 Labels layer. CPU time
+  rather than wall time, because on a screen with vsync the wall time of
+  a drawn step is a multiple of the frame interval (the JSON keeps it as
+  `wall_seconds`).
+
+The README's table is written by `tools/readme_bench.py` from the Linux
+numbers of the latest Benchmarks run (`gh` downloads the artifacts; the
+workflow's summary shows the same block); rows the run lacks are left
+out. `bench/first_frame.py` prints where the time to the first frame
+goes, stage by stage.
+
 ## GitHub Actions, 2026-10-17
 
 [Run 39011278624](https://github.com/Aniketsy/napari-lite/actions/runs/39011278624):
@@ -118,6 +149,13 @@ window 5.0 s and 248 MB.
 | first image: `ViewerModel` + `add_image` | 1.13 s | 3.29 s | 2.9x faster |
 | `Viewer(show=False)`, closed | 2.83 s | 4.61 s | 1.6x faster |
 | `Viewer` shown, one image painted, closed | 3.51 s | 5.98 s | 1.7x faster |
+| first frame: a window with one image, to its first paint | 3.69 s | 6.19 s | 1.7x faster |
+| first Image layer in a shown empty viewer, drawn | 0.16 s | 0.47 s | 2.9x faster |
+| first Labels layer on top of an image, drawn | 0.28 s | 1.00 s | 3.6x faster |
+| first Points layer (1,000 points) on top of an image, drawn | 0.10 s | 1.06 s | 10x faster |
+| first Shapes layer (50 rectangles) on top of an image, drawn | 0.63 s | 1.13 s | 1.8x faster |
+| slice step through a 32 x 512 x 512 image, CPU per step | 11.5 ms | 13.0 ms | 1.1x faster |
+| Labels brush stroke, CPU per point | 7.3 ms | 5.2 ms | same (noise, see below) |
 | memory after importing the package | 14 MB | 26 MB | 1.8x less |
 | memory after the first image | 61 MB | 112 MB | 46% less |
 | memory with a viewer window shown | 217 MB | 276 MB | 21% less |
@@ -129,6 +167,17 @@ window 5.0 s and 248 MB.
 | Python modules in the package | 451 | 524 | 73 fewer |
 | lines of Python in the package | 94,267 | 111,648 | 17,400 fewer |
 
+The first-frame, first-layer and per-step rows were added on 2026-10-18
+in the same two environments (napari-lite reinstalled from the working
+tree), best of 3. Their first runs are worth a look: the first frame took
+26 s in napari-lite and 84 s in napari right after the installs, the
+byte-compilation of a fresh package on a cold disk, and the first Labels
+layer 1.3 s against 0.28 s once warm. The brush stroke row is noise:
+the batch gave 7.3 against 5.2 ms, six alternating reruns gave 7.8 to
+10.4 ms for napari-lite against 8.9 to 13.0 ms for napari, and under
+cProfile 9.4 against 12.5; the painting code is the same in both and
+most of a point is the window's repaint. The per-step rows need a
+quieter machine than this one to separate the two packages.
 The times were measured again on 2026-10-18, after pint left the first
 image (below); the removals of toolz, pydantic-extra-types and pandas in
 between changed module counts and sizes only, and a rerun of the window
@@ -174,7 +223,9 @@ Where the difference comes from:
 - **Startup.** Opening a window is faster by the menus, console, welcome
   screen, notification widgets and plugin discovery that napari builds;
   the layer list and layer controls are the same widgets in both (adding
-  them to napari-lite's window cost 0.9 s and 12 MB), and what remains
+  them to napari-lite's window cost 0.9 s and 12 MB by the window
+  benchmark of that day; the stage breakdown of 2026-10-18 below puts the
+  panel at 0.2 s), and what remains
   (Qt, vispy, the first OpenGL context) is the same too, which is why the
   gap narrows from 17x at import to 1.2x with a window shown.
 
@@ -246,3 +297,56 @@ on `scipy.spatial`, and the first Labels layer no longer imports
 `skimage.color`. One known trade: the Tracks layer finds the vertices
 nearest to the cursor by distance over all vertices instead of a KD-tree,
 a few milliseconds per status update for a million vertices.
+
+## Where the first frame goes
+
+An issue proposed building the layer panel after the first paint ("the
+window before its panels"), on the strength of a cProfile run that
+charged the two docks 1.2 s of a 3.5 s window. Wall-clock marks
+(`bench/first_frame.py`, 2026-10-18, the local check environment on the
+same slow Windows machine, Python 3.13.7) tell a different story. A
+script that imports napari-lite, makes a viewer, adds a 512 x 512 image
+and shows the window reaches its first paint event after 3.07 s:
+
+| stage | seconds |
+|---|---|
+| import numpy | 0.22 |
+| import the components (viewer model, layers) | 0.95 |
+| import qtpy (Qt) | 0.16 |
+| import the window and canvas modules (vispy, PyOpenGL, superqt) | 0.79 |
+| `QApplication()` | 0.02 |
+| `Viewer(show=False)`: vispy canvas 0.19, layer controls 0.17, layer list 0.04, theme stylesheet 0.06 | 0.48 |
+| `add_image` | 0.10 |
+| `show()` to the first paint: Qt window 0.20, first GL draw with shader compilation 0.13 | 0.34 |
+
+Import self time by package on that path (`python -X importtime`, 1,093
+modules, 2.15 s with the profiler's own overhead): napari_lite 0.62
+(utils 0.21, layers 0.17, _vispy 0.09, components 0.08), PyOpenGL 0.31,
+vispy 0.28, qtpy 0.16, numpy 0.14, superqt 0.11, pydantic 0.10.
+
+What it means:
+
+- The layer panel (controls, list, button rows, docks) is 0.21 s, 7% of
+  the first frame, and 0.17 s of that is importing the controls modules,
+  which the first layer needs anyway. Building it after the first paint
+  would move 0.2 s, and would need the panel's width and height before
+  its widgets exist: they depend on the layer types present (the dock
+  column is 272 px wide with no layers, 310 with an image, 304 with
+  labels, and on a small screen the window grows to fit the controls), so
+  a placeholder of the wrong size shifts the canvas when the panel fills.
+  Not done.
+- Two thirds of the time are imports, and most of those are not
+  napari-lite's: PyOpenGL, vispy, qtpy and superqt together are 0.86 s of
+  profiler time. The asks are in [upstream.md](upstream.md). napari-lite's
+  own 0.6 s is spread over 400 modules, none larger than 0.04 s (the
+  colormap table).
+- `show()` is native work: Qt creates and polishes the window (0.20 s)
+  and vispy draws the first frame, compiling the shaders (0.13 s).
+- The order does not matter: `Viewer()` shown first and then `add_image`
+  (what `imshow` does) reaches the first paint in the same 3.0 to 3.4 s.
+- cProfile inflates Python-heavy widget construction several times over;
+  stage marks with `time.perf_counter` decide what is worth doing.
+- Not on the list: the theme's SVG icons. `register_theme_icons` writes
+  them once under the temp directory behind a stamp file
+  (`_qt/qt_event_loop.py`), so after the first run they cost nothing;
+  nobody needs to profile them again.

@@ -1,8 +1,10 @@
 name: Benchmarks
 
-# Import time and time to first image, napari-lite against napari, on the
-# three OSes.  Each package is installed in its own fresh environment; the
-# results are uploaded as JSON and summarized as a table in the job summary.
+# Import time, time to first image and first frame, first layers, slice
+# stepping and painting, napari-lite against napari, on the three OSes.
+# Each package is installed in its own fresh environment; the results are
+# uploaded as JSON and summarized as a table in the job summary, with the
+# README's block from the Linux numbers (tools/readme_bench.py).
 # Run by hand or weekly; nothing is committed automatically.
 
 on:
@@ -68,4 +70,9 @@ jobs:
       - name: Table
         shell: bash
         run: |
-          python bench/make_table.py results/*.json | tee -a "$GITHUB_STEP_SUMMARY"
+          python bench/make_table.py --median results/*.json | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: README block (Linux numbers; tools/readme_bench.py writes it into README.md)
+        shell: bash
+        run: |
+          echo "### README block" >> "$GITHUB_STEP_SUMMARY"
+          python tools/readme_bench.py --results results --print | tee -a "$GITHUB_STEP_SUMMARY"
