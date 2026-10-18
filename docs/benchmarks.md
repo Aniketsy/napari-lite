@@ -114,25 +114,25 @@ window 5.0 s and 248 MB.
 | | napari-lite | napari | napari-lite |
 |---|---|---|---|
 | import the package | 0.01 s | 0.22 s | 16x faster |
-| import the components (viewer model) | 1.29 s | 2.64 s | 2.0x faster |
-| first image: `ViewerModel` + `add_image` | 1.49 s | 3.29 s | 2.2x faster |
-| `Viewer(show=False)`, closed | 2.71 s | 4.61 s | 1.7x faster |
-| `Viewer` shown, one image painted, closed | 3.72 s | 5.98 s | 1.6x faster |
+| import the components (viewer model) | 1.08 s | 2.64 s | 2.4x faster |
+| first image: `ViewerModel` + `add_image` | 1.13 s | 3.29 s | 2.9x faster |
+| `Viewer(show=False)`, closed | 2.83 s | 4.61 s | 1.6x faster |
+| `Viewer` shown, one image painted, closed | 3.51 s | 5.98 s | 1.7x faster |
 | memory after importing the package | 14 MB | 26 MB | 1.8x less |
-| memory after the first image | 70 MB | 112 MB | 38% less |
-| memory with a viewer window shown | 222 MB | 276 MB | 20% less |
+| memory after the first image | 61 MB | 112 MB | 46% less |
+| memory with a viewer window shown | 217 MB | 276 MB | 21% less |
 | modules loaded by importing the package | 77 | 207 | 2.7x fewer |
-| modules loaded at the first image | 702 | 1,357 | 1.9x fewer |
+| modules loaded at the first image | 631 | 1,357 | 2.2x fewer |
 | installed size (all packages) | 370 MB | 761 MB | 391 MB less |
 | packages installed | 31 | 106 | 75 fewer |
 | direct dependencies | 14 | 37 | 23 fewer |
 | Python modules in the package | 451 | 524 | 73 fewer |
 | lines of Python in the package | 94,267 | 111,648 | 17,400 fewer |
 
-The times are those of the run after scipy left; the later removals of
-toolz, pydantic-extra-types and pandas changed module counts and sizes
-only, and a rerun of the window on this machine moves by half a second
-either way. The README repeats the first rows of this table;
+The times were measured again on 2026-10-18, after pint left the first
+image (below); the removals of toolz, pydantic-extra-types and pandas in
+between changed module counts and sizes only, and a rerun of the window
+on this machine moves by half a second either way. The README repeats the first rows of this table;
 `tools/readme_images.py` takes the README's screenshot.
 
 Where the difference comes from:
@@ -199,6 +199,7 @@ resync) with an own module where one was needed, and
 | `_check_xarray`, run by every new layer, imported xarray (and pandas with it) whenever xarray is installed | 454 modules, about 1 s on this machine | runs only when xarray is already in `sys.modules`, where any xarray object must come from |
 | the thumbnail used `scipy.ndimage.zoom(order=0)` | 195 modules on the first image, and a zoom per slice | `utils/_zoom.py`: the same nearest-neighbour lookup in numpy (`tests/test_thumbnail_zoom.py` compares it with scipy) |
 | `canvas_to_world`, run on every draw, imported scipy.spatial first thing, in 2D too | about 100 modules and 0.75 s on the first 2D paint | the import sits in the 3D branch |
+| every layer's default units were pint's `pixel` unit, so the first layer imported pint and built its registry (2026-10-18) | 0.6 s and 340 modules for the import, 0.2 s for the registry, in a fresh environment; half of the first image | `utils/_pixel.py`: a pixel stand-in equal to pint's unit, pint with the first real unit; the registry then from pint's definition cache (0.02 s against 0.2 s). First image 1.51 s to 1.13 s, window 3.85 s to 3.51 s, 71 modules fewer |
 | one helper imported from `vispy.visuals.tube` loaded every vispy visual and `vispy.gloo` with the layers | about 100 modules before any canvas | `utils/_tube.py`, a copy of that function (BSD) |
 | `progress` imported tqdm with the viewer model and the thread workers | about 50 modules (tqdm reads its own metadata at import) | imported where a progress bar is made; the own `utils/__init__.py` binds the names on first access |
 | wrapt, a dependency for one base class, imported asyncio | 46 modules in a window | `utils/_object_proxy.py`, the part of `wrapt.ObjectProxy` that napari uses; wrapt is no longer a dependency |

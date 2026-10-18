@@ -65,9 +65,9 @@ Windows machine, so read the ratios rather than the seconds.
 | | napari-lite | napari | |
 |---|---|---|---|
 | `import` the package | 0.01 s | 0.22 s | 22x faster |
-| first image (`ViewerModel` + `add_image`) | 1.5 s | 3.3 s | 2.2x faster |
-| viewer window shown with an image | 3.7 s | 6.0 s | 1.6x faster |
-| memory with a window shown | 222 MB | 276 MB | 20% less |
+| first image (`ViewerModel` + `add_image`) | 1.1 s | 3.3 s | 2.9x faster |
+| viewer window shown with an image | 3.5 s | 6.0 s | 1.7x faster |
+| memory with a window shown | 217 MB | 276 MB | 21% less |
 | installed size | 370 MB | 761 MB | 51% less |
 | packages installed | 31 | 106 | 71% fewer |
 | direct dependencies | 14 | 37 | 62% fewer |
@@ -76,9 +76,11 @@ napari-lite is lighter because it imports only what it uses (no xarray
 probe on every new layer, no scipy for a thumbnail or a 2D draw, no plugin
 discovery, no app-model, no console) and because the heavy packages are
 gone or optional: the few functions napari used from scikit-image, scipy,
-toolz and wrapt are numpy code, tested against the originals, and pandas
-is an extra. What remains, Qt, vispy and the first OpenGL context, is the
-same in both, which is why the gap narrows from 22x at import to 1.6x
+toolz and wrapt are numpy code, tested against the originals, pandas is an extra, and pint with its
+unit registry loads only when a layer gets a real unit (until then a
+layer carries a pixel stand-in equal to pint's pixel unit, the one
+visible difference: it is not a `pint.Unit` instance). What remains, Qt, vispy and the first OpenGL context, is the
+same in both, which is why the gap narrows from 22x at import to 1.7x
 with a window on screen. How it was measured, and the CI numbers on three
 operating systems: [docs/benchmarks.md](docs/benchmarks.md).
 

@@ -5,8 +5,8 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Generic, TypeVar
 
 import numpy as np
-import pint
 
+from napari_lite.utils._units import get_unit_registry
 from napari_lite.utils.misc import reorder_after_dim_reduction
 from napari_lite.utils.transforms import Affine
 
@@ -259,7 +259,15 @@ def apply_units_to_transform(
     if len(world_units) < len(layer_units):
         return data_to_world
 
-    reg = pint.get_application_registry()
+    # napari-lite: equal units (the pixel default) scale by one: no registry
+    if all(
+        x == y
+        for x, y in zip(
+            world_units[-len(layer_units) :], layer_units, strict=True
+        )
+    ):
+        return data_to_world
+    reg = get_unit_registry()
     scale = tuple(
         reg.get_base_units(x)[0] / reg.get_base_units(y)[0]
         for x, y in zip(

@@ -5,9 +5,9 @@ import logging
 from typing import TYPE_CHECKING
 
 import numpy as np
-import pint
 
 from napari_lite.layers import Image
+from napari_lite.utils._pixel import PIXEL
 from napari_lite.layers.image._image_utils import guess_multiscale
 from napari_lite.utils.colormaps import CMYBGR, MAGENTA_GREEN, Colormap
 from napari_lite.utils.misc import ensure_iterable, ensure_sequence_of_iterables
@@ -370,7 +370,7 @@ def images_to_stack(images: list[Image], axis: int = 0, **kwargs) -> Image:
     # RGB images do not need extra dimensions inserted into metadata
     # They can use the meta dict from one of the source image layers
     if not meta['rgb']:
-        meta['units'] = (pint.get_application_registry().pixel,) + meta[
+        meta['units'] = (PIXEL,) + meta[
             'units'
         ]
         meta['axis_labels'] = (f'-{data.ndim + 1}',) + meta['axis_labels']

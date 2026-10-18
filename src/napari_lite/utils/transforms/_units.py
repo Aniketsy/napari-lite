@@ -3,14 +3,24 @@ from __future__ import annotations
 from collections.abc import Sequence
 from contextlib import suppress
 from typing import (
+    TYPE_CHECKING,
+    Any,
     Union,
     overload,
 )
 
-import pint
+# napari-lite: PIXEL stands in for pint's pixel unit (utils/_pixel.py), so
+# a layer without units never imports pint
+from napari_lite.utils._pixel import PIXEL, PixelUnit, is_pint_unit
 
-UnitsLike = Union[None, str, pint.Unit, Sequence[str | pint.Unit]]
-UnitsInfo = Union[None, pint.Unit, tuple[pint.Unit, ...]]
+if TYPE_CHECKING:
+    import pint
+
+    UnitsLike = Union[None, str, pint.Unit, Sequence[str | pint.Unit]]
+    UnitsInfo = Union[None, pint.Unit, tuple[pint.Unit, ...]]
+else:
+    UnitsLike = Any
+    UnitsInfo = Any
 
 
 __all__ = (
@@ -21,13 +31,17 @@ __all__ = (
 
 
 def get_unit_from_name(unit: str | pint.Unit | None) -> pint.Unit:
-    if isinstance(unit, pint.Unit):
+    if isinstance(unit, PixelUnit) or is_pint_unit(unit):
         return unit
-    if unit is None:
-        return pint.get_application_registry().pixel
+    if unit is None or unit == 'pixel':
+        return PIXEL
     if isinstance(unit, str):
+        import pint
+
+        from napari_lite.utils._units import get_unit_registry
+
         with suppress(pint.errors.UndefinedUnitError):
-            return pint.get_application_registry().parse_expression(unit).units
+            return get_unit_registry().parse_expression(unit).units
 
     raise ValueError(f'Could not find unit {unit}')
 

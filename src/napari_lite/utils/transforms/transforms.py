@@ -4,7 +4,13 @@ from typing import TYPE_CHECKING, Generic, TypeVar, overload
 
 import numpy as np
 import numpy.typing as npt
-import pint
+
+# napari-lite: PIXEL stands in for pint's pixel unit (utils/_pixel.py); pint
+# is imported with the first real unit
+from napari_lite.utils._pixel import PIXEL, PixelUnit, is_pint_unit
+
+if TYPE_CHECKING:
+    import pint
 # napari-lite: identity and pipe (utils/_toolz.py); toolz is not a dependency
 from napari_lite.utils import _toolz as tz
 from psygnal import Signal
@@ -464,7 +470,7 @@ class Affine(Transform):
         self._linear_matrix = embed_in_identity_matrix(linear_matrix, ndim)
         self._translate = translate_to_vector(translate, ndim=ndim)
         self._axis_labels = tuple(f'axis {i}' for i in range(-ndim, 0))
-        self._units = (pint.get_application_registry().pixel,) * ndim
+        self._units = (PIXEL,) * ndim
 
         self.axis_labels = axis_labels
         self.units = units
@@ -514,7 +520,7 @@ class Affine(Transform):
     @units.setter
     def units(self, units: Sequence[pint.Unit] | None) -> None:
         units = get_units_from_name(units)
-        if isinstance(units, pint.Unit):
+        if isinstance(units, PixelUnit) or is_pint_unit(units):
             units = (units,) * self.ndim
         if len(units) != self.ndim:
             raise ValueError(f'{units=} must have length ndim={self.ndim}.')
@@ -544,7 +550,11 @@ class Affine(Transform):
     @property
     def physical_scale(self) -> tuple[pint.Quantity, ...]:
         """Return the scale of the transform, with units."""
-        return tuple(np.multiply(self.scale, self.units))
+        # napari-lite: float times unit, so the PIXEL stand-in asks pint for
+        # a quantity (numpy would read it as a string)
+        return tuple(
+            float(s) * u for s, u in zip(self.scale, self.units, strict=True)
+        )
 
     @property
     def translate(self) -> npt.NDArray:

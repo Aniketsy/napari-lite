@@ -156,6 +156,7 @@ def test_first_image_imports_no_xarray_pandas_or_ndimage() -> None:
     uninvited = {
         'xarray',
         'pandas',
+        'pint',  # the pixel default is a stand-in; pint comes with real units
         'scipy.ndimage',
         'scipy.special',
         # vispy's scene graph belongs to the canvas, not to the layers
@@ -184,7 +185,14 @@ def test_labels_and_shapes_import_no_ndimage_or_scikit_image() -> None:
 def test_first_paint_in_2d_imports_no_scipy_spatial() -> None:
     loaded = loaded_modules(FIRST_PAINT)
     assert 'napari_lite._vispy' in loaded
-    uninvited = {'scipy.spatial', 'xarray', 'tqdm', 'wrapt', 'pandas'} & loaded
+    uninvited = {
+        'scipy.spatial',
+        'xarray',
+        'tqdm',
+        'wrapt',
+        'pandas',
+        'pint',
+    } & loaded
     assert not uninvited, f'the first 2D paint imported {sorted(uninvited)}'
 
 
@@ -193,5 +201,35 @@ def test_3d_view_rotated_layer_and_tracks_import_no_scipy() -> None:
     # submodules are what napari-lite used, and must not be needed
     loaded = loaded_modules(THREE_D)
     assert 'napari_lite._vispy' in loaded
-    uninvited = SCIPY_MODULES & loaded
+    uninvited = (SCIPY_MODULES | {'pint'}) & loaded
     assert not uninvited, f'the 3D view imported {sorted(uninvited)}'
+
+
+UNITS = textwrap.dedent(
+    """
+    import sys
+    import numpy as np
+    from napari_lite.components import ViewerModel
+
+    viewer = ViewerModel()
+    layer = viewer.add_image(np.zeros((4, 8, 8)))
+    print('pint' in sys.modules)
+    layer.units = ('um', 'um', 'um')
+    print('pint' in sys.modules)
+    import pint
+
+    print(all(isinstance(u, pint.Unit) for u in layer.units))
+    """
+)
+
+
+def test_pint_arrives_with_the_first_real_unit() -> None:
+    out = subprocess.run(
+        [sys.executable, '-c', UNITS],
+        capture_output=True,
+        text=True,
+        timeout=300,
+        check=False,
+    )
+    assert out.returncode == 0, out.stderr
+    assert out.stdout.split() == ['False', 'True', 'True']

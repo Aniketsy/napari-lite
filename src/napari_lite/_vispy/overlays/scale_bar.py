@@ -6,11 +6,14 @@ from math import floor, log
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
-import pint
 
 from napari_lite._vispy.overlays.base import ViewerOverlayMixin, VispyCanvasOverlay
 from napari_lite._vispy.visuals.scale_bar import ScaleBar
-from napari_lite.utils._units import PREFERRED_VALUES
+from napari_lite.utils._pixel import PIXEL
+from napari_lite.utils._units import PREFERRED_VALUES, get_unit_registry
+
+if TYPE_CHECKING:
+    import pint
 from napari_lite.utils.notifications import show_warning
 
 if TYPE_CHECKING:
@@ -30,7 +33,9 @@ class VispyScaleBarOverlay(ViewerOverlayMixin, VispyCanvasOverlay):
         self._canvas_tick_length = 11.0
         self._canvas_thickness = 3
         self._scale = 1.0
-        self._unit = pint.Quantity('1 pixel')
+        # napari-lite: the unit itself; the _unit property makes napari's
+        # quantity when it is read, so a hidden bar never imports pint
+        self._unit_raw = PIXEL
 
         # minimum dimensions, to avoid degenerate cases
         self._min_canvas_length = 75
@@ -70,10 +75,12 @@ class VispyScaleBarOverlay(ViewerOverlayMixin, VispyCanvasOverlay):
         # NOTE: this is also called by VispyCanvas when layer units are updated
         #       so it doesn't need to be connected to events for that
         if self.viewer.layers.units is not None:
-            units = np.array(self.viewer.layers.units)[
-                list(self.viewer.dims.displayed)
-            ]
-            if any(
+            all_units = self.viewer.layers.units
+            units = [all_units[i] for i in self.viewer.dims.displayed]
+            # napari-lite: no numpy array of units (it would turn the PIXEL
+            # stand-in into a plain string), and no dimensionality check for
+            # equal units, which would ask pint
+            if any(u != units[0] for u in units[1:]) and any(
                 u.dimensionality != units[0].dimensionality for u in units[1:]
             ):
                 dim_repr = tuple(str(d.dimensionality) for d in units)
@@ -83,9 +90,18 @@ class VispyScaleBarOverlay(ViewerOverlayMixin, VispyCanvasOverlay):
                 )
             unit = units[-1]
         else:
-            unit = pint.get_application_registry()('dimensionless')
-        self._unit = unit * 1  # convert unit to quantity
+            unit = None  # dimensionless, made by _unit when it is read
+        self._unit_raw = unit
         self._on_size_or_zoom_change()
+
+    @property
+    def _unit(self):
+        """The unit as a quantity of one, as napari keeps it; pint is
+        imported on the first read, when the bar is shown."""
+        unit = self._unit_raw
+        if unit is None:
+            unit = get_unit_registry()('dimensionless')
+        return 1 * unit
 
     def _on_font_size_change(self) -> None:
         self._on_rendering_change()
@@ -145,6 +161,10 @@ class VispyScaleBarOverlay(ViewerOverlayMixin, VispyCanvasOverlay):
 
     def _on_size_or_zoom_change(self) -> None:
         """Update length based on scale bar size and zoom."""
+        # napari-lite: nothing to compute while hidden, and no pint for it;
+        # _on_visible_change comes here when the bar is shown
+        if not self.overlay.visible:
+            return
 
         scale = 1 / self.viewer.scene.camera.zoom
 

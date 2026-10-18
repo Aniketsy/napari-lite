@@ -9,9 +9,12 @@ from functools import cached_property
 from typing import TYPE_CHECKING, Literal
 
 import numpy as np
-import pint
 
 from napari_lite.components.dims import RangeTuple
+from napari_lite.utils._units import get_unit_registry
+
+if TYPE_CHECKING:
+    import pint
 from napari_lite.layers import Layer
 from napari_lite.layers.utils.layer_utils import Extent, LayerListExtent
 from napari_lite.utils.events import Event
@@ -554,7 +557,18 @@ class LayerList(SelectableEventedList[Layer]):
         if not layers_extent:
             return None
 
-        reg = pint.get_application_registry()
+        # napari-lite: identical units, the pixel default of every layer in
+        # most sessions, need no registry and no pint
+        longest = max((extent.units for extent in layers_extent), key=len)
+        if not longest:
+            return None  # pragma: no cover
+        if all(
+            u == v
+            for extent in layers_extent
+            for u, v in zip(extent.units[::-1], longest[::-1], strict=False)
+        ):
+            return tuple(longest)
+        reg = get_unit_registry()
         units = ()
         dimensionality_to_unit: dict[pint.util.UnitsContainer, pint.Unit] = {}
         # for each dimensionality of units (time, length, mass, etc.)

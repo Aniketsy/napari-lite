@@ -5,7 +5,6 @@ import inspect
 import itertools
 import logging
 import os.path
-import sys
 import uuid
 from abc import ABC, ABCMeta, abstractmethod
 from collections import defaultdict
@@ -14,8 +13,16 @@ from contextlib import contextmanager
 from functools import cached_property
 from typing import TYPE_CHECKING, Any, ClassVar, Self, TypeVar
 
+import sys
+
 import numpy as np
-import pint
+
+# napari-lite: PIXEL stands in for pint's pixel unit (utils/_pixel.py); no
+# magicgui here (optional, registered at the end if it is loaded), no npe2
+from napari_lite.utils._pixel import PIXEL
+
+if TYPE_CHECKING:
+    import pint
 
 from napari_lite.layers.base._base_constants import (
     BaseProjectionMode,
@@ -2247,7 +2254,7 @@ class Layer(KeymapProvider, MousemapProvider, ABC, metaclass=PostInit):
             np.all(np.asarray(self.scale) == 1)
             and np.all(np.asarray(self.translate) == 0)
             and all(
-                unit == pint.get_application_registry().pixel
+                unit == PIXEL
                 for unit in self.units
             )
         )

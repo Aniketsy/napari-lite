@@ -40,6 +40,7 @@ and where the two meet.
  |   context menu    |  |          types              |  |  utils/           |
  |   rebuilt         |  |  _lite_features      pandas |  |   action_manager, |
  |  qt/threading     |  |          (only if installed)|  |   _keys           |
+ |                   |  |  _pixel   pint's pixel unit |  |                   |
  +-------------------+  +-----------------------------+  +-------------------+
                                      |
  +-----------------------------------v-------------------------------------+
@@ -68,7 +69,8 @@ and where the two meet.
   the layer context menu is rebuilt without app-model.
 - **Stand-ins** (own). numpy versions of the few functions napari used
   from scikit-image, scipy, toolz, wrapt and pydantic-extra-types, each
-  tested against the original. pandas is used only when it is installed.
+  tested against the original; a pixel stand-in for the default unit, so
+  pint loads only with the first real unit; pandas only when installed.
 - **Settings and themes** (own). napari's settings model with napari's
   defaults, kept in memory; the dark and light themes; the action manager
   and key types the key bindings need.

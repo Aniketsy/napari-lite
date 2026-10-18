@@ -61,8 +61,13 @@ importable as `napari_lite` without napari installed.
   when Windows pipes the output): the characters it lacks become `?`,
   where napari's `print` raised and a misleading error was logged in place
   of the message (`docs/upstream.md`, patch 4).
-- dask is imported on first use; pandas stays a dependency (the layer
-  features tables), pint is imported with the layers.
+- dask is imported on first use; pint, and its unit registry, only when a
+  layer gets a real unit. Until then `layer.units` and `dims.units` hold a
+  pixel stand-in (`utils/_pixel.py`): equal to pint's `pixel` unit in both
+  directions, printed the same, converting on demand, but not a
+  `pint.Unit` instance. That keeps pint's import (0.6 s, 340 modules) and
+  its registry (0.2 s) off the first image, which they made up half of.
+  When pint does load, its registry comes from pint's definition cache.
 - scikit-image is not a dependency: `utils/_draw.py` (a line, a polygon,
   points in a polygon, a flood fill) and `utils/_colorconv.py` (Luv and
   Lab to RGB) stand in for the six functions napari used, pixel for pixel

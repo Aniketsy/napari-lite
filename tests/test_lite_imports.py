@@ -144,7 +144,7 @@ FIRST_IMAGE = textwrap.dedent(
 # may import them for their own reasons (pint imports dask when it is
 # installed); napari-lite's own modules must not, before a dask array
 # shows up.
-ON_FIRST_USE = {'dask', 'cachey', 'psutil'}
+ON_FIRST_USE = {'dask', 'cachey', 'psutil', 'pint'}
 
 
 def test_heavy_dependencies_wait_for_first_use() -> None:
