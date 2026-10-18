@@ -37,6 +37,7 @@ from napari_lite._qt.utils import QImg2array
 from napari_lite._qt.widgets.qt_viewer_dock_widget import (
     QtViewerDockWidget,
 )
+from napari_lite.qt._hint import HintRow
 from napari_lite.qt.canvas import QtCanvas, QtStatusLine
 from napari_lite.settings import get_settings
 from napari_lite.utils.interactions import Shortcut
@@ -56,13 +57,15 @@ if TYPE_CHECKING:
 __all__ = ['Window']
 
 
-def _empty_canvas_hint() -> str:
+def _empty_canvas_hint() -> tuple[str, str, list[HintRow]]:
     """What the canvas says while there are no layers: how to get data in.
 
     napari shows a welcome screen here; napari-lite has no menus and no
     plugins, so the hint offers what it has: files dropped or opened with
-    the built-in reader, a few samples, the command line and Python.  The
-    links are followed by ``QtCanvas._hint_link``.
+    the built-in reader, a few samples, the command line and Python, in
+    the rows of ``QtCanvas.set_hint``.  The links are followed by
+    ``QtCanvas._hint_link``.  Returns the headline, the line under it and
+    the rows.
     """
     from html import escape
 
@@ -70,12 +73,12 @@ def _empty_canvas_hint() -> str:
 
     def key(action: str) -> str:
         keys = shortcuts.get(action)
-        return escape(str(Shortcut(keys[0]))) if keys else ''
+        return str(Shortcut(keys[0])) if keys else ''
 
     def link(href: str, text: str) -> str:
-        return f'<a href="{href}" style="color: #6ea8fe">{escape(text)}</a>'
+        return f'<a href="{href}">{escape(text)}</a>'
 
-    samples = ' &middot; '.join(
+    samples = ' &nbsp;&middot;&nbsp; '.join(
         link(f'sample:{name}', text)
         for name, text in (
             ('astronaut', 'astronaut'),
@@ -85,22 +88,37 @@ def _empty_canvas_hint() -> str:
             ('blobs', 'blobs (3D, no download)'),
         )
     )
-    open_key = key('napari-lite:open_files')
-    press = f'press {open_key} to ' if open_key else ''
-    lines = [
-        'No layers',
-        '',
-        f'Drop files here (png, jpg, tif, npy, npz), or {press}'
-        f'{link("open-files", "open files")}',
-        f'Try a sample: {samples}',
-        'From the command line: <code>napari-lite image.png stack.npy</code>'
-        ' or <code>napari-lite --sample astronaut</code>',
-        'From Python: <code>viewer.add_image(array)</code> or '
-        "<code>viewer.open_sample('napari-lite', 'astronaut')</code>",
-    ]
+    rows = []
+    if open_key := key('napari-lite:open_files'):
+        rows.append(
+            HintRow(open_key, (link('open-files', 'open files'),), rich=True)
+        )
     if show := key('napari:show_shortcuts'):
-        lines.append(f'List the key bindings: {show}')
-    return '<br>'.join(lines)
+        rows.append(HintRow(show, ('show all key bindings',)))
+    rows += [
+        HintRow('Sample', (samples,), rich=True),
+        HintRow(
+            'Command line',
+            (
+                'napari-lite image.png stack.npy',
+                'napari-lite --sample stent --ndisplay 3',
+            ),
+            mono=True,
+        ),
+        HintRow(
+            'Python',
+            (
+                'viewer.add_image(array)',
+                "viewer.open_sample('napari-lite', 'astronaut')",
+            ),
+            mono=True,
+        ),
+    ]
+    return (
+        'Drop files here to open',
+        'png, jpg, bmp, gif, webp, tif, npy or npz, one layer per file',
+        rows,
+    )
 
 
 class _NoThread:
@@ -171,9 +189,9 @@ class _QtMainWindow(QMainWindow):
         self._ev: QEventLoop | None = None
         self._window = window
         # the status line is the window's status bar, not part of the canvas
-        self._qt_viewer = QtCanvas(
-            viewer, show_status=False, hint=_empty_canvas_hint()
-        )
+        self._qt_viewer = QtCanvas(viewer, show_status=False)
+        title, lead, rows = _empty_canvas_hint()
+        self._qt_viewer.set_hint(title, rows, lead=lead)
         self.status_thread = _NoThread()
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         self.setCentralWidget(self._qt_viewer)

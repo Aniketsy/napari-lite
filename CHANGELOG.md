@@ -24,8 +24,11 @@ importable as `napari_lite` without napari installed.
   and a computed `blobs` volume, and the empty canvas links to both.
   napari's names (`plugin='napari'`, `open_sample('napari', 'astronaut')`)
   are accepted for the one-line swap.
-- A hint in the empty canvas with the ways to load data (the command
-  line, `add_image`) and the key-bindings shortcut; `QtCanvas(hint=...)`.
+- The empty canvas shows what napari's welcome screen shows, in
+  napari-lite's terms: drop files or Ctrl+O, the key-bindings
+  shortcut, the samples as links, the command line and Python one-liners,
+  in aligned rows; `QtCanvas(hint=...)` for a plain message,
+  `QtCanvas.set_hint` for rows.
 - napari's layer list, layer controls and the layer and viewer button
   rows in the window, as napari's own widgets: thumbnails, visibility,
   the layer list's context menu (layer operations, copy and paste of

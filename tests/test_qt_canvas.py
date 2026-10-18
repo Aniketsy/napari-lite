@@ -76,13 +76,8 @@ def test_hint_until_a_layer_is_added(qtbot) -> None:
     qtbot.waitExposed(widget)
     assert widget.hint == 'add a layer'
     assert widget._hint.isVisible()
-    # it lies over the canvas; without layers the canvas has nothing for
-    # the mouse, so the label takes it for its links
+    # it lies over the canvas, which has nothing for the mouse without layers
     assert widget._hint.geometry() == widget.canvas.native.geometry()
-    assert (
-        widget._hint.textInteractionFlags()
-        & Qt.TextInteractionFlag.LinksAccessibleByMouse
-    )
     layer = viewer.add_image(np.zeros((8, 8)))
     assert not widget._hint.isVisible()
     viewer.layers.remove(layer)
@@ -312,3 +307,50 @@ def test_closing_the_canvas_gives_the_status_back_to_the_model(qtbot) -> None:
     viewer.cursor.position = (2.0, 2.0)
     viewer.cursor.position = (4.0, 4.0)
     assert viewer.status['coordinates'] == '[4, 4]: 36'
+
+
+def test_hint_rows(canvas, monkeypatch) -> None:
+    """set_hint: a headline, a lead and rows; links reach _hint_link,
+    commands keep a fixed font, and the plain text has it all."""
+    from qtpy.QtWidgets import QLabel
+
+    from napari_lite.qt._hint import HintRow
+
+    canvas.set_hint(
+        'Drop files here',
+        [
+            HintRow(
+                'Ctrl+O', ('<a href="open-files">open files</a>',), rich=True
+            ),
+            HintRow('Python', ('viewer.add_image(array)',), mono=True),
+        ],
+        lead='png or tif',
+    )
+    text = canvas.hint
+    assert text.splitlines() == [
+        'Drop files here',
+        'png or tif',
+        'Ctrl+O: open files',
+        'Python: viewer.add_image(array)',
+    ]
+    assert not canvas._hint.isHidden()
+    labels = canvas._hint.findChildren(QLabel)
+    (link,) = [lab for lab in labels if 'open-files' in lab.text()]
+    assert (
+        link.textInteractionFlags()
+        & Qt.TextInteractionFlag.LinksAccessibleByMouse
+    )
+    (command,) = [
+        lab for lab in labels if lab.text() == 'viewer.add_image(array)'
+    ]
+    assert command.objectName() == 'hint_mono'
+    import napari_lite.qt._viewer_actions as actions
+
+    opened = []
+    monkeypatch.setattr(actions, 'open_files', opened.append)
+    link.linkActivated.emit('open-files')  # the hint's link reaches the action
+    assert opened == [canvas.viewer]
+    canvas.viewer.theme = 'light'  # the colours follow, the content stays
+    assert canvas.hint == text
+    canvas.hint = 'plain'
+    assert canvas.hint == 'plain'

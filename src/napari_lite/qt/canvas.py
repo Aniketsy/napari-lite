@@ -19,6 +19,7 @@ from __future__ import annotations
 import contextlib
 import logging
 import weakref
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, ClassVar, Literal
 from weakref import WeakSet
 
@@ -34,6 +35,7 @@ from napari_lite._qt.utils import QImg2array, use_tabular_numerals
 from napari_lite._qt.widgets.qt_dims import QtDims
 from napari_lite._vispy import VispyCanvas, create_vispy_layer
 from napari_lite._vispy.utils.qt_font import QtFontManager
+from napari_lite.qt._hint import HintRow, QtCanvasHint
 from napari_lite.settings import get_settings
 from napari_lite.utils.action_manager import bind_shortcuts_from_settings
 from napari_lite.utils.io import imsave
@@ -184,25 +186,13 @@ class QtCanvas(QWidget):
         self.status: QtStatusLine | None = (
             QtStatusLine(viewer) if show_status else None
         )
-        self._hint = QLabel(hint, self)
-        self._hint.setObjectName('canvas hint')
-        self._hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._hint.setWordWrap(True)
-        # the links in the hint (files, samples) are followed by
-        # _hint_link; the label only shows without layers, where the
-        # canvas has nothing for the mouse to do
-        self._hint.setTextInteractionFlags(
-            Qt.TextInteractionFlag.LinksAccessibleByMouse
-        )
-        self._hint.setOpenExternalLinks(False)
-        self._hint.linkActivated.connect(self._hint_link)
-        # a widget's own stylesheet beats the window's, which would paint
-        # the label's background over the canvas
-        self._hint.setStyleSheet(
-            'background: transparent; color: #808080; font-size: 11pt;'
-        )
+        self._hint = QtCanvasHint(self)
+        self._hint.set_content(hint)
+        self._hint.link_activated.connect(self._hint_link)
+        self._hint.apply_theme(viewer.theme)
+        viewer.events.theme.connect(self._on_theme_change)
         # the hint lies over the canvas widget, outside the layout (a
-        # wrapped label in the layout would size the canvas by its text):
+        # label in the layout would size the canvas by its text):
         # eventFilter keeps it at the canvas widget's geometry
         self.canvas.native.installEventFilter(self)
         self._hint.raise_()
@@ -420,19 +410,36 @@ class QtCanvas(QWidget):
 
     @property
     def hint(self) -> str:
-        """Text shown in the middle of the canvas while there are no
-        layers; '' shows nothing."""
+        """What the canvas shows while there are no layers, as plain text
+        (the headline, the line under it and the rows of ``set_hint``);
+        '' shows nothing."""
         return self._hint.text()
 
     @hint.setter
     def hint(self, text: str) -> None:
-        self._hint.setText(text)
+        self._hint.set_content(text)
+        self._update_hint()
+
+    def set_hint(
+        self,
+        title: str,
+        rows: Sequence[HintRow] = (),
+        *,
+        lead: str = '',
+    ) -> None:
+        """The empty canvas as the viewer window shows it: a headline, a
+        line under it, rows of label and content (commands, links); see
+        ``HintRow``."""
+        self._hint.set_content(title, tuple(rows), lead=lead)
         self._update_hint()
 
     def _update_hint(self) -> None:
         self._hint.setVisible(
             bool(self._hint.text()) and len(self.viewer.layers) == 0
         )
+
+    def _on_theme_change(self) -> None:
+        self._hint.apply_theme(self.viewer.theme)
 
     def eventFilter(self, obj: QObject | None, event: QEvent | None) -> bool:
         """Move the hint with the canvas widget."""
