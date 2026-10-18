@@ -3,6 +3,7 @@
 **Experimental.** The viewer core of [napari](https://napari.org) without
 the application around it: layers, canvas and dims sliders, importable as
 `napari_lite` without napari installed. Derived from napari (BSD-3); see
+[docs/architecture.md](docs/architecture.md) for the block diagram and
 [docs/development.md](docs/development.md) for how the copy is made.
 
 napari-lite keeps napari's API and behaviour wherever it has the feature,
