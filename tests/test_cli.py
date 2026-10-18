@@ -28,6 +28,7 @@ def test_help() -> None:
     assert proc.returncode == 0
     assert 'napari-lite' in proc.stdout
     assert '--labels' in proc.stdout
+    assert '--sample' in proc.stdout
 
 
 def test_opens_files(qtbot, tmp_path, viewers) -> None:
@@ -114,3 +115,21 @@ def test_cli_returns_none_so_the_command_exits_with_status_0(
     finally:
         napari_lite.Viewer.close_all()
     assert ran == [True]
+
+
+def test_sample(qtbot, viewers) -> None:
+    from napari_lite.__main__ import main
+
+    viewer = main(['--sample', 'blobs'], run=False)
+    viewers.append(viewer)
+    assert [layer.name for layer in viewer.layers] == ['blobs']
+    assert viewer.layers[0].data.shape == (32, 128, 128)
+
+
+def test_unknown_sample(capsys) -> None:
+    from napari_lite.__main__ import main
+
+    with pytest.raises(SystemExit) as info:
+        main(['--sample', 'nope'], run=False)
+    assert info.value.code == 2
+    assert 'invalid choice' in capsys.readouterr().err

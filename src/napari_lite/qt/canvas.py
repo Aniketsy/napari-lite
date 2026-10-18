@@ -43,7 +43,13 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from qtpy.QtCore import QObject
-    from qtpy.QtGui import QCloseEvent, QImage, QKeyEvent
+    from qtpy.QtGui import (
+        QCloseEvent,
+        QDragEnterEvent,
+        QDropEvent,
+        QImage,
+        QKeyEvent,
+    )
 
     from napari_lite._qt.containers import QtLayerList
     from napari_lite._qt.layer_controls import QtLayerControlsContainer
@@ -180,9 +186,14 @@ class QtCanvas(QWidget):
         self._hint.setObjectName('canvas hint')
         self._hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._hint.setWordWrap(True)
-        self._hint.setAttribute(
-            Qt.WidgetAttribute.WA_TransparentForMouseEvents
+        # the links in the hint (files, samples) are followed by
+        # _hint_link; the label only shows without layers, where the
+        # canvas has nothing for the mouse to do
+        self._hint.setTextInteractionFlags(
+            Qt.TextInteractionFlag.LinksAccessibleByMouse
         )
+        self._hint.setOpenExternalLinks(False)
+        self._hint.linkActivated.connect(self._hint_link)
         # a widget's own stylesheet beats the window's, which would paint
         # the label's background over the canvas
         self._hint.setStyleSheet(
@@ -193,6 +204,7 @@ class QtCanvas(QWidget):
         # eventFilter keeps it at the canvas widget's geometry
         self.canvas.native.installEventFilter(self)
         self._hint.raise_()
+        self.setAcceptDrops(True)  # files: dropEvent
 
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 2, 0, 2)
@@ -415,6 +427,51 @@ class QtCanvas(QWidget):
         ):
             self._hint.setGeometry(self.canvas.native.geometry())
         return super().eventFilter(obj, event)
+
+    def _hint_link(self, href: str) -> None:
+        """Links in the empty-canvas hint: ``open-files`` (a file dialog)
+        and ``sample:<name>`` (a built-in sample)."""
+        from napari_lite.qt._viewer_actions import open_files, open_sample
+
+        if href == 'open-files':
+            open_files(self.viewer)
+        elif href.startswith('sample:'):
+            open_sample(self.viewer, href.partition(':')[2])
+
+    # ------------------------------------------------------------------
+    # files dropped on the canvas
+    # ------------------------------------------------------------------
+
+    def dragEnterEvent(self, event: QDragEnterEvent | None) -> None:
+        """Files can be dropped on the canvas."""
+        if event is None:
+            return
+        mime = event.mimeData()
+        if mime is not None and mime.hasUrls():
+            event.acceptProposedAction()
+
+    def dropEvent(self, event: QDropEvent | None) -> None:
+        """Dropped files open with the built-in reader, one layer each, or
+        as one stack with Shift held; a failure goes to the status bar."""
+        if event is None:
+            return
+        mime = event.mimeData()
+        if mime is None:
+            return
+        paths = [url.toLocalFile() for url in mime.urls() if url.isLocalFile()]
+        if not paths:
+            return
+        # QDropEvent.modifiers() is Qt 6; Qt 5 has keyboardModifiers()
+        modifiers = (
+            event.modifiers()
+            if hasattr(event, 'modifiers')
+            else event.keyboardModifiers()
+        )
+        stack = bool(modifiers & Qt.KeyboardModifier.ShiftModifier)
+        from napari_lite.qt._viewer_actions import open_paths
+
+        open_paths(self.viewer, paths, stack=stack)
+        event.acceptProposedAction()
 
     # ------------------------------------------------------------------
     # mouse and keyboard

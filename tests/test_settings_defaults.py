@@ -56,6 +56,8 @@ def test_default_shortcuts_match_napari(settings) -> None:
     """Same action names and the same number of bindings per action; the
     key text itself depends on the platform (Ctrl or Cmd)."""
     ours = settings.shortcuts.model_dump(mode='json')['shortcuts']
+    # napari-lite's own actions, which napari does not have
+    ours = {k: v for k, v in ours.items() if not k.startswith('napari-lite:')}
     theirs = DEFAULTS['shortcuts']['shortcuts']
     assert set(ours) == set(theirs)
     assert {k: len(v) for k, v in ours.items()} == {

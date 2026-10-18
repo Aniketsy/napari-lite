@@ -29,9 +29,11 @@ napari-lite keeps napari's rules unchanged:
   `channel_axis=...`.
 
 What napari-lite does *not* do is the guessing that happens outside the
-layer code: there are no readers, so a path given to `add_image` or
-`viewer.open()` raises `NotImplementedError` instead of being handed to a
-plugin.
+layer code: there are no reader plugins. `viewer.open()` has a built-in
+reader for a few formats (png, jpg, bmp, gif, webp, tif, npy, npz:
+imageio, numpy, tifffile when installed) that hands every file to
+`add_image` as an array, so the rules above apply to opened files too,
+and raises `NotImplementedError` for anything else.
 
 The rules are pinned by `tests/test_data_interpretation.py`, which also
 compares them with napari where napari is installed.

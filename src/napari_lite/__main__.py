@@ -4,12 +4,14 @@
     napari-lite                       # an empty viewer
     napari-lite image.png stack.tif   # one image layer per file
     napari-lite cells.npy --labels    # a .npy file as a Labels layer
+    napari-lite --sample astronaut    # a built-in sample
     python -m napari_lite ...         # the same
 
-napari-lite has no plugins, so this reads only what its own dependencies
-can: images through imageio, ``.npy``/``.npz`` through numpy and TIFF
-through tifffile when it is installed (the ``tiff`` extra), imageio
-otherwise.  Anything else: load it in Python and call ``add_image``.
+napari-lite has no plugins, so this reads what its built-in reader reads
+(``napari_lite.plugins.io``): images through imageio, ``.npy``/``.npz``
+through numpy and TIFF through tifffile when it is installed (the ``tiff``
+extra), imageio otherwise.  Anything else: load it in Python and call
+``add_image``.
 """
 
 from __future__ import annotations
@@ -18,6 +20,9 @@ import argparse
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from napari_lite.plugins.io import read_array
+from napari_lite.plugins.samples import SAMPLES
+
 if TYPE_CHECKING:
     from napari_lite.viewer import Viewer
 
@@ -25,30 +30,9 @@ __all__ = ['cli', 'load', 'main']
 
 
 def load(path: str | Path) -> Any:
-    """Read ``path`` into an array with numpy, tifffile or imageio."""
-    path = Path(path)
-    suffix = path.suffix.lower()
-    if not path.exists():
-        raise FileNotFoundError(path)
-    if suffix == '.npy':
-        import numpy as np
-
-        return np.load(path)
-    if suffix == '.npz':
-        import numpy as np
-
-        with np.load(path) as archive:
-            return [archive[k] for k in archive.files]
-    if suffix in {'.tif', '.tiff'}:
-        try:
-            import tifffile
-        except ImportError:
-            pass
-        else:
-            return tifffile.imread(path)
-    import imageio.v3 as iio
-
-    return iio.imread(path)
+    """Read ``path`` with the built-in reader: an array, or a list of
+    ``(name, array)`` pairs for an ``.npz``."""
+    return read_array(path)
 
 
 def main(argv: list[str] | None = None, *, run: bool = True) -> Viewer:
@@ -67,6 +51,12 @@ def main(argv: list[str] | None = None, *, run: bool = True) -> Viewer:
     parser.add_argument('paths', nargs='*', help='files to show')
     parser.add_argument(
         '--labels', action='store_true', help='show the files as Labels'
+    )
+    parser.add_argument(
+        '--sample',
+        choices=list(SAMPLES),
+        metavar='NAME',
+        help='open a built-in sample: ' + ', '.join(SAMPLES),
     )
     parser.add_argument(
         '--ndisplay',
@@ -92,14 +82,16 @@ def main(argv: list[str] | None = None, *, run: bool = True) -> Viewer:
 
     viewer = napari_lite.Viewer(title=args.title, ndisplay=args.ndisplay)
     for name, data in loaded:
-        if args.labels:
-            viewer.add_labels(data, name=name)
-        elif isinstance(data, list):
-            for i, item in enumerate(data):
-                viewer.add_image(item, name=f'{name}[{i}]')
-        else:
-            viewer.add_image(data, name=name)
-    if loaded:
+        arrays = data if isinstance(data, list) else [(None, data)]
+        for key, array in arrays:
+            layer_name = name if key is None else f'{name}[{key}]'
+            if args.labels:
+                viewer.add_labels(array, name=layer_name)
+            else:
+                viewer.add_image(array, name=layer_name)
+    if args.sample:
+        viewer.open_sample('napari-lite', args.sample)
+    if loaded or args.sample:
         viewer.reset_view()
     if run:
         napari_lite.run()

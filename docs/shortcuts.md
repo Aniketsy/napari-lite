@@ -31,6 +31,7 @@ active (selected) one.
 
 | Shortcut | Action | Name |
 |---|---|---|
+| `Ctrl+O` | Open files (png, jpg, tif, npy, npz) | `napari-lite:open_files` |
 | `Ctrl+⇧+C` | Show/Hide IPython console (napari-lite has none) | `napari:toggle_console_visibility` |
 | `Ctrl+Y` | Toggle 2D/3D view | `napari:toggle_ndisplay` |
 | `Ctrl+⇧+T` | Toggle current viewer theme | `napari:toggle_theme` |

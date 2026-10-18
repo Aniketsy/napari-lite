@@ -15,6 +15,15 @@ importable as `napari_lite` without napari installed.
   `tiff` extra; `--labels`, `--ndisplay`, `--title`. A file that is missing
   or that no reader can open is reported with exit status 2 before any
   window opens; closing the window ends the command with status 0.
+- A built-in reader and built-in samples where napari has plugins:
+  `viewer.open(path)`, files dropped on the canvas and `Ctrl+O` read png,
+  jpg, bmp, gif, webp, tif, npy and npz (imageio, numpy, tifffile when
+  installed), one image layer per file, `stack=True`, `layer_type`;
+  `viewer.open_sample('napari-lite', name)` and `napari-lite --sample`
+  give imageio's standard images (downloaded once), the `stent` CT volume
+  and a computed `blobs` volume, and the empty canvas links to both.
+  napari's names (`plugin='napari'`, `open_sample('napari', 'astronaut')`)
+  are accepted for the one-line swap.
 - A hint in the empty canvas with the ways to load data (the command
   line, `add_image`) and the key-bindings shortcut; `QtCanvas(hint=...)`.
 - napari's layer list, layer controls and the layer and viewer button
@@ -41,8 +50,10 @@ importable as `napari_lite` without napari installed.
 
 ### Different from napari
 
-- No plugins: `viewer.open()`, `open_sample()`, `layer.save()` raise
-  `NotImplementedError`; load data with your own library.
+- No plugins: `viewer.open()` and `open_sample()` serve only the built-in
+  formats and samples (see Added) and raise `NotImplementedError` for the
+  rest, `layer.save()` always; load or save other data with your own
+  library.
 - No console, menus, command palette, preferences dialog, settings file
   or welcome screen; the layer list's context menu has napari's layer
   entries and no plugin entries.

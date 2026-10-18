@@ -65,12 +65,14 @@ def test_integer_data_stays_an_image() -> None:
     assert isinstance(viewer.add_labels(np.zeros((64, 64), int)), Labels)
 
 
-def test_a_path_is_not_read(tmp_path) -> None:
+def test_a_path_of_an_unknown_format_is_not_read(tmp_path) -> None:
+    """The built-in reader opens a few formats; nothing else is handed
+    to a plugin, there are none."""
     from napari_lite.components import ViewerModel
 
-    path = tmp_path / 'image.tif'
+    path = tmp_path / 'image.nd2'
     path.write_bytes(b'')
-    with pytest.raises(NotImplementedError, match='no file readers'):
+    with pytest.raises(NotImplementedError, match='napari-lite reads png'):
         ViewerModel().open(str(path))
 
 

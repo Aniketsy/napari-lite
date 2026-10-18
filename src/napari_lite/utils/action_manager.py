@@ -290,7 +290,13 @@ def bind_shortcuts_from_settings() -> None:
     from napari_lite.settings import get_settings
 
     for action, shortcuts in get_settings().shortcuts.shortcuts.items():
-        action_manager.unbind_shortcut(action)
+        if action in action_manager._actions:
+            action_manager.unbind_shortcut(action)
+        else:
+            # not registered yet (napari-lite's own Qt actions arrive with
+            # the first canvas): drop the old entry, bind_shortcut keeps
+            # the new one for register_action to pick up
+            action_manager._shortcuts.pop(action, None)
         for shortcut in shortcuts:
             action_manager.bind_shortcut(action, shortcut)
 

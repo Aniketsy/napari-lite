@@ -57,6 +57,7 @@ napari installed.
 | Screenshots | `viewer.screenshot(path, canvas_only=...)`, `viewer.export_figure()`, `viewer.window.clipboard()`. | [screenshot](https://napari.org/stable/api/napari.Viewer.html#napari.Viewer.screenshot), [export_figure](https://napari.org/stable/api/napari.Viewer.html#napari.Viewer.export_figure), [To screenshot](https://napari.org/stable/gallery/to_screenshot.html), [Export figure](https://napari.org/stable/gallery/export_figure.html) |
 | `QtCanvas` | Canvas, dims sliders and status line as one Qt widget for your own window or application (`examples/canvas_only.py`); the layer list, layer controls and button rows come on first access (`canvas.layers`, `canvas.controls`, `canvas.layerButtons`, `canvas.viewerButtons`, or wrapped in dock widgets as `dockLayerList` and `dockLayerControls`). The part of napari's `QtViewer` without the console. | [QtViewer](https://napari.org/stable/api/napari.qt.QtViewer.html), [Multiple viewer widget](https://napari.org/stable/gallery/multiple_viewer_widget.html) |
 | Window and dock widgets | napari's window without the menus: on the left napari's layer controls and layer list with the layer and viewer buttons (thumbnails, visibility, the context menu with the layer operations, copy and paste of scale and transforms), then the canvas, sliders and a status bar with cursor coordinates, layer value and help text (`viewer.window._qt_viewer.dockLayerList.setVisible(False)` hides a panel); `viewer.window.add_dock_widget()` and `remove_dock_widget()` for Qt or magicgui widgets, `resize`, `set_geometry`, `screenshot`. | [Window](https://napari.org/stable/api/napari.window.Window.html), [add_dock_widget](https://napari.org/stable/api/napari.window.Window.html#napari.window.Window.add_dock_widget), [Creating widgets with magicgui](https://napari.org/stable/howtos/extending/magicgui.html), [Status bar](https://napari.org/stable/getting_started/viewer.html#status-bar) |
+| Opening files and samples | `viewer.open(path)`, files dropped on the canvas and `Ctrl+O` read png, jpg, bmp, gif, webp, tif, npy and npz with a built-in reader (imageio, numpy, tifffile when installed): one image layer per file, named after it (`layer_type='labels'` for Labels, `stack=True` for one stack). `viewer.open_sample('napari-lite', name)` and `napari-lite --sample name` give imageio's standard images (astronaut, camera, cat, coins, moon, ..., downloaded once), the `stent` CT volume and a computed `blobs` volume; `napari_lite.plugins.available_samples()` lists them, and the empty canvas links to both. No plugins: other formats, and all saving, go through your own library. | [Viewer.open](https://napari.org/stable/api/napari.Viewer.html#napari.Viewer.open), [Viewer.open_sample](https://napari.org/stable/api/napari.Viewer.html#napari.Viewer.open_sample) |
 | Jupyter | `%gui qt` (optional: `imshow` enables it), `nbscreenshot(viewer)` for inline screenshots (`examples/notebook.ipynb`), without lxml. | [Jupyter notebook usage](https://napari.org/stable/getting_started/launch_napari.html#jupyter-notebook-usage), [nbscreenshot](https://napari.org/stable/api/napari.utils.html#napari.utils.nbscreenshot), [NotebookScreenshot](https://napari.org/stable/api/napari.utils.NotebookScreenshot.html) |
 | Settings | `get_settings()` with napari's section and field names and defaults (`application`, `appearance`, `shortcuts`, `advanced`, `experimental`), evented, per session; nothing is read from or written to disk. | [Programmatic access to the settings](https://napari.org/stable/guides/preferences.html#programmatic-access-to-the-settings), [Application](https://napari.org/stable/guides/preferences.html#application-settings), [Appearance](https://napari.org/stable/guides/preferences.html#appearance-settings), [Advanced](https://napari.org/stable/guides/preferences.html#advanced-settings) and [Experimental](https://napari.org/stable/guides/preferences.html#experimental-settings) settings |
 | Themes | Dark and light, `viewer.theme`, `Ctrl+Shift+T`; the window follows with napari's stylesheet and icons. | [Changing the viewer theme](https://napari.org/stable/getting_started/viewer.html#changing-the-viewer-theme), [Creating and testing themes](https://napari.org/stable/howtos/themes.html), [Set theme](https://napari.org/stable/gallery/set_theme.html) |
@@ -105,14 +106,15 @@ Status and roadmap: [docs/roadmap.md](docs/roadmap.md).
 ## Not planned
 
 [Plugins](https://napari.org/stable/plugins/index.html) (readers, writers,
-sample data, widgets: `viewer.open()` and `layer.save()` raise
-`NotImplementedError`), the
+sample data, widgets: `layer.save()` raises `NotImplementedError`, and
+`viewer.open()` and `open_sample()` serve only the formats and samples in
+the table above), the
 [IPython console](https://napari.org/stable/getting_started/viewer.html#console-button),
 [menus and the command palette](https://napari.org/stable/getting_started/viewer.html#main-menu-or-top-bar-menu),
 the [preferences dialog](https://napari.org/stable/guides/preferences.html#the-preferences-dialog)
 and [settings file](https://napari.org/stable/guides/preferences.html#where-settings-are-stored),
-the welcome screen. Load data with your own library (tifffile, imageio,
-zarr, ...) and pass arrays to `add_image`.
+the welcome screen. For anything else, load the data with your own
+library (tifffile, imageio, zarr, ...) and pass arrays to `add_image`.
 
 Issue list: [docs/backlog.md](docs/backlog.md). Shortcuts:
 [docs/shortcuts.md](docs/shortcuts.md). How the copy is made and kept in

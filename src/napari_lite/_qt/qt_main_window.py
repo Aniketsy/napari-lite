@@ -59,19 +59,48 @@ __all__ = ['Window']
 def _empty_canvas_hint() -> str:
     """What the canvas says while there are no layers: how to get data in.
 
-    napari shows a welcome screen here; napari-lite has no file dialog and
-    no readers, so the hint names the command line and ``add_image``.
+    napari shows a welcome screen here; napari-lite has no menus and no
+    plugins, so the hint offers what it has: files dropped or opened with
+    the built-in reader, a few samples, the command line and Python.  The
+    links are followed by ``QtCanvas._hint_link``.
     """
+    from html import escape
+
+    shortcuts = get_settings().shortcuts.shortcuts
+
+    def key(action: str) -> str:
+        keys = shortcuts.get(action)
+        return escape(str(Shortcut(keys[0]))) if keys else ''
+
+    def link(href: str, text: str) -> str:
+        return f'<a href="{href}" style="color: #6ea8fe">{escape(text)}</a>'
+
+    samples = ' &middot; '.join(
+        link(f'sample:{name}', text)
+        for name, text in (
+            ('astronaut', 'astronaut'),
+            ('camera', 'camera'),
+            ('coins', 'coins'),
+            ('stent', 'stent (3D)'),
+            ('blobs', 'blobs (3D, no download)'),
+        )
+    )
+    open_key = key('napari-lite:open_files')
+    press = f'press {open_key} to ' if open_key else ''
     lines = [
         'No layers',
         '',
-        'Open files from the command line:   napari-lite image.png stack.npy',
-        'Add layers from Python:   viewer.add_image(array)',
+        f'Drop files here (png, jpg, tif, npy, npz), or {press}'
+        f'{link("open-files", "open files")}',
+        f'Try a sample: {samples}',
+        'From the command line: <code>napari-lite image.png stack.npy</code>'
+        ' or <code>napari-lite --sample astronaut</code>',
+        'From Python: <code>viewer.add_image(array)</code> or '
+        "<code>viewer.open_sample('napari-lite', 'astronaut')</code>",
     ]
-    keys = get_settings().shortcuts.shortcuts.get('napari:show_shortcuts')
-    if keys:
-        lines.append(f'List the key bindings:   {Shortcut(keys[0])}')
-    return '\n'.join(lines)
+    if show := key('napari:show_shortcuts'):
+        lines.append(f'List the key bindings: {show}')
+    return '<br>'.join(lines)
 
 
 class _NoThread:

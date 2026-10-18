@@ -76,10 +76,12 @@ def test_hint_until_a_layer_is_added(qtbot) -> None:
     qtbot.waitExposed(widget)
     assert widget.hint == 'add a layer'
     assert widget._hint.isVisible()
-    # it lies over the canvas and leaves the mouse to it
+    # it lies over the canvas; without layers the canvas has nothing for
+    # the mouse, so the label takes it for its links
     assert widget._hint.geometry() == widget.canvas.native.geometry()
-    assert widget._hint.testAttribute(
-        Qt.WidgetAttribute.WA_TransparentForMouseEvents
+    assert (
+        widget._hint.textInteractionFlags()
+        & Qt.TextInteractionFlag.LinksAccessibleByMouse
     )
     layer = viewer.add_image(np.zeros((8, 8)))
     assert not widget._hint.isVisible()
@@ -157,3 +159,89 @@ def test_screenshot(canvas, qtbot) -> None:
     assert img.shape[0] > 0
     sized = canvas.screenshot(size=(40, 60))
     assert sized.shape[:2] == (40, 60)
+
+
+def _drop_event(paths, modifiers=Qt.KeyboardModifier.NoModifier):
+    """A drop of ``paths``; the event only points at its mime data, so
+    that is returned too, to be kept alive by the caller."""
+    from qtpy.QtCore import QMimeData, QPointF, QUrl
+    from qtpy.QtGui import QDropEvent
+
+    mime = QMimeData()
+    mime.setUrls([QUrl.fromLocalFile(str(p)) for p in paths])
+    event = QDropEvent(
+        QPointF(5, 5),
+        Qt.DropAction.CopyAction,
+        mime,
+        Qt.MouseButton.LeftButton,
+        modifiers,
+    )
+    return event, mime
+
+
+def test_dropped_files_open(canvas, tmp_path) -> None:
+    from qtpy.QtCore import QMimeData, QPoint, QUrl
+    from qtpy.QtGui import QDragEnterEvent
+
+    paths = []
+    for i in range(2):
+        path = tmp_path / f'dropped{i}.npy'
+        np.save(path, np.full((6, 7), i))
+        paths.append(path)
+    mime = QMimeData()
+    mime.setUrls([QUrl.fromLocalFile(str(p)) for p in paths])
+    enter = QDragEnterEvent(
+        QPoint(5, 5),
+        Qt.DropAction.CopyAction,
+        mime,
+        Qt.MouseButton.LeftButton,
+        Qt.KeyboardModifier.NoModifier,
+    )
+    canvas.dragEnterEvent(enter)
+    assert enter.isAccepted()
+
+    event, _mime = _drop_event(paths)
+    canvas.dropEvent(event)
+    names = [layer.name for layer in canvas.viewer.layers]
+    assert names == ['dropped0', 'dropped1']
+
+    # with Shift held the files become one stack
+    event, _mime = _drop_event(paths, Qt.KeyboardModifier.ShiftModifier)
+    canvas.dropEvent(event)
+    assert canvas.viewer.layers[-1].data.shape == (2, 6, 7)
+
+
+def test_dropped_unreadable_file_is_reported(canvas, tmp_path) -> None:
+    path = tmp_path / 'notes.txt'
+    path.write_text('hello', encoding='utf-8')
+    event, _mime = _drop_event([path])
+    canvas.dropEvent(event)
+    assert len(canvas.viewer.layers) == 0
+    assert 'napari-lite reads png' in str(canvas.viewer.status)
+
+
+def test_hint_links_and_ctrl_o(canvas, qtbot, monkeypatch, tmp_path) -> None:
+    from qtpy.QtWidgets import QFileDialog
+
+    canvas._hint_link('sample:blobs')
+    assert [layer.name for layer in canvas.viewer.layers] == ['blobs']
+
+    picked = tmp_path / 'picked.npy'
+    np.save(picked, np.zeros((3, 3)))
+    monkeypatch.setattr(
+        QFileDialog,
+        'getOpenFileNames',
+        staticmethod(lambda *args, **kwargs: ([str(picked)], '')),
+    )
+    canvas._hint_link('open-files')
+    names = [layer.name for layer in canvas.viewer.layers]
+    assert names == ['blobs', 'picked']
+
+    # Ctrl+O is the same dialog
+    canvas.show()
+    qtbot.waitExposed(canvas)
+    qtbot.keyClick(
+        canvas.canvas.native, Qt.Key.Key_O, Qt.KeyboardModifier.ControlModifier
+    )
+    assert len(canvas.viewer.layers) == 3
+    assert canvas.viewer.layers[-1].data.shape == (3, 3)

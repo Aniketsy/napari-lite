@@ -1,30 +1,56 @@
 # napari-lite: own code
-"""No plugins.
+"""Where napari calls plugins: a built-in reader and built-in samples.
 
 napari discovers readers, writers, sample data and widgets through npe2
 plugins.  napari-lite has no plugin manager (the position agreed in napari
-issue 5940): load data with your own library and call ``add_image`` or
-another ``add_*`` method.  The functions the copied core imports from here
-exist so the imports succeed, and raise a clear error when called.
+issue 5940).  It reads a few common formats itself (``READABLE``: images
+through imageio, ``.npy``/``.npz`` through numpy, TIFF through tifffile
+when installed, imageio otherwise; ``io.py``) and ships a few samples
+(``samples.py``), so ``viewer.open``, drag and drop, Ctrl+O and
+``viewer.open_sample`` work for those.  Everything else, and every
+writer, raises a clear error: load or save the data with your own library.
+
+The functions the copied core imports from here exist so the imports
+succeed.
 """
 
 from __future__ import annotations
 
+import os
 from typing import Any
 
 from napari_lite.errors.reader_errors import NoAvailableReaderError
 
+READER = 'napari-lite'
+"""The built-in reader's name (``viewer.open(path, plugin='napari-lite')``;
+``'napari'`` is accepted too, so scripts written for napari's built-in
+reader run)."""
+
+READABLE = frozenset(
+    {
+        '.png',
+        '.jpg',
+        '.jpeg',
+        '.bmp',
+        '.gif',
+        '.webp',
+        '.tif',
+        '.tiff',
+        '.npy',
+        '.npz',
+    }
+)
+"""File suffixes the built-in reader opens."""
+
 NO_READERS = (
-    'napari-lite has no file readers: load data with your own library '
-    '(tifffile, imageio, zarr, ...) and use viewer.add_image(array).'
+    'napari-lite reads png, jpg, bmp, gif, webp, tif, npy and npz files '
+    'with its built-in reader and has no plugins: for anything else load '
+    'the data with your own library (tifffile, imageio, zarr, ...) and use '
+    'viewer.add_image(array).'
 )
 NO_WRITERS = (
     'napari-lite has no file writers: save layer.data with your own library '
     '(tifffile, imageio, numpy, ...).'
-)
-NO_SAMPLES = (
-    'napari-lite has no sample data: build an array with numpy or '
-    'scikit-image and use viewer.add_image(array).'
 )
 
 
@@ -48,7 +74,7 @@ class NoReadersError(NoAvailableReaderError, NotImplementedError):
 
 
 def no_plugins(message: str, *what: Any) -> NoPluginsError:
-    """Build the error, naming what was asked for (paths, sample names)."""
+    """Build the error, naming what was asked for (paths, plugin names)."""
     asked = ', '.join(str(w) for w in what if w)
     return NoPluginsError(
         f'{message} Requested: {asked}' if asked else message
@@ -64,18 +90,37 @@ def no_readers(paths: Any) -> NoReadersError:
     )
 
 
-def available_samples() -> tuple:
-    """napari-lite ships no sample data."""
-    return ()
+def is_readable(path: Any) -> bool:
+    """True if the built-in reader opens files with this suffix."""
+    return os.path.splitext(os.fspath(path))[1].lower() in READABLE
+
+
+def readers_for(path: Any) -> dict[str, str]:
+    """The readers of ``path`` as napari lists them (name to description):
+    the built-in one, or none."""
+    if is_readable(path):
+        return {READER: 'napari-lite built-in reader'}
+    return {}
+
+
+def available_samples() -> tuple[tuple[str, str], ...]:
+    """``(plugin, sample)`` pairs of the built-in samples, as napari's
+    ``available_samples`` lists them."""
+    from napari_lite.plugins.samples import SAMPLES
+
+    return tuple((READER, name) for name in SAMPLES)
 
 
 __all__ = [
     'NO_READERS',
-    'NO_SAMPLES',
     'NO_WRITERS',
+    'READABLE',
+    'READER',
     'NoPluginsError',
     'NoReadersError',
     'available_samples',
+    'is_readable',
     'no_plugins',
     'no_readers',
+    'readers_for',
 ]
