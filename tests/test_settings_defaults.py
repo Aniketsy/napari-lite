@@ -1,9 +1,9 @@
 # napari-lite: own code
 """The settings shim exposes napari's field names with napari's defaults.
 
-``spikes/defaults.json`` is a dump of napari's settings (made with
-``spikes/make_defaults.py`` in a napari environment).  Every field the
-shim defines must exist there with the same default.
+``tests/data/napari_defaults.json`` is a dump of napari's settings (made
+with ``tools/make_settings_defaults.py`` in a napari environment).  Every
+field the shim defines must exist there with the same default.
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ import pytest
 
 DEFAULTS = json.loads(
     (
-        Path(__file__).resolve().parents[1] / 'spikes' / 'defaults.json'
+        Path(__file__).resolve().parent / 'data' / 'napari_defaults.json'
     ).read_text()
 )['sections']
 

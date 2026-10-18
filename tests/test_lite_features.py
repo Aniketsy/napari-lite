@@ -1,5 +1,5 @@
 # napari-lite: own code
-"""Layers without features need no pandas (backlog issue 28).
+"""Layers without features need no pandas.
 
 ``layers/utils/_lite_features.py`` stands in for the zero-column feature
 table in a process that has not imported pandas; ``layer.features`` still

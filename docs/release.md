@@ -3,7 +3,7 @@
 Releases are built and published by `.github/workflows/release.yml`.
 A version tag publishes to TestPyPI and makes a GitHub release; PyPI is
 published only on request, after the napari maintainers have been asked
-about the name (backlog issue 25).
+about the name.
 
 ## One-time setup
 

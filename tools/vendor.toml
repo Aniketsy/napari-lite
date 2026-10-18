@@ -361,7 +361,7 @@ new = '''
         return self._id2idxs[track_id]
 '''
 
-# pandas is the ``features`` extra (backlog issue 28).  layers/utils/
+# pandas is the ``features`` extra.  layers/utils/
 # layer_utils.py keeps napari's code for real feature tables; a stand-in
 # (layers/utils/_lite_features.py) serves a layer without features in a
 # process that has not imported pandas, and the layers hand out a real

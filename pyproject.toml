@@ -172,7 +172,6 @@ ignore = ["E501"]
 [tool.ruff.lint.per-file-ignores]
 "tools/**" = ["T20"]
 "bench/**" = ["T20"]
-"spikes/**" = ["T20"]
 "examples/**" = ["T20"]
 
 [tool.ruff.lint.isort]

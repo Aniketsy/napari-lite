@@ -26,11 +26,14 @@ and which imports cross into app modules that napari-lite must provide.
 
 ```
 src/napari_lite/   the package (copied napari core + own code)
-tools/             vendor.py, vendor.toml, create_issues.py, make_shortcuts_doc.py
-tests/             napari-lite's own tests (copied napari tests live next to the code)
+tools/             vendor.py and vendor.toml (the copy), make_shortcuts_doc.py,
+                   make_settings_defaults.py, copy_app_model_keys.py,
+                   readme_images.py, run_notebook.py
+tests/             napari-lite's own tests (copied napari tests live next to the code);
+                   tests/data/napari_defaults.json is napari's settings dump
 bench/             import-time, time-to-first-image and install-size benchmarks
-spikes/            throwaway experiments that informed the design
-docs/              backlog.md (the issue list), shortcuts.md, this file
+docs/              architecture, design, benchmarks, upstream, release, roadmap,
+                   shortcuts (generated), this file
 examples/          canvas_only.py, notebook.ipynb
 ```
 
@@ -39,7 +42,6 @@ examples/          canvas_only.py, notebook.ipynb
 ```
 pip install -e .[dev,pyqt6]
 pytest tests src/napari_lite        # own tests, then the copied napari tests
-python spikes/spike_core.py         # smoke check with napari blocked
 ```
 
 On Linux without a display, run the tests under `xvfb-run` or with
@@ -76,9 +78,7 @@ python bench/make_table.py lite.json napari.json size.json
 `.github/workflows/bench.yml` runs these on the three OSes on request and
 weekly.
 
-## Backlog
+## Issues
 
-The milestones and issues are in [backlog.md](backlog.md): M0 repo and copy,
-M1 imports without napari, M2 first image on screen, M3 fast and small,
-M4 full feature set, M5 sync and share. `tools/create_issues.py` files them
-on GitHub.
+Work is tracked as GitHub issues on the repository; the status and the
+plan are in [roadmap.md](roadmap.md).

@@ -1,12 +1,12 @@
 # napari-lite: own code
-"""Dump napari's default settings to ``spikes/defaults.json``.
+"""Dump napari's default settings to ``tests/data/napari_defaults.json``.
 
 Needs napari installed (run it in a napari environment, once).  The output
-is the reference for napari-lite's in-memory settings shim (issue 04): the
-shim must expose the same field names with the same defaults, and the test
-in ``tests/`` compares against this file.
+is the reference for napari-lite's in-memory settings shim: the shim must
+expose the same field names with the same defaults, and
+``tests/test_settings_defaults.py`` compares against this file.
 
-    python spikes/make_defaults.py
+    python tools/make_settings_defaults.py
 """
 
 from __future__ import annotations
@@ -15,7 +15,12 @@ import json
 import sys
 from pathlib import Path
 
-OUT = Path(__file__).with_name('defaults.json')
+OUT = (
+    Path(__file__).resolve().parent.parent
+    / 'tests'
+    / 'data'
+    / 'napari_defaults.json'
+)
 
 
 def main() -> int:

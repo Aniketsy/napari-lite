@@ -141,8 +141,8 @@ widgets. The import-time and install-size gaps can still grow:
   rotations, QR/RQ, morphology filters and Tracks lookups in numpy, each
   compared with the library it replaces in the tests; scipy stays the
   `scipy` extra for spline-interpolated shapes), and so are toolz,
-  pydantic-extra-types (issue 29; imageio stays, the command line reads
-  with it) and pandas (issue 28, the `features` extra: layers without
+  pydantic-extra-types (imageio stays, the command line reads
+  with it) and pandas (the `features` extra: layers without
   features use a zero-column stand-in, `layer.features` is a DataFrame
   whenever pandas is importable). The three findings that apply to napari
   itself are ready as patches, with the asks to superqt and pint, in

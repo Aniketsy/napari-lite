@@ -8,7 +8,7 @@ them, the rules stop matching at the next resync and can be dropped. A
 fourth rule, from the functionality check of 2026-10-17, fixes a console
 encoding error that napari has too (patch 4).
 
-## Patches for napari (backlog issue 29)
+## Patches for napari
 
 The patches in [`docs/upstream/`](upstream/) apply to napari's `main` at
 `ebfc4a0a` (the pinned commit; `main` had not moved when they were made).

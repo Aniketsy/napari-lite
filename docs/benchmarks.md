@@ -80,7 +80,7 @@ pint imports dask (and yaml through it) whenever dask is installed, so
 the `dask` extra costs about 0.3 s at import even when no dask array is
 ever shown; without the extra those lines disappear.
 
-Decisions from backlog issue 18:
+Decisions on the heavy dependencies (2026-10-17):
 
 - dask is imported on first use, when a dask array is given to a layer;
   scikit-image is no longer a dependency at all (own code draws the
@@ -217,7 +217,7 @@ init. PyOpenGL (193 modules) is needed: napari's markers select vispy's
 `gl+` backend.
 
 The same day, scikit-image, scipy, toolz, pydantic-extra-types and pandas
-left the dependencies (backlog issues 26 to 29). The own modules that stand
+left the dependencies (the install-size work of that day). The own modules that stand
 in for them are compared with the libraries element by element in
 `tests/test_draw.py`, `test_colorconv.py`, `test_rotation.py`,
 `test_linalg.py`, `test_morphology.py`, `test_tracks_index.py`,

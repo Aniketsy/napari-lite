@@ -2,7 +2,7 @@
 
 ## Data interpretation: the same rules as napari
 
-*Decided 2026-10-17 (backlog issue 23).*
+*Decided 2026-10-17.*
 
 napari guesses a few things about the data handed to `add_image`:
 
