@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/images/readme_viewer.png" width="860" alt="The napari-lite window: napari's layer controls and layer list on the left, the astronaut sample on the canvas.">
+  <img src="docs/images/readme_viewer.png" width="860" alt="The napari-lite window with scikit-image's cells3d sample as two image layers, nuclei and membrane, in 3D: napari's layer controls and layer list on the left, the canvas on the right.">
 </p>
 
 [napari](https://napari.org)'s viewer core as its own package: the seven
@@ -38,53 +38,48 @@ and Windows; not on PyPI yet. Extras add what napari needs a package for:
 
 ## Example
 
-The window above comes from this script:
+napari's own README example, run with napari-lite. It uses a sample from
+scikit-image, which napari-lite does not depend on; any array works the
+same way:
 
 ```python
+from skimage import data
 import napari_lite as napari
 
-viewer = napari.Viewer()
-viewer.open_sample('napari-lite', 'astronaut')
-napari.run()
+viewer, layers = napari.imshow(data.cells3d(), channel_axis=1, ndisplay=3)
+napari.run()  # start the event loop and show the viewer
 ```
 
-Any numpy-like array works the way it does in napari, from a script,
-IPython or a notebook:
-
-```python
-import numpy as np
-import napari_lite as napari   # one-line swap from napari
-
-viewer, layer = napari.imshow(np.random.random((4, 256, 256)), colormap='magma')
-viewer.add_points(np.array([[2, 100, 100], [2, 150, 50]]), size=10)
-napari.run()
-```
-
-Files open with `viewer.open('photo.png')`, by dropping them on the
-canvas, with `Ctrl+O`, or from the terminal: `napari-lite image.png
-stack.npy`, `napari-lite --sample stent --ndisplay 3`.
-
-<p align="center">
-  <img src="docs/images/readme_3d.png" width="860" alt="The stent sample, a CT volume, rendered in 3D with the magma colormap.">
-</p>
+That script made the window above. Other ways in: `viewer.add_image(array)`
+and the other `add_*` methods, `viewer.open('photo.png')`, files dropped
+on the canvas or chosen with `Ctrl+O`, a built-in sample with
+`viewer.open_sample('napari-lite', 'astronaut')`, and the terminal:
+`napari-lite image.png stack.npy` or `napari-lite --sample stent --ndisplay 3`.
 
 ## Faster and smaller than napari
 
-<p align="center">
-  <img src="docs/images/readme_benchmark.png" width="860" alt="Bar chart of napari-lite against napari: import 0.01 s against 0.22 s, first image 1.5 s against 3.3 s, window with an image 3.7 s against 6.0 s, memory 222 MB against 276 MB, installed size 370 MB against 761 MB, 31 packages against 106, 14 direct dependencies against 37.">
-</p>
-
 Both packages installed with `pip install <package>[pyqt6]` into fresh
 environments, napari from the commit the copy was taken from, on one
-Windows machine, so read the ratios rather than the seconds. napari-lite
-is lighter because it imports only what it uses (no xarray probe on every
-new layer, no scipy for a thumbnail or a 2D draw, no plugin discovery, no
-app-model, no console) and because the heavy packages are gone or
-optional: the few functions napari used from scikit-image, scipy, toolz
-and wrapt are numpy code, tested against the originals, and pandas is an
-extra. What remains, Qt, vispy and the first OpenGL context, is the same
-in both, which is why the gap narrows from 22x at import to 1.6x with a
-window on screen. How it was measured, and the CI numbers on three
+Windows machine, so read the ratios rather than the seconds.
+
+| | napari-lite | napari | |
+|---|---|---|---|
+| `import` the package | 0.01 s | 0.22 s | 22x faster |
+| first image (`ViewerModel` + `add_image`) | 1.5 s | 3.3 s | 2.2x faster |
+| viewer window shown with an image | 3.7 s | 6.0 s | 1.6x faster |
+| memory with a window shown | 222 MB | 276 MB | 20% less |
+| installed size | 370 MB | 761 MB | 51% less |
+| packages installed | 31 | 106 | 71% fewer |
+| direct dependencies | 14 | 37 | 62% fewer |
+
+napari-lite is lighter because it imports only what it uses (no xarray
+probe on every new layer, no scipy for a thumbnail or a 2D draw, no plugin
+discovery, no app-model, no console) and because the heavy packages are
+gone or optional: the few functions napari used from scikit-image, scipy,
+toolz and wrapt are numpy code, tested against the originals, and pandas
+is an extra. What remains, Qt, vispy and the first OpenGL context, is the
+same in both, which is why the gap narrows from 22x at import to 1.6x
+with a window on screen. How it was measured, and the CI numbers on three
 operating systems: [docs/benchmarks.md](docs/benchmarks.md).
 
 ## Features

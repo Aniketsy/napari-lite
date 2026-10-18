@@ -132,9 +132,8 @@ window 5.0 s and 248 MB.
 The times are those of the run after scipy left; the later removals of
 toolz, pydantic-extra-types and pandas changed module counts and sizes
 only, and a rerun of the window on this machine moves by half a second
-either way. The chart in the README (`docs/images/readme_benchmark.png`)
-is drawn from these numbers by `tools/readme_images.py`, which also takes
-the README's screenshots.
+either way. The README repeats the first rows of this table;
+`tools/readme_images.py` takes the README's screenshot.
 
 Where the difference comes from:
 
