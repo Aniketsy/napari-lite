@@ -1,0 +1,75 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Aniket Singh Yadav <singhyadavaniket43@gmail.com>
+Date: Sun, 18 Oct 2026 17:39:05 +0530
+Subject: [PATCH] Give layer controls to the layers that exist before the container
+
+QtLayerControlsContainer made controls only for layers inserted after it
+existed, so a ViewerModel that already held layers (handed to a QtViewer
+for embedding) raised KeyError in _populate on the first selection change
+and showed nothing for those layers. Existing layers are added at
+construction through _add_layer, which _add now calls for inserted ones,
+and the current selection is shown. With a test.
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
+---
+ .../_qt/layer_controls/_tests/test_qt_controls_container.py | 13 +++++++++++++
+ .../_qt/layer_controls/qt_layer_controls_container.py       | 12 +++++++++++-
+ 2 files changed, 24 insertions(+), 1 deletion(-)
+
+diff --git a/src/napari/_qt/layer_controls/_tests/test_qt_controls_container.py b/src/napari/_qt/layer_controls/_tests/test_qt_controls_container.py
+index 4cfd174c..b8d10557 100644
+--- a/src/napari/_qt/layer_controls/_tests/test_qt_controls_container.py
++++ b/src/napari/_qt/layer_controls/_tests/test_qt_controls_container.py
+@@ -32,3 +32,16 @@ def test_qt_container_theme_change(dynamic, qtbot, viewer_model):
+     viewer_model.theme = 'light'
+     # only affects histogram; too nasty to actualy check for, but
+     # at least this runs the lines to ensure nothign crashes
++
++
++def test_qt_container_for_a_viewer_with_layers(qtbot, viewer_model):
++    """Layers that exist before the container get their controls too (a
++    viewer model handed to a QtViewer, or an embedded canvas)."""
++    viewer_model.add_image(np.arange(25).reshape(5, 5))
++    viewer_model.add_points()
++    cont = QtLayerControlsContainer(viewer_model)
++    qtbot.addWidget(cont)
++    assert set(cont.widgets) == set(viewer_model.layers)
++    assert isinstance(cont.currentWidget(), QtPointsControls)
++    viewer_model.layers.selection.active = viewer_model.layers[0]
++    assert cont.currentWidget() is cont.widgets[viewer_model.layers[0]]
+diff --git a/src/napari/_qt/layer_controls/qt_layer_controls_container.py b/src/napari/_qt/layer_controls/qt_layer_controls_container.py
+index 56423c04..501ff09b 100644
+--- a/src/napari/_qt/layer_controls/qt_layer_controls_container.py
++++ b/src/napari/_qt/layer_controls/qt_layer_controls_container.py
+@@ -115,6 +115,13 @@ class QtLayerControlsContainer(QStackedWidget):
+         viewer.layers.selection.events.changed.connect(self._populate)
+         viewer.dims.events.ndisplay.connect(self._on_ndisplay_changed)
+         viewer.events.theme.connect(self._on_viewer_theme_changed)
++        # layers that exist before the container (a viewer model handed to
++        # a QtViewer or an embedded canvas with layers in it) sent no
++        # `inserted`
++        for layer in self.viewer.layers:
++            self._add_layer(layer)
++        if self.viewer.layers:
++            self._populate()
+ 
+     def _on_ndisplay_changed(self, event: Event) -> None:
+         """Responds to a change in the dimensionality displayed in the canvas.
+@@ -198,10 +205,13 @@ class QtLayerControlsContainer(QStackedWidget):
+         event : Event
+             Event with the target layer at `event.value`.
+         """
++        self._add_layer(event.value)
++
++    def _add_layer(self, layer: Layer) -> None:
++        """Create and register the controls of ``layer``."""
+         always_dynamic = get_settings().experimental.dynamic_layer_controls
+         if always_dynamic:
+             return
+-        layer = event.value
+         controls = create_qt_layer_controls(layer)
+         controls.ndisplay = self.viewer.dims.ndisplay
+         self.addWidget(controls)
+-- 
+2.47.0
+

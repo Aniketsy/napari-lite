@@ -738,3 +738,57 @@ new = '''
             text = text.encode(encoding, errors='replace').decode(encoding)
         print(text)  # noqa: T201
 '''
+
+# _qt/layer_controls/qt_layer_controls_container.py: the container made
+# controls only for layers inserted after it existed, so a viewer model that
+# already had layers (QtCanvas(viewer) or napari's QtViewer(viewer) for
+# embedding) raised KeyError in _populate on the first selection change.
+# Existing layers are added at construction, through _add_layer, which
+# _add now calls for inserted ones.  Upstream: docs/upstream.md, patch 5.
+[[rewrite]]
+old = '''
+        viewer.events.theme.connect(self._on_viewer_theme_changed)
+'''
+new = '''
+        viewer.events.theme.connect(self._on_viewer_theme_changed)
+        # layers that exist before the container (a viewer model handed to
+        # a QtCanvas or QtViewer with layers in it) sent no `inserted`
+        for layer in self.viewer.layers:
+            self._add_layer(layer)
+        if self.viewer.layers:
+            self._populate()
+'''
+
+[[rewrite]]
+old = '''
+        always_dynamic = get_settings().experimental.dynamic_layer_controls
+        if always_dynamic:
+            return
+        layer = event.value
+        controls = create_qt_layer_controls(layer)
+'''
+new = '''
+        self._add_layer(event.value)
+
+    def _add_layer(self, layer: Layer) -> None:
+        """Create and register the controls of ``layer``."""
+        always_dynamic = get_settings().experimental.dynamic_layer_controls
+        if always_dynamic:
+            return
+        controls = create_qt_layer_controls(layer)
+'''
+
+# utils/shortcuts.py: napari-lite's own key binding, Ctrl+O for the file
+# dialog in front of the built-in reader (qt/_viewer_actions.py), joins
+# napari's defaults so bind_shortcuts_from_settings binds it.
+[[rewrite]]
+old = '''
+    # viewer
+    'napari:toggle_console_visibility': [
+'''
+new = '''
+    # viewer
+    # napari-lite's own: Ctrl+O opens files with the built-in reader
+    'napari-lite:open_files': [KeyMod.CtrlCmd | KeyCode.KeyO],
+    'napari:toggle_console_visibility': [
+'''

@@ -13,7 +13,8 @@ encoding error that napari has too (patch 4).
 The patches in [`docs/upstream/`](upstream/) apply to napari's `main` at
 `ebfc4a0a` (the pinned commit; `main` had not moved when they were made).
 They were made on branches of the local napari checkout, `lite/xarray-check`,
-`lite/canvas-to-world`, `lite/thumbnail-zoom` and `lite/console-notification`,
+`lite/canvas-to-world`, `lite/thumbnail-zoom`, `lite/console-notification` and
+`lite/controls-prefilled`,
 with napari's pre-commit
 hooks passing; napari's own test-suite was not run on them here (the copy of
 that suite inside napari-lite passes with the identical changes). To open a
@@ -51,6 +52,15 @@ pull request: push the branch to the fork and open it against
    uninstall IPython" and the message was lost. Encoding with
    `errors='replace'` first shows the message with those characters as
    `?`. Found by napari-lite's functionality check of 2026-10-17.
+5. **Give layer controls to the layers that exist before the container**
+   (`_qt/layer_controls/qt_layer_controls_container.py`, with a test). The
+   container made controls only for layers inserted after it existed, so
+   a `ViewerModel` that already held layers, handed to a `QtViewer` for
+   embedding, raised `KeyError` in `_populate` on the first selection
+   change and showed nothing for them. Existing layers are now added at
+   construction. Found on 2026-10-18 while profiling napari-lite, whose
+   `QtCanvas(viewer)` takes the same path. The patch file is a plain
+   `git diff` with a mail header (made without a commit); `git am` reads it.
 
 Measured in a fresh environment, napari at that commit, after the three
 changes together: the first image fell from about 2.2 s and 1,026 loaded

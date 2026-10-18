@@ -245,3 +245,38 @@ def test_hint_links_and_ctrl_o(canvas, qtbot, monkeypatch, tmp_path) -> None:
     )
     assert len(canvas.viewer.layers) == 3
     assert canvas.viewer.layers[-1].data.shape == (3, 3)
+
+
+def test_canvas_for_a_model_that_already_has_layers(qtbot, caplog) -> None:
+    """Embedding: the model may hold layers before the canvas exists. The
+    controls container used to raise KeyError on the first selection
+    change and show nothing for those layers."""
+    import logging
+
+    from napari_lite.components import ViewerModel
+    from napari_lite.qt import QtCanvas
+    from napari_lite.window import Window
+
+    viewer = ViewerModel()
+    viewer.add_image(np.zeros((4, 8, 8)))
+    points = viewer.add_points(np.zeros((2, 3)))
+    canvas = QtCanvas(viewer)
+    qtbot.addWidget(canvas)
+    controls = canvas.controls  # built first, as the window does
+    _ = canvas.layers  # the list view syncs its selection to the model's
+    assert set(controls.widgets) == set(viewer.layers)
+    assert controls.currentWidget() is controls.widgets[points]
+    viewer.layers.selection.active = viewer.layers[0]
+    assert controls.currentWidget() is controls.widgets[viewer.layers[0]]
+
+    other = ViewerModel()
+    other.add_image(np.zeros((8, 8)))
+    window = Window(other, show=False)
+    try:
+        qt_controls = window._qt_window._qt_viewer.controls
+        assert (
+            qt_controls.currentWidget() is qt_controls.widgets[other.layers[0]]
+        )
+    finally:
+        window.close()
+    assert not [r for r in caplog.records if r.levelno >= logging.WARNING]
