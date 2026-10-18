@@ -1,122 +1,142 @@
-# napari-lite
+<p align="center">
+  <img src="docs/images/logo.png" width="560" alt="napari-lite">
+</p>
 
-**Experimental.** The viewer core of [napari](https://napari.org) without
-the application around it: layers, canvas and dims sliders, importable as
-`napari_lite` without napari installed. Derived from napari (BSD-3); see
-[docs/architecture.md](docs/architecture.md) for the block diagram and
-[docs/development.md](docs/development.md) for how the copy is made.
+<p align="center"><b>The napari viewer without the application around it: small, fast, the same API.</b></p>
 
-napari-lite keeps napari's API and behaviour wherever it has the feature,
-so napari's documentation applies: every row of the table below links the
-napari pages for that feature.
+<p align="center">
+  <a href="https://github.com/Aniketsy/napari-lite/actions/workflows/ci.yml"><img src="https://github.com/Aniketsy/napari-lite/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <img src="https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-3776AB" alt="Python 3.11 to 3.13">
+  <img src="https://img.shields.io/badge/license-BSD--3-green" alt="BSD-3 licence">
+  <img src="https://img.shields.io/badge/status-experimental-orange" alt="experimental">
+</p>
+
+<p align="center">
+  <img src="docs/images/readme_viewer.png" width="860" alt="The napari-lite window: napari's layer controls and layer list on the left, the astronaut sample on the canvas.">
+</p>
+
+[napari](https://napari.org)'s viewer core as its own package: the seven
+layer types in 2D and 3D, napari's rendering, layer list, layer controls,
+sliders, key bindings and themes, in a window without menus, plugins or
+console. It installs without napari, and the same scripts run after
+`import napari_lite as napari`. The code is napari's, copied by a script
+from a pinned commit and kept in sync ([how](docs/development.md),
+[architecture](docs/architecture.md)); derived from napari under the
+BSD-3 licence. Experimental.
 
 ## Install
 
-Not on PyPI yet. Install from GitHub with one of the two Qt bindings:
-
-```
+```sh
 pip install "napari-lite[pyqt6] @ git+https://github.com/Aniketsy/napari-lite"
 ```
 
-Extras: `pyqt6` or `pyside6` (one of them is needed), `features` (pandas:
-`layer.features` tables, properties, text and colours by feature, Tracks),
-`dask` (dask arrays), `scipy` (spline-interpolated shapes), `fast-shapes`
-(compiled triangulation and label colouring), `tiff` (tifffile), `all`.
-A layer without features needs no pandas. Python 3.11 to 3.13 on Linux,
-macOS and Windows.
+`pyside6` works in place of `pyqt6`. Python 3.11 to 3.13 on Linux, macOS
+and Windows; not on PyPI yet. Extras add what napari needs a package for:
+`features` (pandas: feature tables, text and colours by feature, Tracks),
+`dask`, `scipy` (spline-interpolated shapes), `tiff`, `fast-shapes`, or
+`all`.
+
+## Example
+
+The window above comes from this script:
+
+```python
+import napari_lite as napari
+
+viewer = napari.Viewer()
+viewer.open_sample('napari-lite', 'astronaut')
+napari.run()
+```
+
+Any numpy-like array works the way it does in napari, from a script,
+IPython or a notebook:
 
 ```python
 import numpy as np
-import napari_lite as napari   # one-line swap
+import napari_lite as napari   # one-line swap from napari
 
 viewer, layer = napari.imshow(np.random.random((4, 256, 256)), colormap='magma')
 viewer.add_points(np.array([[2, 100, 100], [2, 150, 50]]), size=10)
 napari.run()
 ```
 
-## Supported
+Files open with `viewer.open('photo.png')`, by dropping them on the
+canvas, with `Ctrl+O`, or from the terminal: `napari-lite image.png
+stack.npy`, `napari-lite --sample stent --ndisplay 3`.
 
-Everything in this table works today and is covered by napari's copied
-tests and napari-lite's own tests, run on Linux, macOS and Windows without
-napari installed.
+<p align="center">
+  <img src="docs/images/readme_3d.png" width="860" alt="The stent sample, a CT volume, rendered in 3D with the magma colormap.">
+</p>
 
-| Feature | In napari-lite | napari documentation |
+## Faster and smaller than napari
+
+<p align="center">
+  <img src="docs/images/readme_benchmark.png" width="860" alt="Bar chart of napari-lite against napari: import 0.01 s against 0.22 s, first image 1.5 s against 3.3 s, window with an image 3.7 s against 6.0 s, memory 222 MB against 276 MB, installed size 370 MB against 761 MB, 31 packages against 106, 14 direct dependencies against 37.">
+</p>
+
+Both packages installed with `pip install <package>[pyqt6]` into fresh
+environments, napari from the commit the copy was taken from, on one
+Windows machine, so read the ratios rather than the seconds. napari-lite
+is lighter because it imports only what it uses (no xarray probe on every
+new layer, no scipy for a thumbnail or a 2D draw, no plugin discovery, no
+app-model, no console) and because the heavy packages are gone or
+optional: the few functions napari used from scikit-image, scipy, toolz
+and wrapt are numpy code, tested against the originals, and pandas is an
+extra. What remains, Qt, vispy and the first OpenGL context, is the same
+in both, which is why the gap narrows from 22x at import to 1.6x with a
+window on screen. How it was measured, and the CI numbers on three
+operating systems: [docs/benchmarks.md](docs/benchmarks.md).
+
+## Features
+
+Everything below is napari's code and behaviour, covered by napari's own
+tests (copied with the code) and by napari-lite's tests, on Linux, macOS
+and Windows without napari installed. The last column is the napari
+documentation page for the feature.
+
+| Feature | In napari-lite | Docs |
 |---|---|---|
-| Viewer, `imshow`, event loop | `Viewer()`, `imshow(data, ...)` returning `(viewer, layer)`, `current_viewer()`, `run()`; `viewer.show()`, `viewer.close()`, `Viewer.close_all()`. The same script gives the same layers with `napari` and `napari_lite`. | [Viewer](https://napari.org/stable/api/napari.Viewer.html), [imshow](https://napari.org/stable/api/napari.html#napari.imshow), [run](https://napari.org/stable/api/event_loop.html), [current_viewer](https://napari.org/stable/api/napari.html#napari.current_viewer), [Launch from a Python script](https://napari.org/stable/getting_started/launch_napari.html#python-script-usage), [Launch from IPython](https://napari.org/stable/getting_started/launch_napari.html#ipython-console-usage) |
-| Adding and managing layers | `viewer.add_image`, `add_labels`, `add_points`, `add_shapes`, `add_surface`, `add_tracks`, `add_vectors`, `add_layer`; `viewer.layers` with selection, ordering and extent; layer `scale`, `translate`, `affine`, `units`, `opacity`, `blending`, `visible`. | [Layers guide](https://napari.org/stable/howtos/layers/index.html), [Layers: bringing data into napari](https://napari.org/stable/getting_started/layers.html), [LayerList](https://napari.org/stable/api/napari.components.LayerList.html), [Layer](https://napari.org/stable/api/napari.layers.Layer.html), [Scale and unit-aware rendering](https://napari.org/stable/guides/units.html), [Transformed image](https://napari.org/stable/gallery/add_image_transformed.html) |
-| Image | 2D and 3D, multiscale, RGB, `channel_axis`, colormaps, contrast limits, gamma, interpolation, blending, plane and volume rendering, depiction, custom interpolation kernels. | [Image how-to](https://napari.org/stable/howtos/layers/image.html): [arguments of imshow and add_image](https://napari.org/stable/howtos/layers/image.html#arguments-of-imshow-and-add-image), [multiscale](https://napari.org/stable/howtos/layers/image.html#multiscale-images), [RGB](https://napari.org/stable/howtos/layers/image.html#viewing-rgb-vs-luminance-grayscale-images), [multichannel](https://napari.org/stable/howtos/layers/image.html#loading-multichannel-images), [colormaps](https://napari.org/stable/howtos/layers/image.html#working-with-colormaps), [contrast limits](https://napari.org/stable/howtos/layers/image.html#adjusting-contrast-limits); [Image API](https://napari.org/stable/api/napari.layers.Image.html), [Colormap](https://napari.org/stable/api/napari.utils.Colormap.html), [3D image](https://napari.org/stable/gallery/add_3D_image.html), [3D plane rendering](https://napari.org/stable/gallery/3D_image_plane_rendering.html), [Rendering](https://napari.org/stable/guides/rendering.html) |
-| Labels | Display in 2D and 3D, colour modes, contours; editing with the layer controls, the key bindings and the mouse: paint, fill, erase, pick, polygon, brush size, preserve labels, undo and redo. | [Labels how-to](https://napari.org/stable/howtos/layers/labels.html): [editing](https://napari.org/stable/howtos/layers/labels.html#editing-using-the-tools-in-the-gui), [undo and redo](https://napari.org/stable/howtos/layers/labels.html#undo-redo-functionality), [from the console](https://napari.org/stable/howtos/layers/labels.html#controlling-the-labels-layer-from-the-console); [Labels API](https://napari.org/stable/api/napari.layers.Labels.html), [Paint nD](https://napari.org/stable/gallery/paint-nd.html), [Labels in 3D](https://napari.org/stable/gallery/labels3d.html) |
-| Points | Display in 2D and 3D; size, symbol, border and face colours, features and text; add, select, move and delete with the layer controls, the key bindings and the mouse. | [Points how-to](https://napari.org/stable/howtos/layers/points.html): [adding, deleting and selecting](https://napari.org/stable/howtos/layers/points.html#adding-deleting-and-selecting-points), [programmatically](https://napari.org/stable/howtos/layers/points.html#controlling-the-points-layer-programmatically); [Points API](https://napari.org/stable/api/napari.layers.Points.html), [Add points](https://napari.org/stable/gallery/add_points.html) |
-| Shapes | Rectangles, ellipses, lines, paths, polygons and lasso; edge and face colours, text; draw, select, move, edit vertices, copy and paste with the layer controls, the key bindings and the mouse. | [Shapes how-to](https://napari.org/stable/howtos/layers/shapes.html): [adding shapes](https://napari.org/stable/howtos/layers/shapes.html#adding-new-shapes), [selecting and editing](https://napari.org/stable/howtos/layers/shapes.html#selecting-resizing-moving-editing-and-deleting-shapes), [programmatically](https://napari.org/stable/howtos/layers/shapes.html#controlling-the-shapes-layer-programmatically); [Shapes API](https://napari.org/stable/api/napari.layers.Shapes.html), [Annotate 2D](https://napari.org/stable/gallery/annotate-2d.html), [Triangulation backends](https://napari.org/stable/guides/triangulation.html) (the `fast-shapes` extra) |
-| Surface | Vertices, faces and values in 2D and 3D; colormaps, shading, wireframe, normals. | [Surface how-to](https://napari.org/stable/howtos/layers/surface.html), [Surface API](https://napari.org/stable/api/napari.layers.Surface.html), [Add surface](https://napari.org/stable/gallery/add_surface_2D.html) |
-| Tracks | Tracks with graph, tail and head length, colour by feature, in 2D and 3D. | [Tracks how-to](https://napari.org/stable/howtos/layers/tracks.html), [Tracks API](https://napari.org/stable/api/napari.layers.Tracks.html), [Tracks 2D](https://napari.org/stable/gallery/tracks_2d.html), [Tracks 3D](https://napari.org/stable/gallery/tracks_3d.html) |
-| Vectors | Vectors in 2D and 3D; length, width, colour by feature. | [Vectors how-to](https://napari.org/stable/howtos/layers/vectors.html), [Vectors API](https://napari.org/stable/api/napari.layers.Vectors.html), [Add vectors](https://napari.org/stable/gallery/add_vectors.html) |
-| Dims and camera | `viewer.dims` (current step, order, axis labels, `ndisplay`), `viewer.scene.camera` (center, zoom, angles, perspective); dims sliders with playback, 2D/3D toggle, roll and transpose, reset view. | [Dims API](https://napari.org/stable/api/napari.components.Dims.html), [Camera API](https://napari.org/stable/api/napari.components.Camera.html), [Camera guide](https://napari.org/stable/guides/camera.html), [Dimension sliders](https://napari.org/stable/getting_started/viewer.html#dimension-sliders), [Playback](https://napari.org/stable/getting_started/viewer.html#frame-playback-button), [2D/3D toggle](https://napari.org/stable/getting_started/viewer.html#toggle-2d-3d-button), [Roll](https://napari.org/stable/getting_started/viewer.html#roll-dimensions) and [transpose](https://napari.org/stable/getting_started/viewer.html#transpose-dimensions) dimensions, [Axis names](https://napari.org/stable/guides/axis-names.html), [nD image](https://napari.org/stable/gallery/nD_image.html) |
-| Mouse and keyboard | Pan, zoom, rotate, zoom box, slice stepping with the wheel; napari's default key bindings for the viewer and every layer, listed in [docs/shortcuts.md](docs/shortcuts.md); `viewer.bind_key`, `layer.bind_key`, mouse drag, move and wheel callbacks. Shortcuts are configured in code, not in a dialog. | [Shortcuts](https://napari.org/stable/guides/preferences.html#shortcuts-settings), [Custom key bindings](https://napari.org/stable/gallery/custom_key_bindings.html), [Custom keybinding](https://napari.org/stable/getting_started/viewer.html#custom-keybinding), [Custom mouse functions](https://napari.org/stable/gallery/custom_mouse_functions.html), [Mouse drag callback](https://napari.org/stable/gallery/mouse_drag_callback.html), [Cursor position](https://napari.org/stable/gallery/cursor_position.html), [3D interactivity](https://napari.org/stable/guides/3D_interactivity.html) |
-| Grid mode | `viewer.canvas.grid.enabled`, shape and stride; `Ctrl+G`. | [Grid mode](https://napari.org/stable/gallery/grid_mode.html), [Grid button](https://napari.org/stable/getting_started/viewer.html#grid-button), [Colorbars and overlays in grid mode](https://napari.org/stable/gallery/colorbar_tiling.html) |
-| Overlays | Scale bar, canvas and scene axes, text, colorbar and current slice through `viewer.canvas.overlays` and `viewer.scene.overlays`; layer name and bounding box through `layer.name_overlay` and `layer.bounding_box`. | [Viewer overlays](https://napari.org/stable/getting_started/viewer.html#viewer-overlays), [Scale bar](https://napari.org/stable/gallery/scale_bar.html), [Bounding box](https://napari.org/stable/gallery/image_border.html), [Layer text scaling](https://napari.org/stable/gallery/layer_text_scaling.html) |
-| Screenshots | `viewer.screenshot(path, canvas_only=...)`, `viewer.export_figure()`, `viewer.window.clipboard()`. | [screenshot](https://napari.org/stable/api/napari.Viewer.html#napari.Viewer.screenshot), [export_figure](https://napari.org/stable/api/napari.Viewer.html#napari.Viewer.export_figure), [To screenshot](https://napari.org/stable/gallery/to_screenshot.html), [Export figure](https://napari.org/stable/gallery/export_figure.html) |
-| `QtCanvas` | Canvas, dims sliders and status line as one Qt widget for your own window or application (`examples/canvas_only.py`); the layer list, layer controls and button rows come on first access (`canvas.layers`, `canvas.controls`, `canvas.layerButtons`, `canvas.viewerButtons`, or wrapped in dock widgets as `dockLayerList` and `dockLayerControls`). The part of napari's `QtViewer` without the console. | [QtViewer](https://napari.org/stable/api/napari.qt.QtViewer.html), [Multiple viewer widget](https://napari.org/stable/gallery/multiple_viewer_widget.html) |
-| Window and dock widgets | napari's window without the menus: on the left napari's layer controls and layer list with the layer and viewer buttons (thumbnails, visibility, the context menu with the layer operations, copy and paste of scale and transforms), then the canvas, sliders and a status bar with cursor coordinates, layer value and help text (`viewer.window._qt_viewer.dockLayerList.setVisible(False)` hides a panel); `viewer.window.add_dock_widget()` and `remove_dock_widget()` for Qt or magicgui widgets, `resize`, `set_geometry`, `screenshot`. | [Window](https://napari.org/stable/api/napari.window.Window.html), [add_dock_widget](https://napari.org/stable/api/napari.window.Window.html#napari.window.Window.add_dock_widget), [Creating widgets with magicgui](https://napari.org/stable/howtos/extending/magicgui.html), [Status bar](https://napari.org/stable/getting_started/viewer.html#status-bar) |
-| Opening files and samples | `viewer.open(path)`, files dropped on the canvas and `Ctrl+O` read png, jpg, bmp, gif, webp, tif, npy and npz with a built-in reader (imageio, numpy, tifffile when installed): one image layer per file, named after it (`layer_type='labels'` for Labels, `stack=True` for one stack). `viewer.open_sample('napari-lite', name)` and `napari-lite --sample name` give imageio's standard images (astronaut, camera, cat, coins, moon, ..., downloaded once), the `stent` CT volume and a computed `blobs` volume; `napari_lite.plugins.available_samples()` lists them, and the empty canvas links to both. No plugins: other formats, and all saving, go through your own library. | [Viewer.open](https://napari.org/stable/api/napari.Viewer.html#napari.Viewer.open), [Viewer.open_sample](https://napari.org/stable/api/napari.Viewer.html#napari.Viewer.open_sample) |
-| Jupyter | `%gui qt` (optional: `imshow` enables it), `nbscreenshot(viewer)` for inline screenshots (`examples/notebook.ipynb`), without lxml. | [Jupyter notebook usage](https://napari.org/stable/getting_started/launch_napari.html#jupyter-notebook-usage), [nbscreenshot](https://napari.org/stable/api/napari.utils.html#napari.utils.nbscreenshot), [NotebookScreenshot](https://napari.org/stable/api/napari.utils.NotebookScreenshot.html) |
-| Settings | `get_settings()` with napari's section and field names and defaults (`application`, `appearance`, `shortcuts`, `advanced`, `experimental`), evented, per session; nothing is read from or written to disk. | [Programmatic access to the settings](https://napari.org/stable/guides/preferences.html#programmatic-access-to-the-settings), [Application](https://napari.org/stable/guides/preferences.html#application-settings), [Appearance](https://napari.org/stable/guides/preferences.html#appearance-settings), [Advanced](https://napari.org/stable/guides/preferences.html#advanced-settings) and [Experimental](https://napari.org/stable/guides/preferences.html#experimental-settings) settings |
-| Themes | Dark and light, `viewer.theme`, `Ctrl+Shift+T`; the window follows with napari's stylesheet and icons. | [Changing the viewer theme](https://napari.org/stable/getting_started/viewer.html#changing-the-viewer-theme), [Creating and testing themes](https://napari.org/stable/howtos/themes.html), [Set theme](https://napari.org/stable/gallery/set_theme.html) |
-| Threads | `napari_lite.qt.thread_worker`, `create_worker`, `FunctionWorker`, `GeneratorWorker`; `progress` and `cancelable_progress`. | [Multithreading in napari](https://napari.org/stable/guides/threading.html), [napari.qt.threading](https://napari.org/stable/api/napari.qt.threading.html), [progress](https://napari.org/stable/api/napari.utils.progress.html) |
-| Events | The same evented models and `events` attributes as napari on the viewer, dims, camera, layer list and every layer; notifications go to the console. | [Hooking up your own events](https://napari.org/stable/howtos/extending/connecting_events.html), [Events reference](https://napari.org/stable/guides/events_reference.html), [napari.utils.events](https://napari.org/stable/api/napari.utils.events.html), [notifications](https://napari.org/stable/api/napari.utils.notifications.html) |
-| Dask, zarr, xarray | Any array with `shape`, `dtype` and `__getitem__`; dask arrays with the `dask` extra (opportunistic cache, task fusion off while slicing); asynchronous slicing. | [Image data and numpy-like arrays](https://napari.org/stable/howtos/layers/image.html#image-data-and-numpy-like-arrays), [Using Dask and napari](https://napari.org/stable/tutorials/dask.html), [Dask nD image](https://napari.org/stable/gallery/dask_nD_image.html), [Performance](https://napari.org/stable/guides/performance.html) |
-| Fast import, small install | `import napari_lite` takes about 0.05 s and loads no numpy, Qt, vispy or pydantic; napari, npe2, magicgui, app-model and lxml are never imported; dask is imported on first use; scipy, scikit-image, wrapt, toolz and pydantic-extra-types are not dependencies, own code stands in for the few functions napari used from them (scipy is the `scipy` extra, needed for spline-interpolated shapes only); pandas is the `features` extra, imported the first time a layer has features or `layer.features` is read, and a layer without features never needs it. Numbers in [docs/benchmarks.md](docs/benchmarks.md). | [napari performance](https://napari.org/stable/guides/performance.html) |
+| Viewer | `Viewer`, `imshow`, `run`, `current_viewer`; `show`, `close`, `close_all` | [Viewer](https://napari.org/stable/api/napari.Viewer.html) |
+| Layers | `add_image`, `add_labels`, `add_points`, `add_shapes`, `add_surface`, `add_tracks`, `add_vectors`; `viewer.layers`; scale, translate, affine, units, opacity, blending | [Layers guide](https://napari.org/stable/howtos/layers/index.html) |
+| Image | 2D and 3D, multiscale, RGB, `channel_axis`, colormaps, contrast limits, gamma, interpolation, volume and plane rendering | [Image](https://napari.org/stable/howtos/layers/image.html) |
+| Labels | colour modes, contours; paint, fill, erase, pick, polygon, undo and redo, with mouse and keys | [Labels](https://napari.org/stable/howtos/layers/labels.html) |
+| Points | size, symbols, border and face colours, features and text; add, select, move, delete | [Points](https://napari.org/stable/howtos/layers/points.html) |
+| Shapes | rectangles, ellipses, lines, paths, polygons, lasso; draw, select, move, edit vertices, copy and paste | [Shapes](https://napari.org/stable/howtos/layers/shapes.html) |
+| Surface, Tracks, Vectors | shading, wireframe, normals; graph, tail and head, colour by feature; length, width, colour | [Surface](https://napari.org/stable/howtos/layers/surface.html), [Tracks](https://napari.org/stable/howtos/layers/tracks.html), [Vectors](https://napari.org/stable/howtos/layers/vectors.html) |
+| Dims and camera | sliders with playback, 2D/3D toggle, roll, transpose, reset view; `viewer.dims`, `viewer.scene.camera` | [Camera](https://napari.org/stable/guides/camera.html) |
+| Mouse and keyboard | pan, zoom, rotate, zoom box, wheel through slices; napari's key bindings ([list](docs/shortcuts.md)); `bind_key`, mouse callbacks | [Key bindings](https://napari.org/stable/gallery/custom_key_bindings.html) |
+| Grid and overlays | grid mode; scale bar, axes, text, colorbar, current slice, layer name, bounding box | [Grid mode](https://napari.org/stable/gallery/grid_mode.html), [Overlays](https://napari.org/stable/getting_started/viewer.html#viewer-overlays) |
+| Screenshots | `viewer.screenshot`, `export_figure`, `window.clipboard`; `nbscreenshot` in Jupyter | [screenshot](https://napari.org/stable/api/napari.Viewer.html#napari.Viewer.screenshot) |
+| Open files and samples | `viewer.open`, drag and drop, `Ctrl+O`: png, jpg, bmp, gif, webp, tif, npy, npz; `open_sample`: imageio's standard images, a CT volume, a computed volume | [Viewer.open](https://napari.org/stable/api/napari.Viewer.html#napari.Viewer.open) |
+| Window and `QtCanvas` | napari's layer list, controls and buttons, status bar, `add_dock_widget`; `QtCanvas` puts the canvas and sliders in your own Qt app | [Window](https://napari.org/stable/api/napari.window.Window.html) |
+| Settings and themes | napari's settings and defaults, in memory; dark and light themes | [Preferences](https://napari.org/stable/guides/preferences.html) |
+| Threads and events | `thread_worker`, `create_worker`, `progress`; napari's events on the viewer, dims, camera and layers | [Threading](https://napari.org/stable/guides/threading.html), [Events](https://napari.org/stable/guides/events_reference.html) |
+| dask, zarr, xarray | any array with `shape`, `dtype` and `__getitem__`; dask arrays with the `dask` extra; asynchronous slicing | [Dask and napari](https://napari.org/stable/tutorials/dask.html) |
 
-Data is interpreted exactly as napari interprets it (RGB and multiscale
-are guessed, the channel axis never): [docs/design.md](docs/design.md).
-Where napari is installed, `tests/test_visual_napari.py` renders every
-layer type in 2D and 3D with both packages and compares the images.
+Data is interpreted exactly as napari interprets it, RGB and multiscale
+guessed, the channel axis never ([docs/design.md](docs/design.md)). Where
+napari is installed, a test renders every layer type with both packages
+and compares the images.
 
-## napari vs napari-lite in numbers
+## Not included
 
-Both installed with `pip install <package>[pyqt6]` into fresh
-environments, napari from the same commit the copy was taken from; one
-Windows machine, so read the ratios ([details and the CI numbers on three
-OSes](docs/benchmarks.md)). The window shows napari's layer list and
-controls, the same widgets in both, so what is left of the startup time
-and memory is mostly shared: Qt, vispy and the first OpenGL context. The
-first image imports only what it uses: no xarray probe, no scipy for a
-thumbnail or a 2D draw, no tqdm, no vispy scene graph before a canvas.
+Plugins (readers, writers, sample data, widgets), the menus and command
+palette, the IPython console, the preferences dialog and settings file,
+the welcome screen. `layer.save()` raises `NotImplementedError`; beyond
+the built-in reader and samples, load data with your own library and
+pass arrays to `add_image`. Planned: a monthly resync with napari's main
+branch ([SYNC.md](SYNC.md)) and a PyPI release once the name is settled
+with the napari maintainers ([docs/roadmap.md](docs/roadmap.md)).
 
-| | napari-lite | napari |
-|---|---|---|
-| `import` the package | 0.01 s | 0.22 s |
-| first image (`ViewerModel` + `add_image`) | 1.5 s | 3.3 s |
-| viewer window shown with an image | 3.7 s | 6.0 s |
-| memory with a viewer window shown | 222 MB | 276 MB |
-| modules loaded at the first image | 702 | 1,357 |
-| installed size | 370 MB | 761 MB |
-| packages installed | 31 | 106 |
-| direct dependencies | 14 | 37 |
-| Python modules in the package | 451 | 524 |
+## More
 
-## Planned
+[Architecture](docs/architecture.md) ·
+[How the copy is made](docs/development.md) ·
+[Benchmarks](docs/benchmarks.md) ·
+[Patches for napari](docs/upstream.md) ·
+[Shortcuts](docs/shortcuts.md) ·
+[Changelog](CHANGELOG.md) ·
+[napari issue 5940](https://github.com/napari/napari/issues/5940)
 
-- Monthly resync with napari's main branch ([SYNC.md](SYNC.md)); the
-  weekly upstream report opens an issue when napari's core changes.
-- A PyPI release ([docs/release.md](docs/release.md)), after asking the
-  napari maintainers about the name; TestPyPI until then.
-
-Status and roadmap: [docs/roadmap.md](docs/roadmap.md).
-
-## Not planned
-
-[Plugins](https://napari.org/stable/plugins/index.html) (readers, writers,
-sample data, widgets: `layer.save()` raises `NotImplementedError`, and
-`viewer.open()` and `open_sample()` serve only the formats and samples in
-the table above), the
-[IPython console](https://napari.org/stable/getting_started/viewer.html#console-button),
-[menus and the command palette](https://napari.org/stable/getting_started/viewer.html#main-menu-or-top-bar-menu),
-the [preferences dialog](https://napari.org/stable/guides/preferences.html#the-preferences-dialog)
-and [settings file](https://napari.org/stable/guides/preferences.html#where-settings-are-stored),
-the welcome screen. For anything else, load the data with your own
-library (tifffile, imageio, zarr, ...) and pass arrays to `add_image`.
-
-Issue list: [docs/backlog.md](docs/backlog.md). Shortcuts:
-[docs/shortcuts.md](docs/shortcuts.md). How the copy is made and kept in
-sync: [docs/development.md](docs/development.md), [SYNC.md](SYNC.md).
+Derived from napari under the BSD-3 licence; napari's copyright is kept
+in [LICENSE](LICENSE).
