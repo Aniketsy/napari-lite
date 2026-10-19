@@ -1,10 +1,12 @@
 # Changelog
 
-## 0.1.0 (unreleased)
+## 0.1.0
 
 First release. The napari viewer core (layers, canvas, dims sliders),
 copied from napari commit `ebfc4a0a` (0.9.0.dev) by `tools/vendor.py`,
-importable as `napari_lite` without napari installed.
+importable as `napari_lite` without napari installed; around it a
+view-only canvas, a viewer without a window and a viewer in a notebook
+cell.
 
 ### Added
 

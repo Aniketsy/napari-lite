@@ -18,9 +18,22 @@ about the name.
 
 ## Every release
 
-1. Write the version's section in `CHANGELOG.md` and set `version` in
-   `pyproject.toml` (the workflow refuses a tag that does not match it).
-2. Make sure CI is green on `main`, then commit and tag:
+1. Write the version's section in `CHANGELOG.md`, headed by the version
+   alone (`## 0.1.0`, no "unreleased"), and set `version` in
+   `pyproject.toml`. The workflow refuses a tag that does not match the
+   version, or whose section is missing or still unreleased
+   (`tools/release_notes.py`, which also gives the release its notes).
+   To check the build before tagging:
+
+   ```
+   python -m pip install build twine
+   python -m build
+   python -m twine check dist/*
+   python tools/release_notes.py 0.1.0
+   ```
+
+2. Make sure CI is green on `main`, then commit and tag (or merge the
+   release changes through a pull request, then tag `main`):
 
    ```
    git commit -am "Release 0.1.0"
@@ -31,7 +44,8 @@ about the name.
 3. The `Release` workflow builds the sdist and the wheel, checks them with
    `twine check`, installs the wheel and imports it without napari,
    publishes to TestPyPI and creates the GitHub release with the files
-   attached. Check the install:
+   attached and the version's `CHANGELOG.md` section as its notes. Check
+   the install:
 
    ```
    pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple "napari-lite[pyqt6]==0.1.0"

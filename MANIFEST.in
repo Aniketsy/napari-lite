@@ -1,0 +1,9 @@
+# The sdist also carries what napari-lite's own tests (tests/) read besides
+# the package: the tools and examples they run, the benchmark scripts, the
+# changelog, the vendor record and the test data.  docs/ stays on GitHub.
+include CHANGELOG.md SYNC.md VENDORED.json
+graft tests/data
+graft tools
+graft examples
+graft bench
+global-exclude *.py[cod]
