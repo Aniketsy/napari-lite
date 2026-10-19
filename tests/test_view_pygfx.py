@@ -1,14 +1,28 @@
 # napari-lite: own code
 """The pygfx renderer of the view-only canvas: the same model drawn by a
-second renderer, and the proof that the split holds."""
+second renderer, and the proof that the split holds.
+
+These need a GPU.  The software adapters of CI runners do not do: with
+lavapipe (Linux) wgpu aborts the interpreter while releasing its objects,
+with WARP (Windows) a Qt canvas renders blank and uint16 textures sample
+differently.  So they run where pygfx is installed and, on CI, only with
+``NAPARI_LITE_PYGFX_TESTS=1``.
+"""
 
 from __future__ import annotations
+
+import os
 
 import numpy as np
 import pytest
 
 from napari_lite.view import Renderer, View
 
+if os.environ.get('CI') and not os.environ.get('NAPARI_LITE_PYGFX_TESTS'):
+    pytest.skip(
+        'pygfx tests need a GPU; set NAPARI_LITE_PYGFX_TESTS=1 to run them',
+        allow_module_level=True,
+    )
 pytest.importorskip('pygfx')
 wgpu = pytest.importorskip('wgpu')
 try:

@@ -66,7 +66,7 @@ pyside6 = [
     "PySide6>=6.7,!=6.11.0,!=6.11.1",
 ]
 # viewing dask arrays (opportunistic cache, task fusion off while slicing)
-pygfx = ["pygfx>=0.17"]  # the second renderer of napari_lite.view
+pygfx = ["pygfx>=0.17"]  # the second renderer of napari_lite.view; its tests need a GPU
 dask = ["dask[array]>=2022.1.1", "cachey>=0.2.1", "psutil>=5.9.4"]
 # spline interpolation of shapes (interpolation_order > 1)
 scipy = ["scipy>=1.14.0"]
@@ -83,7 +83,6 @@ fast-shapes = [
 tiff = ["tifffile>=2022.7.28"]
 all = ["napari-lite[pyqt6,features,scipy,dask,fast-shapes,tiff]"]
 dev = [
-    "napari-lite[pygfx]",  # the second renderer of napari_lite.view
     "pytest>=8.3.5",
     "pytest-qt>=4.4.0",
     "hypothesis>=6.8.0",
