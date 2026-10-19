@@ -4,9 +4,10 @@
 The renderer draws into a canvas nobody shows; ``screenshot`` and
 ``export_figure`` give the pictures.  With the vispy renderer, on Linux
 vispy's ``egl`` application draws with no Qt in the process (text then
-needs freetype-py, the ``headless`` extra); elsewhere, and on Linux
-without EGL, the Qt binding draws into a widget kept off the screen, so
-Qt is imported but no window appears.
+needs freetype-py, the ``headless`` extra; PyOpenGL is set to EGL for it,
+``utils/_pyopengl.py``); elsewhere, and on Linux without EGL, the Qt
+binding draws into a widget kept off the screen, so Qt is imported but
+no window appears.
 """
 
 from __future__ import annotations
@@ -49,7 +50,7 @@ class HeadlessCanvas:
         renderer: str | Callable[..., CanvasBackend] = 'default',
     ) -> None:
         self.viewer = viewer
-        self.backend: CanvasBackend = resolve_renderer(renderer)(
+        self.backend: CanvasBackend = resolve_renderer(renderer, gui=None)(
             viewer, gui=None
         )
 

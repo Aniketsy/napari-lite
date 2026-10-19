@@ -96,13 +96,18 @@ def _qt_binding() -> str:
 
 def available_offscreen_app() -> str | None:
     """The first of vispy's offscreen applications that loads here (the
-    EGL library is found), or None."""
+    EGL library is found) and that PyOpenGL draws with too (napari makes
+    its GL calls through PyOpenGL: ``utils/_pyopengl.py``), or None."""
     from vispy import app
+
+    from napari_lite.utils._pyopengl import pyopengl_on_egl
 
     for name in OFFSCREEN_APPS:
         try:
             app.Application(name)
         except Exception:  # vispy says why, in a RuntimeError
+            continue
+        if name == 'egl' and not pyopengl_on_egl():
             continue
         return name
     return None
@@ -138,8 +143,9 @@ def use_vispy_app(kind: Literal['qt', 'offscreen']) -> str:
             except ImportError as e:
                 raise ImportError(
                     "a headless viewer needs vispy's egl application "
-                    '(Linux: the EGL library) or a '
-                    'Qt binding to draw with; none of them is available'
+                    '(Linux: the EGL library, and PyOpenGL on EGL: '
+                    'PYOPENGL_PLATFORM=egl) or a Qt binding to draw with; '
+                    'none of them is available'
                 ) from e
     app.use_app(name)
     return name

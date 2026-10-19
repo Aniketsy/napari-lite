@@ -95,7 +95,7 @@ class JupyterWindow:
         self._owner = OwnerThread()
         self._task_status_manager = TaskStatusManager()
         self.backend: CanvasBackend = resolve_renderer(
-            'default' if renderer is None else renderer
+            'default' if renderer is None else renderer, gui='jupyter'
         )(viewer, gui='jupyter')
         canvas = self.backend.native
         if not isinstance(canvas, widgets.Widget):

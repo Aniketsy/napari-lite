@@ -94,8 +94,8 @@ class Viewer(ViewerModel):
             resolve_renderer,
         )
 
-        renderer_class = resolve_renderer(renderer)
         name = resolve_gui(gui)
+        renderer_class = resolve_renderer(renderer, gui=name)
         if name is None:
             from napari_lite.backends.headless import HeadlessCanvas
 

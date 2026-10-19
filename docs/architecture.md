@@ -87,7 +87,7 @@ and where the two meet.
   defaults, kept in memory; the dark and light themes; the action manager
   and key types the key bindings need.
 - **Dependencies**. Qt, vispy and numpy do the heavy lifting; the rest
-  are small. 75 files in the package are own code; everything else,
+  are small. 76 files in the package are own code; everything else,
   napari's tests included, is copied.
 
 ## How napari's code gets in

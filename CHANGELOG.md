@@ -24,10 +24,12 @@ importable as `napari_lite` without napari installed.
   renderer draws off screen; `screenshot` and `export_figure` work,
   `window` and `show` say there is none. On Linux with EGL vispy's
   `egl` application draws with no Qt in the process (text then needs
-  freetype-py: the `headless` extra); elsewhere the Qt binding draws
-  into a widget kept off the screen. `NAPARI_LITE_GUI=none` makes it the
-  default, and `napari_lite.run()` returns at once when no viewer has a
-  window.
+  freetype-py: the `headless` extra). napari's GL calls go through
+  PyOpenGL, so napari-lite sets `PYOPENGL_PLATFORM=egl` for that, unless
+  the variable is set or PyOpenGL is imported already. Elsewhere the Qt
+  binding draws into a widget kept off the screen. `NAPARI_LITE_GUI=none`
+  makes it the default, and `napari_lite.run()` returns at once when no
+  viewer has a window.
 - `napari_lite.backends`: the two contracts between the model, the
   renderer and the front end (issue #5). `CanvasBackend` is what a
   front end uses from a renderer (`native`, `screenshot`, `key_event`,

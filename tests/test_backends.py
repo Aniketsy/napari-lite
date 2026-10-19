@@ -7,6 +7,8 @@ environment variable."""
 from __future__ import annotations
 
 import gc
+import os
+import sys
 from types import SimpleNamespace
 from typing import ClassVar
 
@@ -226,6 +228,75 @@ def test_egl_resize_events_once_per_change() -> None:
     assert sizes == [(800, 600), (200, 100)]
     assert scene_canvas._backend.surfaces == 1
     assert scene_canvas._backend._double_click_supported
+
+
+def test_pyopengl_is_readied_for_egl(monkeypatch) -> None:
+    """napari's GL calls go through PyOpenGL, which settles its platform
+    when first imported (GLX on Linux) and then refuses functions in an
+    EGL context (Linux CI caught it).  Before vispy is imported for a
+    viewer without a Qt window, PYOPENGL_PLATFORM becomes egl on Linux
+    where vispy's egl application loads; nothing changes otherwise."""
+    from napari_lite.utils import _pyopengl
+
+    variable = _pyopengl.PLATFORM_VARIABLE
+    # recorded first, so that the variable is as before once the test ends
+    # (delenv records nothing for a variable that is not set)
+    monkeypatch.setenv(variable, 'set by the test')
+
+    def outcome(**conditions) -> str | None:
+        monkeypatch.delenv(variable, raising=False)
+        monkeypatch.setattr(sys, 'platform', conditions.get('os', 'linux'))
+        monkeypatch.delitem(sys.modules, 'OpenGL.platform', raising=False)
+        if conditions.get('pyopengl_loaded'):
+            monkeypatch.setitem(sys.modules, 'OpenGL.platform', object())
+        if conditions.get('variable'):
+            monkeypatch.setenv(variable, conditions['variable'])
+        chosen = conditions.get('app_chosen', False)
+        loads = conditions.get('egl_loads', True)
+        monkeypatch.setattr(_pyopengl, '_vispy_app_chosen', lambda: chosen)
+        monkeypatch.setattr(_pyopengl, '_egl_app_loads', lambda: loads)
+        _pyopengl.prefer_egl()
+        return os.environ.get(variable)
+
+    assert outcome() == 'egl'
+    assert outcome(os='win32') is None
+    assert outcome(os='darwin') is None
+    assert outcome(egl_loads=False) is None
+    assert outcome(app_chosen=True) is None
+    assert outcome(pyopengl_loaded=True) is None
+    assert outcome(variable='glx') == 'glx'
+
+
+def test_the_renderer_lookup_readies_pyopengl(monkeypatch) -> None:
+    """Only for vispy, and only without a Qt window."""
+    from napari_lite.utils import _pyopengl
+
+    calls = []
+    monkeypatch.setattr(_pyopengl, 'prefer_egl', lambda: calls.append(1))
+    monkeypatch.delenv(backends.RENDERER_ENVIRONMENT_VARIABLE, raising=False)
+    for gui, expected in [(None, 1), ('jupyter', 1), ('qt', 0)]:
+        calls.clear()
+        backends.resolve_renderer('default', gui=gui)
+        assert len(calls) == expected, gui
+    calls.clear()
+    backends.resolve_renderer(FakeBackend, gui=None)
+    backends.resolve_renderer('vispy')  # a Qt window by default
+    assert calls == []
+
+
+def test_egl_drawing_needs_pyopengl_on_egl(monkeypatch) -> None:
+    """vispy's egl application is chosen only where PyOpenGL draws
+    through EGL too; otherwise Qt draws off the screen."""
+    from vispy import app
+
+    from napari_lite._vispy._qt_optional import available_offscreen_app
+    from napari_lite.utils import _pyopengl
+
+    monkeypatch.setattr(app, 'Application', lambda name: None)  # it loads
+    monkeypatch.setattr(_pyopengl, 'pyopengl_on_egl', lambda: False)
+    assert available_offscreen_app() is None
+    monkeypatch.setattr(_pyopengl, 'pyopengl_on_egl', lambda: True)
+    assert available_offscreen_app() == 'egl'
 
 
 def test_the_vispy_renderer_draws_for_its_front_ends_only() -> None:

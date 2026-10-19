@@ -254,11 +254,16 @@ def get_renderer(name: str) -> Callable[..., CanvasBackend]:
 
 def resolve_renderer(
     renderer: str | Callable[..., CanvasBackend],
+    *,
+    gui: str | None = 'qt',
 ) -> Callable[..., CanvasBackend]:
     """The renderer class ``Viewer(renderer=...)`` means: the class (or
     factory) itself when one is given, else the one named.  ``'default'``
     reads ``NAPARI_LITE_RENDERER`` and is ``'vispy'`` when that is not
-    set or empty."""
+    set or empty.  ``gui`` is the toolkit the renderer will draw for: for
+    a viewer without a Qt window (None, ``'jupyter'``) vispy may draw with
+    its egl application, and PyOpenGL is readied for it before vispy is
+    first imported (``utils/_pyopengl.py``)."""
     if callable(renderer):
         return renderer
     name = renderer
@@ -266,4 +271,8 @@ def resolve_renderer(
         name = (
             os.environ.get(RENDERER_ENVIRONMENT_VARIABLE) or DEFAULT_RENDERER
         )
+    if gui in (None, 'jupyter') and name.strip().lower() == 'vispy':
+        from napari_lite.utils._pyopengl import prefer_egl
+
+        prefer_egl()
     return get_renderer(name)
