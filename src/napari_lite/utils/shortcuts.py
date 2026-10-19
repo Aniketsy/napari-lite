@@ -2,6 +2,8 @@ from napari_lite.utils._keys import KeyBinding, KeyCode, KeyCombo, KeyMod
 
 _default_shortcuts: dict[str, list[KeyCombo | KeyCode]] = {
     # viewer
+    # napari-lite's own: Ctrl+O opens files with the built-in reader
+    'napari-lite:open_files': [KeyMod.CtrlCmd | KeyCode.KeyO],
     'napari:toggle_console_visibility': [
         KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KeyC
     ],

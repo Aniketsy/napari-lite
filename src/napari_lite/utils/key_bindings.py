@@ -40,7 +40,7 @@ from types import EllipsisType, MethodType
 from typing import Union
 
 from napari_lite.utils._keys import KeyBinding, KeyCode, KeyMod
-from vispy.util import keys
+from napari_lite.utils import _key_names as keys
 
 KeyBindingLike = Union[KeyBinding, str, int]
 Keymap = Mapping[KeyBinding | EllipsisType, Callable | EllipsisType]

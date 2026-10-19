@@ -115,6 +115,12 @@ class QtLayerControlsContainer(QStackedWidget):
         viewer.layers.selection.events.changed.connect(self._populate)
         viewer.dims.events.ndisplay.connect(self._on_ndisplay_changed)
         viewer.events.theme.connect(self._on_viewer_theme_changed)
+        # layers that exist before the container (a viewer model handed to
+        # a QtCanvas or QtViewer with layers in it) sent no `inserted`
+        for layer in self.viewer.layers:
+            self._add_layer(layer)
+        if self.viewer.layers:
+            self._populate()
 
     def _on_ndisplay_changed(self, event: Event) -> None:
         """Responds to a change in the dimensionality displayed in the canvas.
@@ -198,10 +204,13 @@ class QtLayerControlsContainer(QStackedWidget):
         event : Event
             Event with the target layer at `event.value`.
         """
+        self._add_layer(event.value)
+
+    def _add_layer(self, layer: Layer) -> None:
+        """Create and register the controls of ``layer``."""
         always_dynamic = get_settings().experimental.dynamic_layer_controls
         if always_dynamic:
             return
-        layer = event.value
         controls = create_qt_layer_controls(layer)
         controls.ndisplay = self.viewer.dims.ndisplay
         self.addWidget(controls)

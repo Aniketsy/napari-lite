@@ -9,8 +9,10 @@ from typing import (
 )
 
 import numpy as np
-import pint
 from pydantic import field_validator, model_validator
+
+# napari-lite: unit names and the PIXEL stand-in, without pint
+from napari_lite.utils.transforms._units import get_units_from_name
 
 from napari_lite.utils.events import EventedModel
 from napari_lite.utils.misc import argsort, reorder_after_dim_reduction
@@ -107,7 +109,7 @@ class Dims(EventedModel):
     margin_left: tuple[float, ...] = ()
     margin_right: tuple[float, ...] = ()
     point: tuple[float, ...] = ()
-    units: tuple[pint.Unit, ...] | None = None
+    units: tuple[Any, ...] | None = None  # pint units, or PIXEL stand-ins
 
     last_used: int = 0
 
@@ -129,6 +131,16 @@ class Dims(EventedModel):
     )
     def _as_tuple(v):
         return tuple(v)
+
+    @field_validator('units', mode='before')
+    def _units_from_names(v):
+        # napari-lite: names, pint units and the PIXEL stand-in; a layer
+        # without units never needs pint.  None stays None (layers that
+        # disagree), as in napari.
+        if v is None:
+            return None
+        units = get_units_from_name(v)
+        return units if isinstance(units, tuple) else (units,)
 
     @field_validator('range', mode='before')
     def _check_ranges(ranges):

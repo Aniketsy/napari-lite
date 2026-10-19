@@ -4,7 +4,7 @@ import types
 
 import pytest
 from napari_lite.utils._keys import KeyBinding, KeyCode, KeyMod
-from vispy.util import keys
+from napari_lite.utils import _key_names as keys
 
 from napari_lite.utils import key_bindings
 from napari_lite.utils.key_bindings import (

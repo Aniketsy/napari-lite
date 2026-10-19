@@ -4,8 +4,12 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Generic, Literal, TypeAlias, TypeVar, cast
 
 import numpy as np
-import pint
 from vispy.visuals.transforms import MatrixTransform
+
+from napari_lite.utils._units import get_unit_registry
+
+if TYPE_CHECKING:
+    import pint
 
 from napari_lite._vispy.utils.gl import BLENDING_MODES, get_max_texture_sizes
 from napari_lite.layers import Layer
@@ -110,10 +114,14 @@ class VispyBaseLayer(ABC, Generic[_L]):
         This is used to convert the layer's data coordinates to world coordinates.
         If self._units is None, then the scale is set to 1 for all dimensions.
         """
-        reg = pint.get_application_registry()
+        pairs = list(zip(self._world_units, self.layer.units, strict=False))
+        # napari-lite: equal units (the pixel default) scale by one, no pint
+        if all(x == y for x, y in pairs):
+            self._world_to_layer_units_scale = (1,) * len(pairs)
+            return
+        reg = get_unit_registry()
         self._world_to_layer_units_scale = tuple(
-            reg.get_base_units(y)[0] / reg.get_base_units(x)[0]
-            for x, y in zip(self._world_units, self.layer.units, strict=False)
+            reg.get_base_units(y)[0] / reg.get_base_units(x)[0] for x, y in pairs
         )
 
     @property

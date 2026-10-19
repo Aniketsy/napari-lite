@@ -13,10 +13,16 @@ from contextlib import contextmanager
 from functools import cached_property
 from typing import TYPE_CHECKING, Any, ClassVar, Self, TypeVar
 
-import magicgui as mgui
+import sys
+
 import numpy as np
-import pint
-from npe2 import plugin_manager as pm
+
+# napari-lite: PIXEL stands in for pint's pixel unit (utils/_pixel.py); no
+# magicgui here (optional, registered at the end if it is loaded), no npe2
+from napari_lite.utils._pixel import PIXEL
+
+if TYPE_CHECKING:
+    import pint
 
 from napari_lite.layers.base._base_constants import (
     BaseProjectionMode,
@@ -331,7 +337,6 @@ class _LayerSlicingState(ABC):
             self._set_loaded(True)
 
 
-@mgui.register_type(choices=get_layers, return_callback=add_layer_to_viewer)
 class Layer(KeymapProvider, MousemapProvider, ABC, metaclass=PostInit):
     """Base layer class.
 
@@ -2196,24 +2201,16 @@ class Layer(KeymapProvider, MousemapProvider, ABC, metaclass=PostInit):
             components['layer_name'] = self.name
             components['layer_base'] = os.path.basename(self.source.path or '')
             components['source_type'] = 'plugin'
-            try:
-                components['plugin'] = pm.get_manifest(
-                    self.source.reader_plugin
-                ).display_name
-            except KeyError:
-                components['plugin'] = self.source.reader_plugin
+            # napari-lite: no npe2 plugin manager, so no display name lookup
+            components['plugin'] = self.source.reader_plugin
             return components
 
         if self.source.sample:
             components['layer_name'] = self.name
             components['layer_base'] = self.name
             components['source_type'] = 'sample'
-            try:
-                components['plugin'] = pm.get_manifest(
-                    self.source.sample[0]
-                ).display_name
-            except KeyError:
-                components['plugin'] = self.source.sample[0]
+            # napari-lite: no npe2 plugin manager, so no display name lookup
+            components['plugin'] = self.source.sample[0]
             return components
 
         if self.source.widget:
@@ -2257,7 +2254,7 @@ class Layer(KeymapProvider, MousemapProvider, ABC, metaclass=PostInit):
             np.all(np.asarray(self.scale) == 1)
             and np.all(np.asarray(self.translate) == 0)
             and all(
-                unit == pint.get_application_registry().pixel
+                unit == PIXEL
                 for unit in self.units
             )
         )
@@ -2504,4 +2501,15 @@ class Layer(KeymapProvider, MousemapProvider, ABC, metaclass=PostInit):
         raise NotImplementedError
 
 
-mgui.register_type(type_=list[Layer], return_callback=add_layers_to_viewer)
+# napari-lite: magicgui is optional and never imported by the core.  napari
+# decorates ``Layer`` with ``@mgui.register_type(...)`` and registers
+# ``list[Layer]`` at import; here both happen only if magicgui is loaded.
+if 'magicgui' in sys.modules:
+    import magicgui as mgui
+
+    mgui.register_type(
+        Layer, choices=get_layers, return_callback=add_layer_to_viewer
+    )
+    mgui.register_type(
+        type_=list[Layer], return_callback=add_layers_to_viewer
+    )

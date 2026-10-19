@@ -26,8 +26,8 @@ import warnings
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
-from vispy.color import ColorArray, get_color_dict, get_color_names
-from vispy.color.color_array import _string_to_rgb
+from napari_lite.utils._colors import ColorArray, get_color_dict, get_color_names
+from napari_lite.utils._colors import _string_to_rgb
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence

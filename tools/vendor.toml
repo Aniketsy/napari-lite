@@ -118,6 +118,21 @@ data = [
 # that provides the pure-python triangulation backend
 "TriangulationBackend.pure_python: 'napari'," = "TriangulationBackend.pure_python: 'napari_lite',"
 
+# The model without vispy (issue #5, docs/backends.md): what the copied
+# core takes from vispy that is not drawing comes from own modules instead.
+# Colour names and parsing (utils/_colors.py); key names
+# (utils/_key_names.py); an exception helper and vispy's colormaps
+# imported only when used (utils/_vispy_optional.py).  Each key is a
+# whole import line, so the copied code's own lines do not change.  The
+# shapes triangulation is in the [[rewrite]] block below; utils/_tube.py
+# is own code and imports its rotation matrix from _vispy_optional.
+"from vispy.color import ColorArray, get_color_dict, get_color_names" = "from napari_lite.utils._colors import ColorArray, get_color_dict, get_color_names"
+"from vispy.color.color_array import _string_to_rgb" = "from napari_lite.utils._colors import _string_to_rgb"
+"from vispy.color import get_color_names" = "from napari_lite.utils._colors import get_color_names"
+"from vispy.util import keys" = "from napari_lite.utils import _key_names as keys"
+"from vispy.util.logs import _handle_exception" = "from napari_lite.utils._vispy_optional import _handle_exception"
+"from vispy.color import (\n    Color,\n    ColorArray,\n    Colormap as VispyColormap," = "from napari_lite.utils._vispy_optional import (\n    Color,\n    ColorArray,\n    Colormap as VispyColormap,"
+
 # Multi-line substitutions, same effect as ``literal_rewrites``; the tool
 # fails when ``old`` no longer occurs anywhere, so a napari change that
 # moves the code is noticed at resync.  Keep the ``# napari-lite:`` comment
@@ -361,7 +376,7 @@ new = '''
         return self._id2idxs[track_id]
 '''
 
-# pandas is the ``features`` extra (backlog issue 28).  layers/utils/
+# pandas is the ``features`` extra.  layers/utils/
 # layer_utils.py keeps napari's code for real feature tables; a stand-in
 # (layers/utils/_lite_features.py) serves a layer without features in a
 # process that has not imported pandas, and the layers hand out a real
@@ -604,19 +619,21 @@ new = '''
 # layers/shapes/_shapes_utils.py: one helper function imported from
 # vispy.visuals.tube loaded every vispy visual and vispy.gloo (about 100
 # modules) with the layers, before any canvas exists; utils/_tube.py is a
-# copy of that function.
+# copy of that function.  The triangulation is vispy's too, imported when
+# a shapes layer first needs it (utils/_vispy_optional.py), so the layers
+# import without vispy (issue 5).
 [[rewrite]]
 old = '''
 from vispy.geometry import Triangulation
 from vispy.visuals.tube import _frenet_frames
 '''
 new = '''
-from vispy.geometry import Triangulation
-
-# napari-lite: own copy of vispy's helper (utils/_tube.py); importing
-# vispy.visuals.tube would load every vispy visual and vispy.gloo with the
-# layers, before any canvas exists
+# napari-lite: an own copy of vispy's tube helper (utils/_tube.py) and
+# vispy's triangulation imported when first used (utils/_vispy_optional.py):
+# importing vispy.visuals.tube would load every vispy visual and vispy.gloo
+# with the layers, before any canvas exists
 from napari_lite.utils._tube import _frenet_frames
+from napari_lite.utils._vispy_optional import Triangulation
 '''
 
 # components/viewer_model.py and _qt/qthreading.py: ``progress`` (and tqdm
@@ -737,4 +754,593 @@ new = '''
             # replace them rather than fail
             text = text.encode(encoding, errors='replace').decode(encoding)
         print(text)  # noqa: T201
+'''
+
+# _qt/layer_controls/qt_layer_controls_container.py: the container made
+# controls only for layers inserted after it existed, so a viewer model that
+# already had layers (QtCanvas(viewer) or napari's QtViewer(viewer) for
+# embedding) raised KeyError in _populate on the first selection change.
+# Existing layers are added at construction, through _add_layer, which
+# _add now calls for inserted ones.  Upstream: docs/upstream.md, patch 5.
+[[rewrite]]
+old = '''
+        viewer.events.theme.connect(self._on_viewer_theme_changed)
+'''
+new = '''
+        viewer.events.theme.connect(self._on_viewer_theme_changed)
+        # layers that exist before the container (a viewer model handed to
+        # a QtCanvas or QtViewer with layers in it) sent no `inserted`
+        for layer in self.viewer.layers:
+            self._add_layer(layer)
+        if self.viewer.layers:
+            self._populate()
+'''
+
+[[rewrite]]
+old = '''
+        always_dynamic = get_settings().experimental.dynamic_layer_controls
+        if always_dynamic:
+            return
+        layer = event.value
+        controls = create_qt_layer_controls(layer)
+'''
+new = '''
+        self._add_layer(event.value)
+
+    def _add_layer(self, layer: Layer) -> None:
+        """Create and register the controls of ``layer``."""
+        always_dynamic = get_settings().experimental.dynamic_layer_controls
+        if always_dynamic:
+            return
+        controls = create_qt_layer_controls(layer)
+'''
+
+# utils/shortcuts.py: napari-lite's own key binding, Ctrl+O for the file
+# dialog in front of the built-in reader (qt/_viewer_actions.py), joins
+# napari's defaults so bind_shortcuts_from_settings binds it.
+[[rewrite]]
+old = '''
+    # viewer
+    'napari:toggle_console_visibility': [
+'''
+new = '''
+    # viewer
+    # napari-lite's own: Ctrl+O opens files with the built-in reader
+    'napari-lite:open_files': [KeyMod.CtrlCmd | KeyCode.KeyO],
+    'napari:toggle_console_visibility': [
+'''
+
+# layers/base/base.py without magicgui and npe2.  These four rules carry
+# edits that lived on main by hand since the first shims (issues 07 and
+# 08): magicgui is optional and registered only when it is already loaded,
+# and the status shows the plugin name without npe2's manifest lookup.
+[[rewrite]]
+old = '''
+@mgui.register_type(choices=get_layers, return_callback=add_layer_to_viewer)
+class Layer(KeymapProvider, MousemapProvider, ABC, metaclass=PostInit):
+'''
+new = '''
+class Layer(KeymapProvider, MousemapProvider, ABC, metaclass=PostInit):
+'''
+
+[[rewrite]]
+old = '''
+            try:
+                components['plugin'] = pm.get_manifest(
+                    self.source.reader_plugin
+                ).display_name
+            except KeyError:
+                components['plugin'] = self.source.reader_plugin
+'''
+new = '''
+            # napari-lite: no npe2 plugin manager, so no display name lookup
+            components['plugin'] = self.source.reader_plugin
+'''
+
+[[rewrite]]
+old = '''
+            try:
+                components['plugin'] = pm.get_manifest(
+                    self.source.sample[0]
+                ).display_name
+            except KeyError:
+                components['plugin'] = self.source.sample[0]
+'''
+new = '''
+            # napari-lite: no npe2 plugin manager, so no display name lookup
+            components['plugin'] = self.source.sample[0]
+'''
+
+[[rewrite]]
+old = '''
+mgui.register_type(type_=list[Layer], return_callback=add_layers_to_viewer)
+'''
+new = '''
+# napari-lite: magicgui is optional and never imported by the core.  napari
+# decorates ``Layer`` with ``@mgui.register_type(...)`` and registers
+# ``list[Layer]`` at import; here both happen only if magicgui is loaded.
+if 'magicgui' in sys.modules:
+    import magicgui as mgui
+
+    mgui.register_type(
+        Layer, choices=get_layers, return_callback=add_layer_to_viewer
+    )
+    mgui.register_type(
+        type_=list[Layer], return_callback=add_layers_to_viewer
+    )
+'''
+
+# pint off the first image.  napari gives every layer pint's pixel unit by
+# default, which imports pint (0.6 s, 340 modules) and builds its registry
+# (0.2 s) at the first image of every session: half of the first image.
+# utils/_pixel.py has PIXEL, a str equal to 'pixel' and to pint's pixel unit
+# that hands anything else to pint on demand; the rules below hand it out
+# as the default, keep pint behind TYPE_CHECKING where it is only a type,
+# and take the equal-units fast paths (the pixel default, in most sessions)
+# without a registry.  pint arrives with the first real unit.  The registry
+# then comes from pint's definition cache (utils/_units.py).
+
+# --- utils/transforms/_units.py: names to units
+[[rewrite]]
+old = '''
+from collections.abc import Sequence
+from contextlib import suppress
+from typing import (
+    Union,
+    overload,
+)
+
+import pint
+
+UnitsLike = Union[None, str, pint.Unit, Sequence[str | pint.Unit]]
+UnitsInfo = Union[None, pint.Unit, tuple[pint.Unit, ...]]
+'''
+new = '''
+from collections.abc import Sequence
+from contextlib import suppress
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Union,
+    overload,
+)
+
+# napari-lite: PIXEL stands in for pint's pixel unit (utils/_pixel.py), so
+# a layer without units never imports pint
+from napari_lite.utils._pixel import PIXEL, PixelUnit, is_pint_unit
+
+if TYPE_CHECKING:
+    import pint
+
+    UnitsLike = Union[None, str, pint.Unit, Sequence[str | pint.Unit]]
+    UnitsInfo = Union[None, pint.Unit, tuple[pint.Unit, ...]]
+else:
+    UnitsLike = Any
+    UnitsInfo = Any
+'''
+
+[[rewrite]]
+old = '''
+def get_unit_from_name(unit: str | pint.Unit | None) -> pint.Unit:
+    if isinstance(unit, pint.Unit):
+        return unit
+    if unit is None:
+        return pint.get_application_registry().pixel
+    if isinstance(unit, str):
+        with suppress(pint.errors.UndefinedUnitError):
+            return pint.get_application_registry().parse_expression(unit).units
+'''
+new = '''
+def get_unit_from_name(unit: str | pint.Unit | None) -> pint.Unit:
+    if isinstance(unit, PixelUnit) or is_pint_unit(unit):
+        return unit
+    if unit is None or unit == 'pixel':
+        return PIXEL
+    if isinstance(unit, str):
+        import pint
+
+        from napari_lite.utils._units import get_unit_registry
+
+        with suppress(pint.errors.UndefinedUnitError):
+            return get_unit_registry().parse_expression(unit).units
+'''
+
+# --- utils/transforms/transforms.py: the default units of a transform
+[[rewrite]]
+old = '''
+import numpy.typing as npt
+import pint
+# napari-lite: identity and pipe (utils/_toolz.py); toolz is not a dependency
+'''
+new = '''
+import numpy.typing as npt
+
+# napari-lite: PIXEL stands in for pint's pixel unit (utils/_pixel.py); pint
+# is imported with the first real unit
+from napari_lite.utils._pixel import PIXEL, PixelUnit, is_pint_unit
+
+if TYPE_CHECKING:
+    import pint
+# napari-lite: identity and pipe (utils/_toolz.py); toolz is not a dependency
+'''
+
+[[rewrite]]
+old = '''
+        self._units = (pint.get_application_registry().pixel,) * ndim
+'''
+new = '''
+        self._units = (PIXEL,) * ndim
+'''
+
+[[rewrite]]
+old = '''
+        units = get_units_from_name(units)
+        if isinstance(units, pint.Unit):
+            units = (units,) * self.ndim
+'''
+new = '''
+        units = get_units_from_name(units)
+        if isinstance(units, PixelUnit) or is_pint_unit(units):
+            units = (units,) * self.ndim
+'''
+
+[[rewrite]]
+old = '''
+        return tuple(np.multiply(self.scale, self.units))
+'''
+new = '''
+        # napari-lite: float times unit, so the PIXEL stand-in asks pint for
+        # a quantity (numpy would read it as a string)
+        return tuple(
+            float(s) * u for s, u in zip(self.scale, self.units, strict=True)
+        )
+'''
+
+# --- layers/base/base.py
+[[rewrite]]
+old = '''
+import magicgui as mgui
+import numpy as np
+import pint
+from npe2 import plugin_manager as pm
+'''
+new = '''
+import sys
+
+import numpy as np
+
+# napari-lite: PIXEL stands in for pint's pixel unit (utils/_pixel.py); no
+# magicgui here (optional, registered at the end if it is loaded), no npe2
+from napari_lite.utils._pixel import PIXEL
+
+if TYPE_CHECKING:
+    import pint
+'''
+
+[[rewrite]]
+old = '''
+                unit == pint.get_application_registry().pixel
+'''
+new = '''
+                unit == PIXEL
+'''
+
+# --- components/layerlist.py: common units of the layers
+[[rewrite]]
+old = '''
+import numpy as np
+import pint
+
+from napari_lite.components.dims import RangeTuple
+'''
+new = '''
+import numpy as np
+
+from napari_lite.components.dims import RangeTuple
+from napari_lite.utils._units import get_unit_registry
+
+if TYPE_CHECKING:
+    import pint
+'''
+
+[[rewrite]]
+old = '''
+        if not layers_extent:
+            return None
+
+        reg = pint.get_application_registry()
+        units = ()
+'''
+new = '''
+        if not layers_extent:
+            return None
+
+        # napari-lite: identical units, the pixel default of every layer in
+        # most sessions, need no registry and no pint
+        longest = max((extent.units for extent in layers_extent), key=len)
+        if not longest:
+            return None  # pragma: no cover
+        if all(
+            u == v
+            for extent in layers_extent
+            for u, v in zip(extent.units[::-1], longest[::-1], strict=False)
+        ):
+            return tuple(longest)
+        reg = get_unit_registry()
+        units = ()
+'''
+
+# --- components/dims.py: the units field takes names, pint units and PIXEL
+[[rewrite]]
+old = '''
+import numpy as np
+import pint
+from pydantic import field_validator, model_validator
+'''
+new = '''
+import numpy as np
+from pydantic import field_validator, model_validator
+
+# napari-lite: unit names and the PIXEL stand-in, without pint
+from napari_lite.utils.transforms._units import get_units_from_name
+'''
+
+[[rewrite]]
+old = '''
+    units: tuple[pint.Unit, ...] | None = None
+'''
+new = '''
+    units: tuple[Any, ...] | None = None  # pint units, or PIXEL stand-ins
+'''
+
+[[rewrite]]
+old = '''
+    def _as_tuple(v):
+        return tuple(v)
+'''
+new = '''
+    def _as_tuple(v):
+        return tuple(v)
+
+    @field_validator('units', mode='before')
+    def _units_from_names(v):
+        # napari-lite: names, pint units and the PIXEL stand-in; a layer
+        # without units never needs pint.  None stays None (layers that
+        # disagree), as in napari.
+        if v is None:
+            return None
+        units = get_units_from_name(v)
+        return units if isinstance(units, tuple) else (units,)
+'''
+
+# --- layers/utils/stack_utils.py
+[[rewrite]]
+old = '''
+import numpy as np
+import pint
+
+from napari_lite.layers import Image
+'''
+new = '''
+import numpy as np
+
+from napari_lite.layers import Image
+from napari_lite.utils._pixel import PIXEL
+'''
+
+[[rewrite]]
+old = '''
+        meta['units'] = (pint.get_application_registry().pixel,) + meta[
+'''
+new = '''
+        meta['units'] = (PIXEL,) + meta[
+'''
+
+# --- layers/utils/_slice_input.py: unit scaling of the slice transform
+[[rewrite]]
+old = '''
+import numpy as np
+import pint
+
+from napari_lite.utils.misc import reorder_after_dim_reduction
+'''
+new = '''
+import numpy as np
+
+from napari_lite.utils._units import get_unit_registry
+from napari_lite.utils.misc import reorder_after_dim_reduction
+'''
+
+[[rewrite]]
+old = '''
+    layer_units = data_to_world.units
+    if len(world_units) < len(layer_units):
+        return data_to_world
+
+    reg = pint.get_application_registry()
+'''
+new = '''
+    layer_units = data_to_world.units
+    if len(world_units) < len(layer_units):
+        return data_to_world
+
+    # napari-lite: equal units (the pixel default) scale by one: no registry
+    if all(
+        x == y
+        for x, y in zip(
+            world_units[-len(layer_units) :], layer_units, strict=True
+        )
+    ):
+        return data_to_world
+    reg = get_unit_registry()
+'''
+
+# --- _vispy/layers/base.py: world to layer unit scale
+[[rewrite]]
+old = '''
+import numpy as np
+import pint
+from vispy.visuals.transforms import MatrixTransform
+'''
+new = '''
+import numpy as np
+from vispy.visuals.transforms import MatrixTransform
+
+from napari_lite.utils._units import get_unit_registry
+
+if TYPE_CHECKING:
+    import pint
+'''
+
+[[rewrite]]
+old = '''
+        reg = pint.get_application_registry()
+        self._world_to_layer_units_scale = tuple(
+            reg.get_base_units(y)[0] / reg.get_base_units(x)[0]
+            for x, y in zip(self._world_units, self.layer.units, strict=False)
+        )
+'''
+new = '''
+        pairs = list(zip(self._world_units, self.layer.units, strict=False))
+        # napari-lite: equal units (the pixel default) scale by one, no pint
+        if all(x == y for x, y in pairs):
+            self._world_to_layer_units_scale = (1,) * len(pairs)
+            return
+        reg = get_unit_registry()
+        self._world_to_layer_units_scale = tuple(
+            reg.get_base_units(y)[0] / reg.get_base_units(x)[0] for x, y in pairs
+        )
+'''
+
+# --- _vispy/overlays/scale_bar.py: quantities only while the bar is shown
+[[rewrite]]
+old = '''
+import numpy as np
+import pint
+
+from napari_lite._vispy.overlays.base import ViewerOverlayMixin, VispyCanvasOverlay
+from napari_lite._vispy.visuals.scale_bar import ScaleBar
+from napari_lite.utils._units import PREFERRED_VALUES
+'''
+new = '''
+import numpy as np
+
+from napari_lite._vispy.overlays.base import ViewerOverlayMixin, VispyCanvasOverlay
+from napari_lite._vispy.visuals.scale_bar import ScaleBar
+from napari_lite.utils._pixel import PIXEL
+from napari_lite.utils._units import PREFERRED_VALUES, get_unit_registry
+
+if TYPE_CHECKING:
+    import pint
+'''
+
+[[rewrite]]
+old = '''
+        self._unit = pint.Quantity('1 pixel')
+'''
+new = '''
+        # napari-lite: the unit itself; the _unit property makes napari's
+        # quantity when it is read, so a hidden bar never imports pint
+        self._unit_raw = PIXEL
+'''
+
+[[rewrite]]
+old = '''
+        if self.viewer.layers.units is not None:
+            units = np.array(self.viewer.layers.units)[
+                list(self.viewer.dims.displayed)
+            ]
+            if any(
+                u.dimensionality != units[0].dimensionality for u in units[1:]
+            ):
+'''
+new = '''
+        if self.viewer.layers.units is not None:
+            all_units = self.viewer.layers.units
+            units = [all_units[i] for i in self.viewer.dims.displayed]
+            # napari-lite: no numpy array of units (it would turn the PIXEL
+            # stand-in into a plain string), and no dimensionality check for
+            # equal units, which would ask pint
+            if any(u != units[0] for u in units[1:]) and any(
+                u.dimensionality != units[0].dimensionality for u in units[1:]
+            ):
+'''
+
+[[rewrite]]
+old = '''
+            unit = units[-1]
+        else:
+            unit = pint.get_application_registry()('dimensionless')
+        self._unit = unit * 1  # convert unit to quantity
+        self._on_size_or_zoom_change()
+'''
+new = '''
+            unit = units[-1]
+        else:
+            unit = None  # dimensionless, made by _unit when it is read
+        self._unit_raw = unit
+        self._on_size_or_zoom_change()
+
+    @property
+    def _unit(self):
+        """The unit as a quantity of one, as napari keeps it; pint is
+        imported on the first read, when the bar is shown."""
+        unit = self._unit_raw
+        if unit is None:
+            unit = get_unit_registry()('dimensionless')
+        return 1 * unit
+'''
+
+[[rewrite]]
+old = '''
+    def _on_size_or_zoom_change(self) -> None:
+        """Update length based on scale bar size and zoom."""
+
+        scale = 1 / self.viewer.scene.camera.zoom
+'''
+new = '''
+    def _on_size_or_zoom_change(self) -> None:
+        """Update length based on scale bar size and zoom."""
+        # napari-lite: nothing to compute while hidden, and no pint for it;
+        # _on_visible_change comes here when the bar is shown
+        if not self.overlay.visible:
+            return
+
+        scale = 1 / self.viewer.scene.camera.zoom
+'''
+
+# --- utils/_units.py: the registry from pint's definition cache
+[[rewrite]]
+old = '''
+    https://github.com/napari/napari/pull/2617#issuecomment-827747792
+    """
+    import pint
+
+    return pint.get_application_registry()
+'''
+new = '''
+    https://github.com/napari/napari/pull/2617#issuecomment-827747792
+    """
+    import pint
+
+    registry = pint.get_application_registry()
+    # napari-lite: the first registry of the process is built from pint's
+    # definition cache (0.02 s against 0.2 s of parsing); a registry made
+    # elsewhere before is used as it is
+    inner = getattr(registry, '_registry', None)  # None: a plain registry
+    if inner is not None and type(inner).__name__ == 'LazyRegistry':
+        from pathlib import Path
+
+        from napari_lite.utils._platformdirs import user_cache_dir
+
+        cache = Path(user_cache_dir()) / 'pint'
+        try:
+            cache.mkdir(parents=True, exist_ok=True)
+            pint.set_application_registry(
+                pint.UnitRegistry(cache_folder=str(cache))
+            )
+        except Exception:  # an unwritable cache: the default registry
+            pint.set_application_registry(pint.UnitRegistry())
+        registry = pint.get_application_registry()
+    return registry
 '''

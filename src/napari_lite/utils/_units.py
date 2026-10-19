@@ -38,4 +38,23 @@ def get_unit_registry() -> 'pint.UnitRegistry':
     """
     import pint
 
-    return pint.get_application_registry()
+    registry = pint.get_application_registry()
+    # napari-lite: the first registry of the process is built from pint's
+    # definition cache (0.02 s against 0.2 s of parsing); a registry made
+    # elsewhere before is used as it is
+    inner = getattr(registry, '_registry', None)  # None: a plain registry
+    if inner is not None and type(inner).__name__ == 'LazyRegistry':
+        from pathlib import Path
+
+        from napari_lite.utils._platformdirs import user_cache_dir
+
+        cache = Path(user_cache_dir()) / 'pint'
+        try:
+            cache.mkdir(parents=True, exist_ok=True)
+            pint.set_application_registry(
+                pint.UnitRegistry(cache_folder=str(cache))
+            )
+        except Exception:  # an unwritable cache: the default registry
+            pint.set_application_registry(pint.UnitRegistry())
+        registry = pint.get_application_registry()
+    return registry
