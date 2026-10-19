@@ -22,6 +22,7 @@ from napari_lite._vispy._qt_optional import (
     FontInfo,
     QtFontManager,
     qthrottled,
+    vispy_app_is_qt,
 )
 from napari_lite._vispy.camera import VispyCamera
 from napari_lite._vispy.mouse_event import NapariMouseEvent
@@ -201,8 +202,10 @@ class VispyCanvas:
 
         self._font_info = FontInfo(face=font_family, font_manager=font_manager)
         self.viewer = viewer
+        # napari-lite: vispy's egl application (the headless and notebook
+        # viewers on Linux) has no vsync and refuses it (docs/backends.md)
         self._scene_canvas = NapariSceneCanvas(
-            *args, keys=None, vsync=True, **kwargs
+            *args, keys=None, vsync=vispy_app_is_qt(), **kwargs
         )
 
         self.view: ViewBox = self.central_widget.add_view(border_width=0)
