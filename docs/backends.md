@@ -152,6 +152,17 @@ rebuild the issue warns about, in another form.
   job, where vispy runs on Mesa's EGL and freetype-py renders text.
   Without Qt the overlays' text sizes are estimates from the font
   size, not measured.
+- Step 3 done (branch `fix-5`): `CanvasBackend` written down in
+  `napari_lite.backends` from the front end's side (`native`,
+  `screenshot`, `key_event`, `close`; made as `Renderer(viewer, gui=,
+  parent=)`), `get_renderer` with the built-in `'vispy'` and the
+  entry-point group `napari_lite.renderers`, `NAPARI_LITE_RENDERER`;
+  `Viewer(renderer=...)`, `Window(renderer=...)` and
+  `QtCanvas(renderer=...)` pass it through. `QtCanvas` and the
+  headless canvas touch nothing of vispy any more; `tests/
+  test_backends.py` runs the viewer, with a window and without, on a
+  fake renderer that records the calls. vispy's application is chosen
+  by the vispy renderer itself from `gui`. No visual change.
 
 ## The plan, step by step
 

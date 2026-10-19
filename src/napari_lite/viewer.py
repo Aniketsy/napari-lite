@@ -5,8 +5,9 @@ Same constructor and methods as napari's ``Viewer`` where napari-lite has
 the feature: ``title``, ``ndisplay``, ``order``, ``axis_labels``, ``show``;
 ``window``, ``screenshot``, ``export_figure``, ``show``, ``close``,
 ``close_all``.  There is no console, so ``update_console`` is absent.
-``gui`` picks the front end (``napari_lite.backends``): the Qt window by
-default, or none at all (``gui=None``: screenshots only).
+``gui`` picks the front end and ``renderer`` the renderer
+(``napari_lite.backends``): the Qt window and vispy by default; no window
+at all with ``gui=None`` (screenshots only).
 """
 
 from __future__ import annotations
@@ -18,9 +19,11 @@ from napari_lite.components.viewer_model import ViewerModel
 from napari_lite.utils.events.event_utils import disconnect_events
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     import numpy as np
 
-    from napari_lite.backends import Window
+    from napari_lite.backends import CanvasBackend, Window
     from napari_lite.backends.headless import HeadlessCanvas
 
 __all__ = ['Viewer', 'current_viewer']
@@ -52,6 +55,11 @@ class Viewer(ViewerModel):
         ``window`` and ``show`` do not. By default ``'default'``: what the
         environment variable ``NAPARI_LITE_GUI`` says (``'qt'``,
         ``'none'``, or a name), and ``'qt'`` when it is not set.
+    renderer : str or callable, optional
+        What draws the layers: ``'vispy'``, the name of a renderer another
+        package registers, or the renderer class itself. By default
+        ``'default'``: what ``NAPARI_LITE_RENDERER`` says, and vispy when
+        it is not set.
     """
 
     _window: Window | None = None
@@ -68,6 +76,7 @@ class Viewer(ViewerModel):
         show: bool = True,
         show_welcome_screen: bool = False,
         gui: str | None = 'default',
+        renderer: str | Callable[..., CanvasBackend] = 'default',
     ) -> None:
         super().__init__(
             title=title,
@@ -75,17 +84,24 @@ class Viewer(ViewerModel):
             order=order,
             axis_labels=axis_labels,
         )
-        from napari_lite.backends import get_gui, resolve_gui
+        from napari_lite.backends import (
+            get_gui,
+            resolve_gui,
+            resolve_renderer,
+        )
 
+        renderer_class = resolve_renderer(renderer)
         name = resolve_gui(gui)
         if name is None:
             from napari_lite.backends.headless import HeadlessCanvas
 
-            self._headless = HeadlessCanvas(self)
+            self._headless = HeadlessCanvas(self, renderer=renderer_class)
         else:
             # the toolkit (Qt by default) is imported here, when the first
             # Viewer is created
-            self._window = get_gui(name)(self, show=show)
+            self._window = get_gui(name)(
+                self, show=show, renderer=renderer_class
+            )
         self._instances.add(self)
 
     def __new__(cls, *args: Any, **kwargs: Any) -> Viewer:

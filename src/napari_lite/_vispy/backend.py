@@ -3,12 +3,14 @@
 wiring between model and canvas that napari keeps in its ``QtViewer``
 (docs/backends.md).
 
-A front end builds one ``VispyBackend`` and puts its ``native`` widget
-somewhere, or nowhere: ``QtCanvas`` (``qt/canvas.py``) with its own
-widget as the parent, the headless viewer (``backends/headless.py``)
-with none.  The front end selects vispy's application first
-(``_qt_optional.use_vispy_app``).  Step 3 of issue 5 writes down the
-``CanvasBackend`` contract this satisfies.
+The built-in renderer behind the ``CanvasBackend`` contract
+(``napari_lite.backends``).  A front end builds one and puts its
+``native`` widget somewhere, or nowhere: ``QtCanvas`` (``qt/canvas.py``)
+with ``gui='qt'`` and its own widget as the parent, the headless viewer
+(``backends/headless.py``) with ``gui=None``.  vispy's application is
+chosen here from ``gui``: the Qt binding, or an offscreen one (egl,
+osmesa) where it exists and otherwise the Qt binding with the widget
+kept off the screen.
 """
 
 from __future__ import annotations
@@ -24,6 +26,8 @@ from napari_lite._vispy import VispyCanvas, create_vispy_layer
 from napari_lite._vispy._qt_optional import (
     default_font_family,
     default_font_manager,
+    use_vispy_app,
+    vispy_app_is_qt,
 )
 from napari_lite.settings import get_settings
 from napari_lite.utils.key_bindings import KeymapHandler
@@ -46,6 +50,10 @@ class VispyBackend:
     ----------
     viewer : ViewerModel
         The model to draw.  Layers added to it later appear too.
+    gui : str or None
+        The front end: ``'qt'`` (vispy draws through the Qt binding in
+        use) or None for no window (an offscreen application where one
+        exists, else the Qt binding with the widget kept off the screen).
     parent : QWidget, optional
         The Qt parent of the canvas widget; None for a top-level widget,
         or when vispy runs without Qt.
@@ -62,6 +70,8 @@ class VispyBackend:
     canvas : VispyCanvas
         napari's canvas (``canvas.native`` is the widget, or the
         offscreen canvas backend).
+    app_name : str
+        vispy's application backend: the Qt binding, 'egl' or 'osmesa'.
     key_map_handler : KeymapHandler
         Keys go to the active layer first, then to the viewer.
     """
@@ -70,13 +80,28 @@ class VispyBackend:
         self,
         viewer: ViewerModel,
         *,
+        gui: str | None = None,
         parent: Any = None,
         key_map_handler: KeymapHandler | None = None,
         font_manager: Any = None,
         font_family: str | None = None,
         size: tuple[int, int] | None = None,
     ) -> None:
+        if gui not in ('qt', None):
+            raise ValueError(
+                f"the vispy renderer draws for the 'qt' front end or for "
+                f'none; not for {gui!r}'
+            )
         self.viewer = viewer
+        self.gui = gui
+        self.app_name = use_vispy_app('qt' if gui == 'qt' else 'offscreen')
+        # no window, but Qt draws: a widget shown off the screen has its
+        # GL context and appears nowhere (a never-shown one draws black)
+        self._offscreen_widget = gui is None and vispy_app_is_qt()
+        if self._offscreen_widget:
+            from napari_lite._qt.qt_event_loop import get_qapp
+
+            get_qapp()  # the widget needs the application to exist
         self.key_map_handler = key_map_handler or KeymapHandler()
         settings = get_settings()
         self.canvas: VispyCanvas = VispyCanvas(
@@ -107,11 +132,32 @@ class VispyBackend:
         self._on_active_change()
         for layer in viewer.layers:
             self.add_layer(layer)
+        if self._offscreen_widget:
+            from qtpy.QtCore import Qt
+
+            self.native.setAttribute(
+                Qt.WidgetAttribute.WA_DontShowOnScreen, True
+            )
+            self.native.show()
 
     @property
     def native(self) -> Any:
-        """The canvas widget (Qt), or vispy's offscreen canvas backend."""
+        """The canvas widget (Qt), or vispy's offscreen canvas backend
+        (which no front end places)."""
         return self.canvas.native
+
+    def key_event(self, event: Any, *, release: bool = False) -> None:
+        """A Qt key event from the front end's widget, handed to the
+        canvas's key handling as if the canvas had received it."""
+        scene_canvas = self.canvas._scene_canvas
+        if not hasattr(scene_canvas._backend, '_keyEvent'):
+            return  # no Qt widget, so no Qt key events either
+        emitter = (
+            scene_canvas.events.key_release
+            if release
+            else scene_canvas.events.key_press
+        )
+        scene_canvas._backend._keyEvent(emitter, event)
 
     @property
     def layer_to_visual(self) -> dict[Layer, VispyBaseLayer]:
@@ -274,4 +320,6 @@ class VispyBackend:
         """Let the model go and release the canvas."""
         for emitter, callback in self._connections:
             emitter.disconnect(callback)
+        if self._offscreen_widget:
+            self.native.hide()
         self.canvas.delete()

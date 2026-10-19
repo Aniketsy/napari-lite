@@ -2,15 +2,24 @@
 """The seams between the model, the renderer and the front end (issue 5,
 docs/backends.md).
 
-``Window`` is what a ``Viewer`` asks of its window, whichever toolkit
-draws it.  ``get_gui`` finds a front end by name: the built-in ``'qt'``,
-or one that another package registers under the entry-point group
-``napari_lite.guis`` as a callable ``Window(viewer, *, show=True)``
-returning an object with the ``Window`` methods.  ``Viewer(gui=...)``
-takes the name, ``None`` for no window at all (``backends.headless``),
-or by default whatever ``NAPARI_LITE_GUI`` says.
+Two contracts, both Protocols, no base classes:
 
-The renderer side, the ``CanvasBackend`` contract, follows in step 3.
+- ``CanvasBackend`` is a renderer: it draws a ``ViewerModel`` and keeps
+  itself in step with it (layers, camera, dims, overlays); a front end
+  only places its ``native`` widget, asks for screenshots, hands it key
+  events and closes it.  The built-in one is ``'vispy'``
+  (``napari_lite._vispy.backend.VispyBackend``).
+- ``Window`` is what a ``Viewer`` asks of its window, whichever toolkit
+  draws it.  The built-in front end is ``'qt'``.
+
+``get_renderer`` and ``get_gui`` find them by name: a built-in name costs
+no lookup; any other is looked for in the entry-point groups
+``napari_lite.renderers`` and ``napari_lite.guis``, where another
+package registers a ``Renderer(viewer, *, gui=None, parent=None)`` or a
+``Window(viewer, *, show=True, renderer=None)``.  ``Viewer(renderer=...,
+gui=...)`` takes the names (or the classes themselves), ``gui=None`` for
+no window at all (``backends.headless``), and by default whatever
+``NAPARI_LITE_RENDERER`` and ``NAPARI_LITE_GUI`` say.
 """
 
 from __future__ import annotations
@@ -30,13 +39,20 @@ if TYPE_CHECKING:
 
 __all__ = [
     'DEFAULT_GUI',
+    'DEFAULT_RENDERER',
     'ENTRY_POINT_GROUP',
     'GUI_ENVIRONMENT_VARIABLE',
     'NO_GUI_NAMES',
+    'RENDERER_ENTRY_POINT_GROUP',
+    'RENDERER_ENVIRONMENT_VARIABLE',
+    'CanvasBackend',
     'Window',
     'available_guis',
+    'available_renderers',
     'get_gui',
+    'get_renderer',
     'resolve_gui',
+    'resolve_renderer',
 ]
 
 GUI_ENVIRONMENT_VARIABLE = 'NAPARI_LITE_GUI'
@@ -45,18 +61,66 @@ DEFAULT_GUI = 'qt'
 # what NAPARI_LITE_GUI (or Viewer(gui=...)) may say for "no window"
 NO_GUI_NAMES = ('none', 'headless', 'off')
 
+RENDERER_ENVIRONMENT_VARIABLE = 'NAPARI_LITE_RENDERER'
+RENDERER_ENTRY_POINT_GROUP = 'napari_lite.renderers'
+DEFAULT_RENDERER = 'vispy'
+
 _BUILTIN_GUIS: dict[str, tuple[str, str]] = {
     'qt': ('napari_lite._qt.qt_main_window', 'Window'),
 }
+_BUILTIN_RENDERERS: dict[str, tuple[str, str]] = {
+    'vispy': ('napari_lite._vispy.backend', 'VispyBackend'),
+}
+
+
+@runtime_checkable
+class CanvasBackend(Protocol):
+    """What a front end uses from a renderer.
+
+    A renderer is made as ``Renderer(viewer, *, gui=None, parent=None)``:
+    ``gui`` is the front end's name (``'qt'``, or None for no window),
+    ``parent`` the front end's parent widget when it has one.  From then
+    on the renderer follows the model by itself: layers added and
+    removed, the camera, the dims, the overlays, the canvas size.
+    """
+
+    native: Any
+    """The widget to place (the toolkit's), or None without a window."""
+
+    def screenshot(
+        self,
+        *,
+        size: tuple[int, int] | None = None,
+        scale: float = 1.0,
+        fit_to_data_extent: bool = False,
+        device_pixel_ratio: float = 1.0,
+    ) -> np.ndarray:
+        """The canvas drawn now, as an RGBA uint8 array: at ``size``
+        (height, width, in pixels) times ``scale``, or, with
+        ``fit_to_data_extent``, sized around the data with one canvas
+        pixel per data pixel."""
+        ...
+
+    def key_event(self, event: Any, *, release: bool = False) -> None:
+        """A key event the front end's widget received outside the
+        canvas (the toolkit's event object), for the viewer's key
+        bindings."""
+        ...
+
+    def close(self) -> None:
+        """Let the model go and release the canvas."""
+        ...
 
 
 @runtime_checkable
 class Window(Protocol):
     """What a ``Viewer`` uses from its window.
 
-    A front end's window takes ``(viewer, *, show=True)`` and gives these
-    methods; the Qt one is ``napari_lite._qt.qt_main_window.Window``.
-    The two task-status hooks are what thread workers report to.
+    A front end's window takes ``(viewer, *, show=True, renderer=None)``
+    (``renderer``: the renderer class to draw with, None for the
+    default) and gives these methods; the Qt one is
+    ``napari_lite._qt.qt_main_window.Window``.  The two task-status
+    hooks are what thread workers report to.
     """
 
     def show(self, *, block: bool = False) -> None: ...
@@ -134,30 +198,64 @@ def resolve_gui(gui: str | None) -> str | None:
     return name
 
 
-def _registered_guis() -> dict[str, Any]:
+def _registered(group: str) -> dict[str, Any]:
     return {
         entry_point.name.lower(): entry_point
-        for entry_point in entry_points(group=ENTRY_POINT_GROUP)
+        for entry_point in entry_points(group=group)
     }
+
+
+def _lookup(
+    name: str, builtin: dict[str, tuple[str, str]], group: str, what: str
+) -> Any:
+    """The class registered as ``name``: built in (no lookup), or among
+    the entry points of ``group``."""
+    key = name.strip().lower()
+    if key in builtin:
+        module_name, attribute = builtin[key]
+        return getattr(importlib.import_module(module_name), attribute)
+    registered = _registered(group)
+    if key in registered:
+        return registered[key].load()
+    known = ', '.join(repr(n) for n in [*builtin, *registered])
+    raise ValueError(
+        f'no {what} named {name!r}; known: {known} (built in, then '
+        f'registered under the entry-point group {group!r})'
+    )
 
 
 def available_guis() -> list[str]:
     """The front ends by name: the built-in ones, then the registered."""
-    return [*_BUILTIN_GUIS, *_registered_guis()]
+    return [*_BUILTIN_GUIS, *_registered(ENTRY_POINT_GROUP)]
 
 
 def get_gui(name: str) -> Callable[..., Window]:
-    """The window class (or factory) of the front end ``name``.  Built-in
-    names cost no lookup; others are found among the entry points."""
-    key = name.strip().lower()
-    if key in _BUILTIN_GUIS:
-        module_name, attribute = _BUILTIN_GUIS[key]
-        return getattr(importlib.import_module(module_name), attribute)
-    registered = _registered_guis()
-    if key in registered:
-        return registered[key].load()
-    known = ', '.join(repr(n) for n in [*_BUILTIN_GUIS, *registered])
-    raise ValueError(
-        f'no front end named {name!r}; known: {known} (built in, then '
-        f'registered under the entry-point group {ENTRY_POINT_GROUP!r})'
+    """The window class (or factory) of the front end ``name``."""
+    return _lookup(name, _BUILTIN_GUIS, ENTRY_POINT_GROUP, 'front end')
+
+
+def available_renderers() -> list[str]:
+    """The renderers by name: the built-in one, then the registered."""
+    return [*_BUILTIN_RENDERERS, *_registered(RENDERER_ENTRY_POINT_GROUP)]
+
+
+def get_renderer(name: str) -> Callable[..., CanvasBackend]:
+    """The renderer class (or factory) called ``name``."""
+    return _lookup(
+        name, _BUILTIN_RENDERERS, RENDERER_ENTRY_POINT_GROUP, 'renderer'
     )
+
+
+def resolve_renderer(
+    renderer: str | Callable[..., CanvasBackend],
+) -> Callable[..., CanvasBackend]:
+    """The renderer class ``Viewer(renderer=...)`` means: the class (or
+    factory) itself when one is given, else the one named.  ``'default'``
+    reads ``NAPARI_LITE_RENDERER`` and is ``'vispy'`` when that is not
+    set."""
+    if callable(renderer):
+        return renderer
+    name = renderer
+    if name == 'default':
+        name = os.environ.get(RENDERER_ENVIRONMENT_VARIABLE, DEFAULT_RENDERER)
+    return get_renderer(name)

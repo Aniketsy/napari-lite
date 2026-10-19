@@ -14,14 +14,23 @@ importable as `napari_lite` without napari installed.
   `osmesa` application draws with no Qt in the process (text needs
   `freetype-py` there); elsewhere the Qt binding draws into a widget
   kept off the screen. `NAPARI_LITE_GUI=none` makes it the default.
-- `napari_lite.backends`: the `Window` contract (what a `Viewer` uses
-  from its window), `get_gui` with the built-in `'qt'` and the
-  entry-point group `napari_lite.guis` for other front ends, and
-  `Viewer(gui=...)` to choose; the vispy renderer's wiring to the model
-  is `VispyBackend` (`_vispy/backend.py`), which `QtCanvas` and the
-  headless viewer share. The copied vispy canvas imports without Qt:
-  the throttle, the fonts, the text metrics and the cursor are Qt's
-  only when vispy runs on Qt (`_vispy/_qt_optional.py`).
+- `napari_lite.backends`: the two contracts between the model, the
+  renderer and the front end (issue #5). `CanvasBackend` is what a
+  front end uses from a renderer (`native`, `screenshot`, `key_event`,
+  `close`; the renderer follows the model by itself); `Window` is what
+  a `Viewer` uses from its window. `get_renderer` and `get_gui` find
+  them by name: the built-in `'vispy'` and `'qt'`, or names other
+  packages register under the entry-point groups
+  `napari_lite.renderers` and `napari_lite.guis`.
+  `Viewer(renderer=..., gui=...)` and `QtCanvas(renderer=...)` take a
+  name or the class itself; `NAPARI_LITE_RENDERER` and
+  `NAPARI_LITE_GUI` set the defaults. The vispy renderer is
+  `VispyBackend` (`_vispy/backend.py`), the wiring to the model that
+  `QtCanvas` held; `QtCanvas` and the headless viewer only use the
+  contract, so a test runs both on a renderer that is not vispy. The
+  copied vispy canvas imports without Qt: the throttle, the fonts, the
+  text metrics and the cursor are Qt's only when vispy runs on Qt
+  (`_vispy/_qt_optional.py`).
 - The model (viewer model, layers, dims, camera, events) imports and
   runs without vispy and without Qt (issue #5): the colour names and
   parsing, the key names, a rotation matrix and an exception helper that

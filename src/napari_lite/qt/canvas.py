@@ -12,35 +12,34 @@ layout:
     canvas.show()
 
 ``napari_lite.Viewer`` wraps one in a window (issue 13).  The drawing
-itself is ``VispyBackend``'s (``_vispy/backend.py``), which the headless
-viewer uses without any widget (docs/backends.md).
+itself is a renderer's, behind the ``CanvasBackend`` contract
+(``napari_lite.backends``): vispy by default, the one ``renderer`` names
+otherwise; the headless viewer uses the same renderer without any widget
+(docs/backends.md).
 """
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-from typing import TYPE_CHECKING, ClassVar, Literal
+from collections.abc import Callable, Sequence
+from typing import TYPE_CHECKING, Any, ClassVar, Literal
 from weakref import WeakSet
 
 import numpy as np
 from qtpy.QtCore import QCoreApplication, QEvent, Qt
-from qtpy.QtGui import QGuiApplication
+from qtpy.QtGui import QGuiApplication, QImage
 from qtpy.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 from superqt import QElidingLabel
 from superqt.utils import qthrottled
 
 import napari_lite.qt._viewer_actions  # noqa: F401  (re-registers two actions)
-from napari_lite._qt.utils import QImg2array, use_tabular_numerals
+from napari_lite._qt.utils import use_tabular_numerals
 from napari_lite._qt.widgets.qt_dims import QtDims
-from napari_lite._vispy._qt_optional import use_vispy_app
-from napari_lite._vispy.backend import VispyBackend
-from napari_lite._vispy.utils.qt_font import QtFontManager
+from napari_lite.backends import CanvasBackend, resolve_renderer
 from napari_lite.qt._hint import HintRow, QtCanvasHint
 from napari_lite.utils.action_manager import bind_shortcuts_from_settings
 from napari_lite.utils.io import imsave
 
 if TYPE_CHECKING:
-    from contextlib import AbstractContextManager
     from pathlib import Path
 
     from qtpy.QtCore import QObject
@@ -48,7 +47,6 @@ if TYPE_CHECKING:
         QCloseEvent,
         QDragEnterEvent,
         QDropEvent,
-        QImage,
         QKeyEvent,
     )
 
@@ -69,6 +67,15 @@ if TYPE_CHECKING:
     from napari_lite.utils.key_bindings import KeymapHandler
 
 __all__ = ['QtCanvas', 'QtStatusLine']
+
+
+def _array_to_qimage(img: np.ndarray) -> QImage:
+    """An RGBA uint8 array as a QImage that owns its pixels."""
+    rgba: Any = np.ascontiguousarray(img, dtype=np.uint8)
+    height, width = rgba.shape[:2]
+    return QImage(
+        rgba.data, width, height, width * 4, QImage.Format.Format_RGBA8888
+    ).copy()
 
 
 class QtStatusLine(QWidget):
@@ -125,13 +132,17 @@ class QtCanvas(QWidget):
     hint : str
         Text shown in the middle of the canvas while there are no layers
         (default '': nothing; the viewer window passes how to load data).
+    renderer : str or callable
+        The renderer's name or class (``napari_lite.backends``); by
+        default the one ``NAPARI_LITE_RENDERER`` names, else vispy.
 
     Attributes
     ----------
-    backend : VispyBackend
-        The renderer: napari's vispy canvas with the layers kept in step.
-    canvas : VispyCanvas
-        napari's vispy canvas (``canvas.native`` is the Qt widget).
+    backend : CanvasBackend
+        The renderer, with the layers kept in step.
+    canvas : VispyCanvas or None
+        napari's vispy canvas when vispy draws (``canvas.native`` is the
+        Qt widget); None with another renderer.
     dims : QtDims
         The dimension sliders.
     status : QtStatusLine or None
@@ -151,6 +162,7 @@ class QtCanvas(QWidget):
         *,
         show_status: bool = True,
         hint: str = '',
+        renderer: str | Callable[..., CanvasBackend] = 'default',
     ) -> None:
         super().__init__(parent)
         self._instances.add(self)
@@ -162,8 +174,6 @@ class QtCanvas(QWidget):
             True,
         )
         self.viewer = viewer
-        self._font_manager = QtFontManager()
-        self._overlay_font = QGuiApplication.font().family()
         self._controls: QtLayerControlsContainer | None = None
         self._layers: QtLayerList | None = None
         self._layersButtons: QtLayerButtons | None = None
@@ -171,14 +181,10 @@ class QtCanvas(QWidget):
         self._dockLayerList: QtViewerDockWidget | None = None
         self._dockLayerControls: QtViewerDockWidget | None = None
 
-        use_vispy_app('qt')  # vispy draws through the Qt binding in use
-        self.backend = VispyBackend(
-            viewer,
-            parent=self,
-            font_manager=self._font_manager,
-            font_family=self._overlay_font,
+        self.backend: CanvasBackend = resolve_renderer(renderer)(
+            viewer, gui='qt', parent=self
         )
-        self.canvas: VispyCanvas = self.backend.canvas
+        self.canvas: VispyCanvas | None = getattr(self.backend, 'canvas', None)
         self.dims: QtDims = QtDims(viewer.dims)
         self.status: QtStatusLine | None = (
             QtStatusLine(viewer) if show_status else None
@@ -191,14 +197,14 @@ class QtCanvas(QWidget):
         # the hint lies over the canvas widget, outside the layout (a
         # label in the layout would size the canvas by its text):
         # eventFilter keeps it at the canvas widget's geometry
-        self.canvas.native.installEventFilter(self)
+        self.backend.native.installEventFilter(self)
         self._hint.raise_()
         self.setAcceptDrops(True)  # files: dropEvent
 
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 2, 0, 2)
         layout.setSpacing(0)
-        layout.addWidget(self.canvas.native, stretch=1)
+        layout.addWidget(self.backend.native, stretch=1)
         layout.addWidget(self.dims)
         if self.status is not None:
             layout.addWidget(self.status)
@@ -231,12 +237,13 @@ class QtCanvas(QWidget):
 
     @property
     def layer_to_visual(self) -> dict[Layer, VispyBaseLayer]:
-        """Mapping of napari layer to its vispy visual."""
-        return self.backend.layer_to_visual
+        """Mapping of napari layer to its vispy visual (the vispy
+        renderer's; another renderer has no such thing)."""
+        return self.backend.layer_to_visual  # type: ignore[attr-defined]
 
     @property
     def _key_map_handler(self) -> KeymapHandler:
-        return self.backend.key_map_handler
+        return self.backend.key_map_handler  # type: ignore[attr-defined]
 
     # the layer panel: napari's layer list, layer controls, button rows
 
@@ -367,11 +374,11 @@ class QtCanvas(QWidget):
     def eventFilter(self, obj: QObject | None, event: QEvent | None) -> bool:
         """Move the hint with the canvas widget."""
         if (
-            obj == self.canvas.native
+            obj == self.backend.native
             and event is not None
             and event.type() in (QEvent.Type.Resize, QEvent.Type.Move)
         ):
-            self._hint.setGeometry(self.canvas.native.geometry())
+            self._hint.setGeometry(self.backend.native.geometry())
         return super().eventFilter(obj, event)
 
     def _hint_link(self, href: str) -> None:
@@ -433,17 +440,13 @@ class QtCanvas(QWidget):
         """Keys pressed anywhere in the widget go to the canvas key handler."""
         if event is None:
             return
-        self.canvas._scene_canvas._backend._keyEvent(
-            self.canvas._scene_canvas.events.key_press, event
-        )
+        self.backend.key_event(event)
         event.accept()
 
     def keyReleaseEvent(self, event: QKeyEvent | None) -> None:
         if event is None:
             return
-        self.canvas._scene_canvas._backend._keyEvent(
-            self.canvas._scene_canvas.events.key_release, event
-        )
+        self.backend.key_event(event, release=True)
         event.accept()
 
     # screenshots
@@ -471,14 +474,16 @@ class QtCanvas(QWidget):
         fit_to_data_extent : bool
             Size the canvas tightly around the data before capturing.
         """
-        img = QImg2array(
-            self._screenshot(
-                flash=flash,
-                size=size,
-                scale=scale,
-                fit_to_data_extent=fit_to_data_extent,
-            )
+        img = self.backend.screenshot(
+            size=size,
+            scale=scale,
+            fit_to_data_extent=fit_to_data_extent,
+            device_pixel_ratio=self.devicePixelRatio(),
         )
+        if flash:
+            from napari_lite._qt.utils import add_flash_animation
+
+            add_flash_animation(self)
         if path is not None:
             imsave(str(path), img)
         return img
@@ -490,22 +495,14 @@ class QtCanvas(QWidget):
         scale: float = 1.0,
         fit_to_data_extent: bool = False,
     ) -> QImage:
-        with self.backend.resized(
-            size, scale, fit_to_data_extent, self.devicePixelRatio()
-        ):
-            img = self.canvas.screenshot()
-            if flash:
-                from napari_lite._qt.utils import add_flash_animation
-
-                add_flash_animation(self)
-            return img
-
-    def resize_canvas(
-        self, size: tuple[int, int] | None, scale: float
-    ) -> AbstractContextManager[None]:
-        """Temporarily resize the canvas, keeping the camera."""
-        return self.backend.resized(
-            size, scale, device_pixel_ratio=self.devicePixelRatio()
+        """The screenshot as a QImage, for the clipboard and the window."""
+        return _array_to_qimage(
+            self.screenshot(
+                flash=flash,
+                size=size,
+                scale=scale,
+                fit_to_data_extent=fit_to_data_extent,
+            )
         )
 
     def clipboard(self, flash: bool = False) -> None:

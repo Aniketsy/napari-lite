@@ -184,12 +184,18 @@ class _QtMainWindow(QMainWindow):
         viewer: ViewerModel,
         window: Window,
         parent: QWidget | None = None,
+        *,
+        renderer: Any = None,
     ) -> None:
         super().__init__(parent)
         self._ev: QEventLoop | None = None
         self._window = window
         # the status line is the window's status bar, not part of the canvas
-        self._qt_viewer = QtCanvas(viewer, show_status=False)
+        self._qt_viewer = QtCanvas(
+            viewer,
+            show_status=False,
+            renderer='default' if renderer is None else renderer,
+        )
         title, lead, rows = _empty_canvas_hint()
         self._qt_viewer.set_hint(title, rows, lead=lead)
         self.status_thread = _NoThread()
@@ -264,16 +270,25 @@ class Window:
         The viewer shown in the window.
     show : bool
         Show the window right away (default True).
+    renderer : str or callable, optional
+        The renderer's name or class (``napari_lite.backends``); None for
+        the default (``NAPARI_LITE_RENDERER``, else vispy).
     """
 
-    def __init__(self, viewer: ViewerModel, *, show: bool = True) -> None:
+    def __init__(
+        self,
+        viewer: ViewerModel,
+        *,
+        show: bool = True,
+        renderer: Any = None,
+    ) -> None:
         get_qapp()  # create the QApplication if there is none
         self._task_status_manager = TaskStatusManager()
         self._wrapped_dock_widgets: WeakValueDictionary[str, QDockWidget] = (
             WeakValueDictionary()
         )
         self._unnamed_dockwidget_count = 1
-        self._qt_window = _QtMainWindow(viewer, self)
+        self._qt_window = _QtMainWindow(viewer, self, renderer=renderer)
 
         viewer.events.title.connect(self._title_changed)
         viewer.events.theme.connect(self._update_theme)

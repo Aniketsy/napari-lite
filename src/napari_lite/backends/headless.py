@@ -3,23 +3,24 @@
 docs/backends.md).
 
 The renderer draws into a canvas nobody shows; ``screenshot`` and
-``export_figure`` give the pictures.  On Linux vispy's ``egl`` or
-``osmesa`` application draws with no Qt in the process; elsewhere (and
-on Linux without those libraries) the Qt binding draws into a widget
-kept off the screen, so Qt is imported but no window appears.
+``export_figure`` give the pictures.  With the vispy renderer, on Linux
+vispy's ``egl`` or ``osmesa`` application draws with no Qt in the
+process; elsewhere (and on Linux without those libraries) the Qt binding
+draws into a widget kept off the screen, so Qt is imported but no window
+appears.
 """
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
-from napari_lite._vispy._qt_optional import use_vispy_app, vispy_app_is_qt
+from napari_lite.backends import CanvasBackend, resolve_renderer
 from napari_lite.utils.io import imsave
 
 if TYPE_CHECKING:
     import numpy as np
 
-    from napari_lite._vispy.backend import VispyBackend
     from napari_lite.components import ViewerModel
 
 __all__ = ['HeadlessCanvas']
@@ -32,37 +33,26 @@ class HeadlessCanvas:
     ----------
     viewer : ViewerModel
         The model to draw.
+    renderer : str or callable, optional
+        The renderer's name or class (``napari_lite.backends``); by
+        default the one ``NAPARI_LITE_RENDERER`` names, else vispy.
 
     Attributes
     ----------
-    app_name : str
-        vispy's application backend: 'egl' or 'osmesa', or the Qt binding
-        when the widget off the screen is the way to draw here.
-    uses_qt : bool
-        Whether that is a Qt binding.
-    backend : VispyBackend
-        The renderer.
+    backend : CanvasBackend
+        The renderer, made with ``gui=None``.
     """
 
-    def __init__(self, viewer: ViewerModel) -> None:
+    def __init__(
+        self,
+        viewer: ViewerModel,
+        *,
+        renderer: str | Callable[..., CanvasBackend] = 'default',
+    ) -> None:
         self.viewer = viewer
-        self.app_name = use_vispy_app('offscreen')
-        self.uses_qt = vispy_app_is_qt()
-        if self.uses_qt:
-            from napari_lite._qt.qt_event_loop import get_qapp
-
-            get_qapp()  # the widget needs the application to exist
-        from napari_lite._vispy.backend import VispyBackend
-
-        self.backend: VispyBackend = VispyBackend(viewer)
-        if self.uses_qt:
-            # a Qt widget draws once it is shown: shown off the screen, it
-            # has its GL context and no window appears anywhere
-            from qtpy.QtCore import Qt
-
-            native = self.backend.native
-            native.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, True)
-            native.show()
+        self.backend: CanvasBackend = resolve_renderer(renderer)(
+            viewer, gui=None
+        )
 
     def screenshot(
         self,
@@ -92,6 +82,4 @@ class HeadlessCanvas:
 
     def close(self) -> None:
         """Release the canvas."""
-        if self.uses_qt:
-            self.backend.native.hide()
         self.backend.close()

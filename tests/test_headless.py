@@ -66,7 +66,7 @@ def test_headless_viewer_draws_without_a_window(make_headless) -> None:
         _ = viewer.window
     with pytest.raises(AttributeError, match='no window'):
         viewer.show()
-    if viewer._headless.uses_qt:
+    if 'qtpy' in sys.modules:  # Qt draws off the screen: nothing shows
         from qtpy.QtCore import Qt
         from qtpy.QtWidgets import QApplication
 
@@ -213,7 +213,7 @@ WITHOUT_QT = BLOCK_QT + textwrap.dedent(
     figure = viewer.export_figure()
     viewer.close()
     print(json.dumps({
-        'app': viewer._headless.app_name,
+        'app': viewer._headless.backend.app_name,
         'centre': shot[shot.shape[0] // 2, shot.shape[1] // 2].tolist(),
         'figure_shape': list(figure.shape),
         'qt_loaded': any(m.split('.')[0] in BLOCKED for m in sys.modules),
