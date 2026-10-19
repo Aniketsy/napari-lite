@@ -7,6 +7,7 @@ environment variable."""
 from __future__ import annotations
 
 import gc
+from types import SimpleNamespace
 from typing import ClassVar
 
 import numpy as np
@@ -171,6 +172,60 @@ def test_renderer_lookup(monkeypatch) -> None:
         backends.resolve_renderer('default')
     # an explicit choice wins over the environment
     assert backends.resolve_renderer('vispy').__name__ == 'VispyBackend'
+
+
+def test_egl_resize_events_once_per_change() -> None:
+    """vispy's egl backend sends no resize events, so the renderer sends
+    them, once per change.  napari's canvas writes each resize back through
+    the model: the same size again, which must send nothing (vispy refuses
+    a resize event inside another; Linux CI caught it)."""
+    from vispy.util.event import EmitterGroup
+
+    from napari_lite._vispy.backend import VispyBackend
+
+    class EglLikeBackend:
+        """vispy's egl canvas backend, as far as sizes go."""
+
+        def __init__(self) -> None:
+            self._size = (800, 600)
+            self.surfaces = 0
+
+        def _vispy_set_size(self, width: int, height: int) -> None:
+            self._size = (width, height)  # a new surface, no event
+            self.surfaces += 1
+
+        def _vispy_get_size(self) -> tuple[int, int]:
+            return self._size
+
+    class SceneCanvas:
+        def __init__(self) -> None:
+            self._backend = EglLikeBackend()
+            self.events = EmitterGroup(source=self, resize=None)
+
+        @property
+        def size(self) -> tuple[int, int]:
+            return self._backend._vispy_get_size()
+
+        @size.setter
+        def size(self, size: tuple[int, int]) -> None:
+            self._backend._vispy_set_size(*size)
+
+    scene_canvas = SceneCanvas()
+    sizes = []
+
+    def write_back(event) -> None:  # napari's canvas, through the model
+        sizes.append(tuple(event.size))
+        scene_canvas.size = tuple(event.size)
+
+    scene_canvas.events.resize.connect(write_back)
+    renderer = VispyBackend.__new__(VispyBackend)
+    renderer.canvas = SimpleNamespace(_scene_canvas=scene_canvas)
+    renderer._fill_in_for_egl()  # tells the canvas its first size
+    scene_canvas.size = (200, 100)
+    scene_canvas.size = (200, 100)  # the size it has: nothing happens
+    assert sizes == [(800, 600), (200, 100)]
+    assert scene_canvas._backend.surfaces == 1
+    assert scene_canvas._backend._double_click_supported
 
 
 def test_the_vispy_renderer_draws_for_its_front_ends_only() -> None:

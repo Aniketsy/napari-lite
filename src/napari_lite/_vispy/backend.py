@@ -221,14 +221,20 @@ class VispyBackend:
     def _fill_in_for_egl(self) -> None:
         """vispy's egl backend changes its size without a resize event (Qt
         and the others send one): napari keeps the model's canvas size, and
-        vispy lays out the scene, from that event.  It also has no double
-        clicks of its own and makes them from presses, without a position;
-        the notebook widget hands the browser's over instead."""
+        vispy lays out the scene, from that event.  As with Qt, asking for
+        the size the canvas has changes nothing and sends no event: napari
+        writes every resize back to the canvas through the model, and a
+        second resize event inside the first is one vispy refuses.  The
+        backend also has no double clicks of its own and makes them from
+        presses, without a position; the notebook widget hands the
+        browser's over instead."""
         scene_canvas = self.canvas._scene_canvas
         backend = scene_canvas._backend
         set_size = backend._vispy_set_size
 
         def set_size_and_tell(width: int, height: int) -> None:
+            if backend._vispy_get_size() == (width, height):
+                return
             set_size(width, height)
             scene_canvas.events.resize(size=(width, height))
 
