@@ -44,6 +44,7 @@ MODULES = [
     'napari_lite._vispy',
     'napari_lite._qt.widgets.qt_dims',
     'napari_lite._qt.qt_event_loop',
+    'napari_lite.view',
 ]
 
 BLOCKED = {'napari'}

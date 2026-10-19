@@ -41,6 +41,11 @@ with Python 3.11 to 3.13 (PyQt6 or PySide6).
 - **Overlays and output.** Scale bar, axes, text, colorbar, layer names and
   bounding boxes; `screenshot`, `export_figure`, clipboard, `nbscreenshot`
   in Jupyter.
+- **View-only canvas.** `napari_lite.view` draws images and points with
+  contrast limits, colormap, opacity, zoom and a slider per extra axis,
+  with nothing to edit and none of napari's layer code: a small model,
+  a vispy renderer behind it, a Qt widget; `show(image, points)` opens a
+  window (issue #4).
 - **Embedding.** `QtCanvas`: canvas, sliders and status line as one Qt
   widget for your own window; the layer list, controls and button rows
   come on first access (`examples/canvas_only.py`).
