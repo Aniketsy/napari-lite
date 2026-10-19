@@ -13,9 +13,11 @@ its widgets, and this one stays small.
 
 Needs the ``jupyter`` extra: jupyter_rfb and ipywidgets.
 
-Widget callbacks may run on a kernel subshell's thread (JupyterLab sends
-widget messages there); the window hands them to the thread that made
-it, which owns the viewer (``utils/_owner_thread.py``).
+The window's widgets, and the ones docked next to it, have their
+messages handled on the kernel's main shell, the thread that made the
+viewer, also where JupyterLab sends widget messages to a subshell, a
+thread of its own; a callback that still arrives on another thread is
+handed over (``utils/_owner_thread.py``).
 """
 
 from __future__ import annotations
@@ -27,10 +29,16 @@ from collections.abc import Callable, Iterator, Sequence
 from functools import partial
 from typing import TYPE_CHECKING, Any, ClassVar
 
-import ipywidgets as widgets
+try:
+    import ipywidgets as widgets
+except ImportError as e:  # pragma: no cover
+    raise ImportError(
+        "Viewer(gui='jupyter') needs ipywidgets: pip install "
+        "'napari-lite[jupyter]'"
+    ) from e
 
 from napari_lite.backends import CanvasBackend, resolve_renderer
-from napari_lite.utils._owner_thread import OwnerThread
+from napari_lite.utils._owner_thread import OwnerThread, on_main_shell
 from napari_lite.utils.action_manager import bind_shortcuts_from_settings
 from napari_lite.utils.io import imsave
 from napari_lite.utils.task_status import TaskStatusManager
@@ -73,7 +81,9 @@ class JupyterWindow:
         The renderer.
     """
 
-    _instances: ClassVar[list[JupyterWindow]] = []
+    # weak: the list keeps no window alive (ipywidgets keep an open
+    # window's widgets, and so the window, until it is closed)
+    _instances: ClassVar[list[weakref.ref[JupyterWindow]]] = []
 
     def __init__(
         self,
@@ -164,6 +174,9 @@ class JupyterWindow:
             self.widget,
         ]
 
+        # their messages are handled on the kernel's main shell, the
+        # viewer's thread, not on a subshell (utils/_owner_thread.py)
+        on_main_shell(*self._own_widgets)
         self._ndisplay.observe(
             self._owned(self._on_ndisplay_button), names='value'
         )
@@ -192,7 +205,7 @@ class JupyterWindow:
         self._update_ndisplay_button()
         self._rebuild_sliders()
         self._rebuild_layers()
-        JupyterWindow._instances.append(self)
+        JupyterWindow._instances.append(weakref.ref(self))
         if show:
             self.show()
 
@@ -212,7 +225,18 @@ class JupyterWindow:
     @classmethod
     def current_viewer(cls) -> ViewerModel | None:
         """The viewer of the notebook window shown or activated last."""
-        return cls._instances[-1].viewer if cls._instances else None
+        for ref in reversed(cls._instances):
+            window = ref()
+            if window is not None:
+                return window.viewer
+        return None
+
+    def _forget(self) -> None:
+        JupyterWindow._instances[:] = [
+            ref
+            for ref in JupyterWindow._instances
+            if ref() is not None and ref() is not self
+        ]
 
     def _ipython_display_(self) -> None:
         from IPython.display import display
@@ -300,6 +324,7 @@ class JupyterWindow:
             rows.append(row)
             built += [slider, play, link, row]
             sliders[axis] = slider
+        on_main_shell(*built)
         old = self._slider_widgets
         self._slider_widgets = built
         self._sliders_by_axis = sliders
@@ -361,6 +386,7 @@ class JupyterWindow:
             built += [box, button, row]
             boxes[key] = box
             buttons[key] = button
+        on_main_shell(*built)
         old = self._row_widgets
         self._row_widgets = built
         self._visible_boxes = boxes
@@ -420,10 +446,10 @@ class JupyterWindow:
 
     def activate(self) -> None:
         """Make this the window ``current_viewer()`` returns."""
-        instances = JupyterWindow._instances
-        if self in instances:
-            instances.remove(self)
-            instances.append(self)
+        if self._closed:
+            return
+        self._forget()
+        JupyterWindow._instances.append(weakref.ref(self))
 
     def close(self) -> None:
         """Close the widgets and release the renderer."""
@@ -442,8 +468,7 @@ class JupyterWindow:
         self._docks = {}
         _close(self._slider_widgets + self._row_widgets + self._own_widgets)
         self.backend.close()
-        if self in JupyterWindow._instances:
-            JupyterWindow._instances.remove(self)
+        self._forget()
 
     def resize(self, width: int, height: int) -> None:
         """Size the canvas, in CSS pixels; the browser then reports the
@@ -525,7 +550,10 @@ class JupyterWindow:
         menu: Any = None,
     ) -> widgets.Box:
         """Put an ipywidget (or a magicgui widget made for ipywidgets) next
-        to the canvas, under a title.
+        to the canvas, under a title.  Its messages, and so its callbacks,
+        are handled on the kernel's main shell, the viewer's thread, where
+        they may change the viewer (JupyterLab would otherwise run them on a
+        thread of their own).
 
         Parameters
         ----------
@@ -569,6 +597,9 @@ class JupyterWindow:
         wrapper = widgets.VBox(
             [widgets.HTML(f'<b>{html.escape(name)}</b>'), inner]
         )
+        # its callbacks run on the viewer's thread, where the viewer may be
+        # changed (not on a kernel subshell's thread)
+        on_main_shell(wrapper)
         column.children = (*column.children, wrapper)
         self._docks[name] = (wrapper, widget)
         if hasattr(widget, 'reset_choices'):

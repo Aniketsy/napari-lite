@@ -14,17 +14,20 @@ importable as `napari_lite` without napari installed.
   remote server too; drag, wheel and napari's keys work on it. Around
   it: a slider and a play button per extra dimension, a layer list
   (visibility, selection), 2D/3D and reset-view buttons, the status
-  line, and `add_dock_widget` for ipywidgets. Widget messages that
-  JupyterLab delivers on a kernel subshell's thread are handed to the
-  viewer's thread. `examples/jupyter.ipynb` shows it.
+  line, and `add_dock_widget` for ipywidgets. The messages of these
+  widgets, docked ones included, are handled on the kernel's main shell:
+  JupyterLab would deliver them on a subshell's thread, where the canvas
+  cannot be used. `examples/jupyter.ipynb` shows it.
   `nbscreenshot` no longer creates a Qt application (which turned on
   IPython's Qt event loop) for viewers that have none.
 - `Viewer(gui=None)`: a viewer without a window (issue #5). The
   renderer draws off screen; `screenshot` and `export_figure` work,
-  `window` and `show` say there is none. On Linux vispy's `egl` or
-  `osmesa` application draws with no Qt in the process (text needs
-  `freetype-py` there); elsewhere the Qt binding draws into a widget
-  kept off the screen. `NAPARI_LITE_GUI=none` makes it the default.
+  `window` and `show` say there is none. On Linux with EGL vispy's
+  `egl` application draws with no Qt in the process (text then needs
+  freetype-py: the `headless` extra); elsewhere the Qt binding draws
+  into a widget kept off the screen. `NAPARI_LITE_GUI=none` makes it the
+  default, and `napari_lite.run()` returns at once when no viewer has a
+  window.
 - `napari_lite.backends`: the two contracts between the model, the
   renderer and the front end (issue #5). `CanvasBackend` is what a
   front end uses from a renderer (`native`, `screenshot`, `key_event`,

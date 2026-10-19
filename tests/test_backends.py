@@ -72,9 +72,19 @@ def _forget_fakes():
     gc.collect()
 
 
-def test_the_contract_is_met_by_both() -> None:
+def test_the_contract_is_met_by_both(qapp) -> None:
+    from napari_lite._vispy._qt_optional import use_vispy_app
+
     assert isinstance(FakeBackend(_model(), gui=None), backends.CanvasBackend)
-    assert backends.get_renderer('vispy').__name__ == 'VispyBackend'
+    vispy_class = backends.get_renderer('vispy')
+    assert vispy_class.__name__ == 'VispyBackend'
+    use_vispy_app('qt')  # Qt draws off the screen in this process
+    renderer = vispy_class(_model(), gui=None)
+    try:
+        assert isinstance(renderer, backends.CanvasBackend)
+        assert renderer.native is None  # no window, nothing to place
+    finally:
+        renderer.close()
 
 
 def _model():
@@ -166,5 +176,5 @@ def test_renderer_lookup(monkeypatch) -> None:
 def test_the_vispy_renderer_draws_for_its_front_ends_only() -> None:
     from napari_lite._vispy.backend import VispyBackend
 
-    with pytest.raises(ValueError, match="'qt' or 'jupyter' front end"):
+    with pytest.raises(ValueError, match="'qt' or 'jupyter' toolkit"):
         VispyBackend(_model(), gui='something else')

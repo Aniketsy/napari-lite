@@ -4,10 +4,10 @@ docs/backends.md).
 
 The renderer draws into a canvas nobody shows; ``screenshot`` and
 ``export_figure`` give the pictures.  With the vispy renderer, on Linux
-vispy's ``egl`` or ``osmesa`` application draws with no Qt in the
-process; elsewhere (and on Linux without those libraries) the Qt binding
-draws into a widget kept off the screen, so Qt is imported but no window
-appears.
+vispy's ``egl`` application draws with no Qt in the process (text then
+needs freetype-py, the ``headless`` extra); elsewhere, and on Linux
+without EGL, the Qt binding draws into a widget kept off the screen, so
+Qt is imported but no window appears.
 """
 
 from __future__ import annotations

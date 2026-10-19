@@ -181,7 +181,9 @@ MEASUREMENTS = {
         ViewerModel().add_image(np.zeros((64, 64), dtype=np.uint8))
         """
     ),
-    # the model alone: one layer of every kind, no window, no canvas
+    # the model alone: one layer of each kind a plain install has, no
+    # window, no canvas (Tracks need pandas, napari-lite's features extra,
+    # so they are left out for both packages)
     'model_all_layers': textwrap.dedent(
         """
         import numpy as np
@@ -194,7 +196,6 @@ MEASUREMENTS = {
             [np.array([[1, 1], [1, 5], [5, 5], [5, 1]])], edge_color='yellow'
         )
         v.add_surface((np.zeros((3, 2)), np.array([[0, 1, 2]]), np.zeros(3)))
-        v.add_tracks(np.array([[0, 0, 1.0, 1.0], [0, 1, 2.0, 2.0]]))
         v.add_vectors(np.zeros((2, 2, 2)))
         """
     ),

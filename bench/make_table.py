@@ -20,7 +20,7 @@ TIMES = [
     ('first_image', 'first image: ViewerModel + add_image'),
     (
         'model_all_layers',
-        'the model alone: ViewerModel + one layer of every kind',
+        'the model alone: ViewerModel + one layer of each kind but Tracks',
     ),
     ('viewer_no_show', 'Viewer(show=False), closed'),
     ('viewer_shown', 'Viewer shown, one image painted, closed'),
@@ -52,7 +52,7 @@ MEMORY = [
 MODULES = [
     ('import', 'modules loaded by importing the package'),
     ('first_image', 'modules loaded at the first image'),
-    ('model_all_layers', 'modules loaded by the model with every layer kind'),
+    ('model_all_layers', 'modules loaded by the model with six layer kinds'),
 ]
 # keys written by install_size.py
 INSTALL = [

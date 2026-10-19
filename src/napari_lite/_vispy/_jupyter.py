@@ -10,16 +10,17 @@ vispy has a jupyter_rfb backend of its own, but it needs a GL context
 from glfw or from a hidden Qt canvas, which a server often cannot give
 and a Qt canvas that was never shown does not have.  This widget draws
 with the same off-screen canvas as the headless viewer instead: vispy's
-egl or osmesa application on Linux, a Qt widget kept off the screen
+egl application on Linux, a Qt widget kept off the screen
 elsewhere.  Frames are drawn at the widget's CSS size.
 
-Everything the canvas does happens on the thread that made it: JupyterLab
-hands widget messages to a kernel subshell, a thread of its own, and a GL
-context used from another thread fails (Qt ends the process).  Events
-and draws that arrive elsewhere are handed to that thread's loop
-(``utils/_owner_thread.py``).  jupyter_rfb schedules its draws on
-asyncio, which waits while IPython runs Qt's event loop (``%gui qt``);
-then a draw is scheduled through Qt as well.
+Everything the canvas does happens on the thread that made it: a GL
+context used from another thread fails (Qt ends the process).  The
+widget's messages are handled on the kernel's main shell, that thread,
+even where JupyterLab sends widget messages to a subshell, a thread of its
+own; events and draws that still arrive elsewhere are handed over
+(``utils/_owner_thread.py``).  jupyter_rfb schedules its draws on asyncio,
+which waits while IPython runs Qt's event loop (``%gui qt``); then a draw
+is scheduled through Qt as well.
 """
 
 from __future__ import annotations
@@ -29,7 +30,11 @@ from typing import TYPE_CHECKING, Any
 from jupyter_rfb import RemoteFrameBuffer
 from vispy.util import keys
 
-from napari_lite.utils._owner_thread import OwnerThread, ipython_runs_qt
+from napari_lite.utils._owner_thread import (
+    OwnerThread,
+    ipython_runs_qt,
+    on_main_shell,
+)
 
 if TYPE_CHECKING:
     import numpy as np
@@ -120,6 +125,8 @@ class VispyFrameWidget(RemoteFrameBuffer):
         width, height = backend.canvas._scene_canvas.size
         self.css_width = f'{width}px'
         self.css_height = f'{height}px'
+        # with the output widget jupyter_rfb shows its errors in
+        on_main_shell(self, getattr(self, '_output_context', None))
 
     # frames
 
@@ -130,9 +137,14 @@ class VispyFrameWidget(RemoteFrameBuffer):
             self.request_draw()
 
     def request_draw(self) -> None:
-        """jupyter_rfb's request for a draw; on the canvas's thread while
-        IPython runs Qt's loop, also scheduled through Qt (asyncio, where
-        jupyter_rfb schedules it, waits for the next kernel message)."""
+        """jupyter_rfb's request for a draw, made on the canvas's thread
+        (asked elsewhere, jupyter_rfb would mark it asked and find no loop
+        to schedule it on, and wait for good); while IPython runs Qt's
+        loop, also scheduled through Qt (asyncio, where jupyter_rfb
+        schedules it, waits for the next kernel message)."""
+        if not self._owner.is_current and self._owner.can_hand_over:
+            self._owner.call(self.request_draw)
+            return
         super().request_draw()
         if (
             not self._qt_draw_pending
@@ -212,11 +224,11 @@ class VispyFrameWidget(RemoteFrameBuffer):
         elif kind in ('pointer_down', 'pointer_up', 'pointer_move'):
             self._pointer(kind, event)
         elif kind == 'double_click':
-            backend = scene_canvas._backend
-            # a vispy backend without double clicks of its own finds them
-            # in the presses; this one would count them twice
-            if getattr(backend, '_double_click_supported', False):
-                backend._vispy_mouse_double_click(**self._mouse(event))
+            # with its position (the renderer has vispy's egl backend leave
+            # double clicks to the browser, as the Qt one does)
+            scene_canvas._backend._vispy_mouse_double_click(
+                **self._mouse(event)
+            )
         elif kind == 'wheel':
             # about 100 browser pixels per wheel notch; vispy counts notches
             scene_canvas.events.mouse_wheel(

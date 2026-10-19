@@ -83,7 +83,13 @@ ALL_LAYERS = textwrap.dedent(
             np.array([0.0, 0.5, 1.0]),
         )
     )
-    v.add_tracks(np.array([[0, 0, 1.0, 1.0], [0, 1, 2.0, 2.0], [1, 0, 3.0, 3.0]]))
+    try:  # Tracks need pandas, the features extra; a plain install has none
+        import pandas  # noqa: F401
+    except ImportError:
+        kinds = 6
+    else:
+        v.add_tracks(np.array([[0, 0, 1.0, 1.0], [0, 1, 2.0, 2.0], [1, 0, 3.0, 3.0]]))
+        kinds = 7
     v.add_vectors(np.zeros((3, 2, 2)))
     v.dims.current_step = (2, 0, 0)
     v.dims.ndisplay = 3
@@ -91,7 +97,7 @@ ALL_LAYERS = textwrap.dedent(
     ensure_colormap('gray')
     handler = KeymapHandler()
     handler.keymap_providers = [v]
-    assert len(v.layers) == 7
+    assert len(v.layers) == kinds
     """
 )
 
@@ -135,7 +141,9 @@ def test_vispy_only_colormaps_need_vispy() -> None:
         check=False,
     )
     assert proc.returncode != 0
-    assert 'vispy' in proc.stderr
+    # it is the lazy import of vispy for that colormap that fails
+    assert 'get_colormap' in proc.stderr
+    assert 'vispy is blocked' in proc.stderr
 
 
 def test_own_replacements_match_vispy() -> None:

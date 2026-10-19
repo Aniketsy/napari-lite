@@ -35,10 +35,12 @@ def test_canvas_only(qtbot, monkeypatch) -> None:
     canvas.close()
 
 
-def test_headless_figure(tmp_path, monkeypatch) -> None:
+def test_headless_figure(qtbot, tmp_path, monkeypatch) -> None:
     """examples/headless_figure.py writes a figure with no window."""
     from napari_lite import Viewer
+    from napari_lite._vispy._qt_optional import use_vispy_app
 
+    use_vispy_app('qt')  # Qt draws off the screen in this process
     monkeypatch.chdir(tmp_path)
     try:
         namespace = runpy.run_path(

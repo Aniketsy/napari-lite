@@ -81,12 +81,14 @@ fast-shapes = [
     "triangle; python_version <= '3.13'",
 ]
 tiff = ["tifffile>=2022.7.28"]
-# the viewer in a notebook cell, Viewer(gui='jupyter'); on Linux vispy can
-# draw there without Qt (EGL), and freetype-py then renders the text
+# drawing without Qt, Viewer(gui=None) on Linux with EGL: freetype-py then
+# renders the text (elsewhere Qt draws off the screen, with its own fonts)
+headless = ["freetype-py; sys_platform == 'linux'"]
+# the viewer in a notebook cell, Viewer(gui='jupyter')
 jupyter = [
+    "napari-lite[headless]",
     "jupyter_rfb>=1.0",
     "ipywidgets>=8",
-    "freetype-py; sys_platform == 'linux'",
 ]
 all = ["napari-lite[pyqt6,features,scipy,dask,fast-shapes,tiff]"]
 dev = [

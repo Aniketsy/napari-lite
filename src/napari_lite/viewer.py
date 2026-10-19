@@ -151,16 +151,13 @@ class Viewer(ViewerModel):
         scale : float, optional
             Scale factor for the canvas size. Canvas only.
         canvas_only : bool
-            Only the canvas (default) or the whole window.
+            Only the canvas (default) or the whole window.  A viewer
+            without a window (``gui=None``) gives its canvas either way, as
+            the notebook window does, so ``nbscreenshot`` works for both.
         flash : bool
             Flash the widget after capturing (default False).
         """
         if self._headless is not None:
-            if not canvas_only:
-                raise ValueError(
-                    'a headless viewer has no window to capture; '
-                    'canvas_only=True (the default) is what it can give'
-                )
             return self._headless.screenshot(path, size=size, scale=scale)
         return self.window.screenshot(
             path=path,

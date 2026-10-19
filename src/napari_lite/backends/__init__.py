@@ -80,8 +80,9 @@ class CanvasBackend(Protocol):
     """What a front end uses from a renderer.
 
     A renderer is made as ``Renderer(viewer, *, gui=None, parent=None)``:
-    ``gui`` is the front end's name (``'qt'``, ``'jupyter'``, or None for
-    no window), ``parent`` the front end's parent widget when it has one.
+    ``gui`` is the toolkit the front end places the canvas in (``'qt'``,
+    ``'jupyter'``, or None for no window), ``parent`` the front end's
+    parent widget when it has one.
     From then on the renderer follows the model by itself: layers added
     and removed, the camera, the dims, the overlays, the canvas size.  A
     renderer that cannot draw for a front end raises ``ValueError``.
@@ -97,10 +98,11 @@ class CanvasBackend(Protocol):
         size: tuple[int, int] | None = None,
         scale: float = 1.0,
         fit_to_data_extent: bool = False,
-        device_pixel_ratio: float = 1.0,
+        device_pixel_ratio: float | None = None,
     ) -> np.ndarray:
         """The canvas drawn now, as an RGBA uint8 array: at ``size``
-        (height, width, in pixels) times ``scale``, or, with
+        (height, width, in device pixels; ``device_pixel_ratio`` per canvas
+        pixel, by default the canvas's own) times ``scale``, or, with
         ``fit_to_data_extent``, sized around the data with one canvas
         pixel per data pixel."""
         ...
@@ -190,14 +192,15 @@ class Window(Protocol):
 
 def resolve_gui(gui: str | None) -> str | None:
     """The front end ``Viewer(gui=...)`` means: its name, or None for no
-    window.  ``'default'`` reads ``NAPARI_LITE_GUI`` ('qt', 'none', or a
-    registered name) and is 'qt' when that is not set."""
+    window.  ``'default'`` reads ``NAPARI_LITE_GUI`` ('qt', 'jupyter',
+    'none', or a registered name) and is 'qt' when that is not set or
+    empty."""
     if gui == 'default':
-        gui = os.environ.get(GUI_ENVIRONMENT_VARIABLE, DEFAULT_GUI)
+        gui = os.environ.get(GUI_ENVIRONMENT_VARIABLE) or DEFAULT_GUI
     if gui is None:
         return None
     name = gui.strip().lower()
-    if name in NO_GUI_NAMES or not name:
+    if name in NO_GUI_NAMES:
         return None
     return name
 
@@ -256,10 +259,12 @@ def resolve_renderer(
     """The renderer class ``Viewer(renderer=...)`` means: the class (or
     factory) itself when one is given, else the one named.  ``'default'``
     reads ``NAPARI_LITE_RENDERER`` and is ``'vispy'`` when that is not
-    set."""
+    set or empty."""
     if callable(renderer):
         return renderer
     name = renderer
     if name == 'default':
-        name = os.environ.get(RENDERER_ENVIRONMENT_VARIABLE, DEFAULT_RENDERER)
+        name = (
+            os.environ.get(RENDERER_ENVIRONMENT_VARIABLE) or DEFAULT_RENDERER
+        )
     return get_renderer(name)

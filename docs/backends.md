@@ -136,13 +136,14 @@ rebuild the issue warns about, in another form.
 ## Progress
 
 - Step 1 done (branch `fix-5`): the model imports and runs with vispy
-  and Qt blocked, every layer type included; `tests/
-  test_model_without_vispy.py` guards it, the plain-install CI job runs
-  it with vispy uninstalled, the benchmark has a `model_all_layers`
-  line. Measured on the benchmark machine (best of 3, Python 3.13,
-  Windows): importing the model 1.19 s and 627 modules before, 0.80 s
-  and 559 modules after; the model with one layer of every kind
-  1.80 s and 967 modules before, 1.68 s and 907 after.
+  and Qt blocked, every layer type included (Tracks where pandas is
+  installed); `tests/test_model_without_vispy.py` guards it, the
+  plain-install CI job runs it with vispy uninstalled, the benchmark
+  has a `model_all_layers` line. Measured on the benchmark machine
+  (best of 3 to 5, Python 3.13, Windows): importing the model 1.19 s
+  and 627 modules before, 0.80 s and 559 modules after; the model with
+  one layer of each of six kinds (all but Tracks) 1.23 s and 633
+  modules before, 0.89 s and 565 after.
 - Step 2 done (branch `fix-5`): `Viewer(gui=None)` draws without a
   window; `napari_lite.backends` has the `Window` contract, `get_gui`
   and the `NAPARI_LITE_GUI` variable; the vispy wiring that `QtCanvas`
@@ -174,7 +175,7 @@ rebuild the issue warns about, in another form.
   (`backends/jupyter.py`) shows the viewer as ipywidgets in the cell.
   The canvas is the vispy renderer's notebook widget
   (`_vispy/_jupyter.py`): a jupyter_rfb widget that streams the frames
-  of the same off-screen canvas as the headless viewer (EGL or OSMesa
+  of the same off-screen canvas as the headless viewer (EGL
   on Linux, a Qt widget kept off the screen elsewhere) and hands the
   browser's pointer, wheel and key events to vispy. vispy's own
   jupyter_rfb backend was not used: it needs a GL context from glfw or
@@ -190,6 +191,22 @@ rebuild the issue warns about, in another form.
   Checked in JupyterLab in a browser, with and without `%gui qt`: drag,
   wheel, arrow key, layer checkbox, 3D; `tests/test_jupyter.py` plays
   the browser in-process and from another thread.
+- Review of the branch (an independent read of every change), and
+  what came of it: the copied canvas asked vispy for vsync, which its
+  egl application refuses, so nothing drew without Qt (a vendor rule
+  now asks only on Qt); vispy's egl backend sends no resize events, so
+  the renderer sends them (the model's canvas size and the scene layout
+  follow); osmesa is no longer tried, as vispy cannot switch its GL
+  library to it once loaded; the notebook's widgets, docked ones
+  included, have their messages handled on the kernel's main shell, and
+  a canvas used from another thread raises an error instead of Qt
+  ending the process (a screenshot from another thread is drawn on the
+  canvas's own); async slicing results are applied on the canvas's
+  thread, as napari does; a closed off-screen canvas is released at
+  once; screenshots off the screen count device pixels on HiDPI screens;
+  `run()` returns when no viewer has a window; the `headless` extra
+  brings freetype-py on Linux; empty environment variables count as
+  unset. Tests check what the Qt-free path draws, not only its shapes.
 
 ## The plan, step by step
 

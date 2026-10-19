@@ -14,12 +14,14 @@ from __future__ import annotations
 import asyncio
 import gc
 import json
+import logging
 import os
 import subprocess
 import sys
 import textwrap
 import threading
 import time
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -159,6 +161,11 @@ def test_layer_list(make_notebook_viewer) -> None:
     assert len(window._layer_rows.children) == 1
     # the removed layer's events no longer reach the window
     points.visible = False
+    points.name = 'gone'
+    assert [b.description for b in window._name_buttons.values()] == [
+        'renamed'
+    ]
+    assert list(window._visible_boxes) == [id(image)]
 
 
 def test_browser_events(make_notebook_viewer) -> None:
@@ -234,21 +241,40 @@ def test_widget_messages_from_another_thread() -> None:
             rfb.send_frame = lambda array: sent.append(
                 (threading.get_ident(), array.shape)
             )
+            # async slicing reports from the slicer's thread too; where the
+            # result is applied shows in the renderer's debug line
+            applied: list[int] = []
+
+            class Recorder(logging.Handler):
+                def emit(self, record: logging.LogRecord) -> None:
+                    if '_apply_slice_ready' in record.getMessage():
+                        applied.append(record.thread)
+
+            logger = logging.getLogger('napari_lite')
+            recorder, level = Recorder(), logger.level
+            logger.addHandler(recorder)
+            logger.setLevel(logging.DEBUG)
 
             def subshell() -> None:
                 rfb.handle_event(pointer('pointer_enter', 10, 10))
                 results['frame'] = rfb.get_frame()
                 window._sliders_by_axis[0].value = 2
+                window.backend._on_slice_ready(SimpleNamespace(value={}))
 
-            worker = threading.Thread(target=subshell)
-            worker.start()
-            worker.join()
-            await asyncio.sleep(0.3)  # the loop runs what was handed over
+            try:
+                worker = threading.Thread(target=subshell)
+                worker.start()
+                worker.join()
+                await asyncio.sleep(0.3)  # the loop runs what was handed over
+            finally:
+                logger.removeHandler(recorder)
+                logger.setLevel(level)
             assert handled == {main}
             assert results['frame'] is None  # drawn on the viewer's thread
             assert sent and sent[0][0] == main
             assert viewer.mouse_over_canvas
             assert viewer.dims.current_step[0] == 2
+            assert applied == [main]
         finally:
             viewer.close()
 
@@ -371,13 +397,78 @@ def test_geometry_close_and_current_viewer(make_notebook_viewer) -> None:
     window = first.window
     rfb = window.backend.native
     first.close()
-    assert window not in JupyterWindow._instances
+    assert all(ref() is not window for ref in JupyterWindow._instances)
     assert window.widget.comm is None  # closed in the browser too
     assert rfb.comm is None
     assert current_viewer() is second
-    # the model no longer reaches the closed window
+    # the model no longer reaches the closed window, nor its canvas
     first.title = 'after close'
     assert 'after close' not in window._title.value
+    first.add_image(np.zeros((8, 8)))
+    first.layers.clear()
+
+
+def test_messages_handled_on_the_main_shell(make_notebook_viewer) -> None:
+    """ipykernel 7 routes a widget's messages by its comm; the viewer's
+    widgets, and the ones docked next to it, stay on the main shell."""
+    viewer = make_notebook_viewer()
+    viewer.add_image(np.zeros((3, 8, 8)))
+    window = viewer.window
+    button = widgets.Button(description='go')
+    window.add_dock_widget(widgets.VBox([button]), name='tools')
+
+    def routed_to(widget):
+        route = widget.comm._reply_subshell_for
+        return route({}, 'a-subshell')
+
+    for widget in (
+        window.backend.native,  # the canvas
+        window._reset,
+        window._sliders_by_axis[0],
+        next(iter(window._visible_boxes.values())),
+        button,  # inside a docked box
+    ):
+        assert routed_to(widget) is None  # None: the main shell
+
+
+def test_screenshots_from_another_thread() -> None:
+    """A screenshot asked on another thread (a widget callback on a
+    subshell) is drawn on the viewer's thread; without a loop to hand it
+    to, it is refused with a clear error instead of Qt ending the
+    process."""
+    pytest.importorskip('qtpy')
+    from napari_lite import Viewer
+    from napari_lite._vispy._qt_optional import use_vispy_app
+
+    use_vispy_app('qt')
+
+    async def scenario() -> None:
+        viewer = Viewer(gui='jupyter', show=False)
+        try:
+            viewer.add_image(np.zeros((16, 16)))
+            shot = await asyncio.to_thread(viewer.screenshot)
+            assert shot.shape == (600, 800, 4)
+        finally:
+            viewer.close()
+
+    asyncio.run(scenario())
+
+    viewer = Viewer(gui='jupyter', show=False)  # no loop: nothing to hand to
+    try:
+        errors = []
+
+        def worker() -> None:
+            try:
+                viewer.screenshot()
+            except RuntimeError as e:
+                errors.append(str(e))
+
+        thread = threading.Thread(target=worker)
+        thread.start()
+        thread.join()
+        assert errors and 'thread that made the viewer' in errors[0]
+    finally:
+        viewer.close()
 
 
 def test_gui_from_the_environment(qapp, monkeypatch) -> None:
@@ -433,6 +524,7 @@ WITHOUT_QT = textwrap.dedent(
 
     sys.meta_path.insert(0, Block())
 
+    import importlib.util
     import numpy as np
     from napari_lite import Viewer
 
@@ -440,10 +532,16 @@ WITHOUT_QT = textwrap.dedent(
     rgb = np.zeros((32, 48, 3), np.uint8)
     rgb[..., 0] = 255
     viewer.add_image(rgb)
-    viewer.add_points([[16, 24]], size=4, face_color='blue', text='a point')
+    # text without Qt needs freetype-py, the headless extra
+    text = importlib.util.find_spec('freetype') is not None
+    viewer.add_points(
+        [[16, 24]], size=4, face_color='blue',
+        **({'text': 'a point'} if text else {}),
+    )
     rfb = viewer.window.backend.native
     frame = rfb.get_frame()
     rfb.handle_event({'type': 'resize', 'width': 200, 'height': 100, 'ratio': 1})
+    canvas_size = viewer.canvas.size  # the model follows the browser
     small = rfb.get_frame()
     # after a frame, a change asks the browser for the next one
     requests = []
@@ -454,8 +552,10 @@ WITHOUT_QT = textwrap.dedent(
         'app': viewer.window.backend.app_name,
         'frame': list(frame.shape),
         'small': list(small.shape),
+        'canvas_size': list(canvas_size),
         'requests': len(requests),
         'centre': frame[frame.shape[0] // 2, frame.shape[1] // 2].tolist(),
+        'small_centre': small[50, 100].tolist(),
         'qt_loaded': any(m.split('.')[0] in BLOCKED for m in sys.modules),
     }))
     """
@@ -463,8 +563,8 @@ WITHOUT_QT = textwrap.dedent(
 
 
 def test_notebook_viewer_without_qt_in_the_process() -> None:
-    """Linux with EGL or OSMesa: the notebook viewer draws with Qt
-    blocked.  Skipped where vispy has no offscreen application, unless
+    """Linux with EGL: the notebook viewer draws with Qt blocked.  Skipped
+    where vispy has no offscreen application, unless
     NAPARI_LITE_REQUIRE_OFFSCREEN is set (the CI job that installs the
     libraries), when it fails."""
     required = bool(os.environ.get('NAPARI_LITE_REQUIRE_OFFSCREEN'))
@@ -479,9 +579,11 @@ def test_notebook_viewer_without_qt_in_the_process() -> None:
             pytest.skip('vispy has no offscreen application here')
         pytest.fail(proc.stderr[-3000:])
     info = json.loads(proc.stdout.strip().splitlines()[-1])
-    assert info['app'] in ('egl', 'osmesa')
+    assert info['app'] == 'egl'
     assert not info['qt_loaded']
     assert info['frame'] == [600, 800, 4]
     assert info['small'] == [100, 200, 4]
+    assert info['canvas_size'] == [100, 200]
     assert info['requests'] > 0
     assert tuple(info['centre'])[:3] != (0, 0, 0)
+    assert tuple(info['small_centre'])[:3] != (0, 0, 0)  # laid out anew

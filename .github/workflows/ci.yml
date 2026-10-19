@@ -45,8 +45,8 @@ jobs:
       - name: Test (own tests and the copied napari tests)
         run: python -m pytest tests src/napari_lite
       # The headless and notebook viewers with no Qt in the process: vispy on
-      # Mesa's EGL (docs/backends.md); freetype-py (the jupyter extra, part
-      # of dev) renders the text without Qt
+      # Mesa's EGL (docs/backends.md); freetype-py (the headless extra, in
+      # dev through the jupyter extra) renders the text without Qt
       - name: Headless and notebook viewers without Qt (vispy on EGL)
         if: runner.os == 'Linux'
         env:
@@ -55,7 +55,7 @@ jobs:
           PYOPENGL_PLATFORM: egl
         run: |
           sudo apt-get update
-          sudo apt-get install -y libegl1 libegl-mesa0 libopengl0 libgl1-mesa-dri libosmesa6
+          sudo apt-get install -y libegl1 libegl-mesa0 libopengl0 libgl1-mesa-dri
           python -m pytest tests/test_headless.py tests/test_jupyter.py -q -k without_qt
 
   # The dependency tree itself: a plain ``pip install napari-lite[pyqt6]``

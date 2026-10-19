@@ -7,7 +7,7 @@ imported, throttles mouse moves with superqt, renders text through Qt's
 fonts and measures it with Qt's font metrics.  The vendor tool points the
 copied imports here (``tools/vendor.toml``).  When vispy runs on Qt (a
 window, or an off-screen widget) everything is Qt's as before; when it
-runs on an offscreen application (``egl`` or ``osmesa``: the headless
+runs on its ``egl`` application (the headless and notebook viewers on
 viewer on Linux, with no Qt in the process) the plain version is used.
 
 - ``use_vispy_app``: picks vispy's application once per process, the Qt
@@ -55,8 +55,10 @@ __all__ = [
 # the size Qt's glyphs are rendered at before scaling (utils/qt_font.py)
 SDF_FONT_SIZE = 256
 
-# vispy applications that draw without any window; Linux only
-OFFSCREEN_APPS = ('egl', 'osmesa')
+# vispy applications that draw without any window: EGL, on Linux.  (vispy's
+# osmesa one needs its GL library chosen before vispy.gloo is first
+# imported, long before a viewer exists, so it is not tried.)
+OFFSCREEN_APPS = ('egl',)
 
 _QT_PREFIXES = ('pyqt', 'pyside')
 
@@ -95,7 +97,7 @@ def _qt_binding() -> str:
 
 def available_offscreen_app() -> str | None:
     """The first of vispy's offscreen applications that loads here (the
-    EGL or OSMesa library is found), or None."""
+    EGL library is found), or None."""
     from vispy import app
 
     for name in OFFSCREEN_APPS:
@@ -111,7 +113,7 @@ def use_vispy_app(kind: Literal['qt', 'offscreen']) -> str:
     """Select vispy's application backend and return its name.
 
     ``'qt'``: the binding qtpy uses, for a Qt canvas.  ``'offscreen'``:
-    ``egl`` or ``osmesa`` where one loads, otherwise the Qt binding with
+    ``egl`` where EGL loads (Linux), otherwise the Qt binding with
     an off-screen widget (Windows, macOS).  vispy allows one application
     per process, so the first canvas decides and a later, different
     choice raises.
@@ -136,8 +138,8 @@ def use_vispy_app(kind: Literal['qt', 'offscreen']) -> str:
                 name = _qt_binding()
             except ImportError as e:
                 raise ImportError(
-                    "a headless viewer needs vispy's egl or osmesa "
-                    'application (Linux: the EGL or OSMesa library) or a '
+                    "a headless viewer needs vispy's egl application "
+                    '(Linux: the EGL library) or a '
                     'Qt binding to draw with; none of them is available'
                 ) from e
     app.use_app(name)

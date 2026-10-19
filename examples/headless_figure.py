@@ -2,9 +2,10 @@
 """A figure from a viewer that has no window: ``Viewer(gui=None)``.
 
 Runs wherever a GL context can be made: a desktop, CI, a server.  On
-Linux vispy draws through EGL or OSMesa with no Qt in the process;
-elsewhere Qt draws into a widget kept off the screen.  ``screenshot``
-and ``export_figure`` work; ``viewer.window`` and ``show`` do not exist.
+Linux with EGL vispy draws with no Qt in the process (the text then needs
+freetype-py: pip install 'napari-lite[headless]'); elsewhere Qt draws
+into a widget kept off the screen.  ``screenshot`` and ``export_figure``
+work; ``viewer.window`` and ``show`` do not exist.
 Writes headless_figure.png where it runs.
 """
 
