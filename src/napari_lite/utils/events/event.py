@@ -66,7 +66,7 @@ from typing import (
     cast,
 )
 
-from vispy.util.logs import _handle_exception
+from napari_lite.utils._vispy_optional import _handle_exception
 
 
 class Event:
