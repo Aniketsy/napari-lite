@@ -1,17 +1,26 @@
 # napari-lite: own code
-"""Drawing a ``View`` with vispy: one Image visual per image item, one
-Markers visual per points item, a pan-zoom camera kept in step with the
-view's camera in both directions.
+"""Drawing a ``View`` with vispy.
 
-This is the whole of what a renderer has to do; another one (pygfx, a
-matplotlib axes, ...) would implement the same methods against the same
-model without touching it.
+One adapter per item draws it with a vispy visual and follows the item's
+``changed`` signal; ``VispyRenderer`` keeps the set of adapters in step
+with the view's items, re-slices them when the step changes and keeps a
+pan-zoom camera in step with the view's camera in both directions.
+
+Images are uploaded in their own dtype (uint8, uint16, int8, int16,
+float32) and the contrast limits are applied on the GPU, as in napari;
+a lazy array (dask, zarr) is sliced in a worker when the renderer is
+given an ``executor``, so the window stays responsive, and the newest
+step always wins.
+
+This is the whole of what a renderer has to do: another one (pygfx, a
+matplotlib axes, ...) implements ``Renderer`` against the same model.
 """
 
 from __future__ import annotations
 
-from functools import partial
-from typing import Any
+from collections.abc import Callable
+from concurrent.futures import Executor, Future
+from typing import Any, ClassVar
 
 import numpy as np
 from vispy import scene
@@ -23,7 +32,9 @@ from vispy.color import (
     get_colormaps,
 )
 from vispy.color.colormap import BaseColormap
+from vispy.visuals.transforms import STTransform
 
+from napari_lite._vispy.utils.gl import get_gl_extensions
 from napari_lite.view._model import (
     LISTED_COLORMAPS,
     RAMP_COLORMAPS,
@@ -33,7 +44,13 @@ from napari_lite.view._model import (
     View,
 )
 
-__all__ = ['VispyRenderer', 'vispy_colormap']
+__all__ = [
+    'VispyImage',
+    'VispyPoints',
+    'VispyRenderer',
+    'texture_format',
+    'vispy_colormap',
+]
 
 # napari's names for maps vispy spells differently
 _ALIASES = {'gray': 'grays', 'grey': 'grays'}
@@ -62,6 +79,22 @@ def vispy_colormap(spec: Any) -> BaseColormap:
     return Colormap(ColorArray(spec).rgba)
 
 
+_texture_format: list[str | None] = []
+
+
+def texture_format() -> str | None:
+    """'auto' when the GPU scales textures itself (integer data uploaded
+    as it is), None when it has no float textures and vispy must convert
+    on the CPU; napari makes the same choice.  Found out once."""
+    if not _texture_format:
+        try:
+            ok = 'texture_float' in get_gl_extensions()
+        except Exception:  # no OpenGL context: be safe
+            ok = False
+        _texture_format.append('auto' if ok else None)
+    return _texture_format[0]
+
+
 class _SyncedCamera(scene.PanZoomCamera):
     """A pan-zoom camera that writes the rectangle it shows back into the
     view's camera, so the model knows where the user panned and zoomed."""
@@ -76,6 +109,161 @@ class _SyncedCamera(scene.PanZoomCamera):
         self._renderer._camera_to_model()
 
 
+class _Adapter:
+    """Draws one item with one visual; subclasses say how."""
+
+    visual: Any
+
+    def __init__(self, item: Item, renderer: VispyRenderer) -> None:
+        self.item = item
+        self.renderer = renderer
+        self._own_step: tuple[int, ...] | None = None
+        self.visual = self._make_visual()
+        self.visual.opacity = item.opacity
+        self.visual.visible = item.visible
+        item.changed.connect(self.update)
+
+    def _make_visual(self) -> Any:
+        raise NotImplementedError
+
+    def remove(self) -> None:
+        self.item.changed.disconnect(self.update)
+        self.visual.parent = None
+
+    def set_step(self, step: tuple[int, ...]) -> None:
+        """Show the slice at the view's ``step``; nothing happens when the
+        item's own axes did not move."""
+        own = self.item.own_step(step)
+        if own == self._own_step:
+            return
+        self._own_step = own
+        self._slice(own)
+
+    def _slice(self, own: tuple[int, ...]) -> None:
+        raise NotImplementedError
+
+    def update(self, what: str) -> None:
+        if what == 'opacity':
+            self.visual.opacity = self.item.opacity
+        elif what == 'visible':
+            self.visual.visible = self.item.visible
+        self.renderer.canvas.update()
+
+
+class VispyImage(_Adapter):
+    """An ``ImageItem`` as a vispy Image visual."""
+
+    item: ImageItem
+
+    def __init__(self, item: ImageItem, renderer: VispyRenderer) -> None:
+        self._request = 0
+        super().__init__(item, renderer)
+        self._apply_clim(None)
+
+    def _make_visual(self) -> Any:
+        visual = scene.visuals.Image(
+            parent=self.renderer.scene_view.scene,
+            interpolation=self.item.interpolation,
+            cmap=vispy_colormap(self.item.colormap),
+            texture_format=self.renderer.texture_format,
+        )
+        # vispy draws pixel i from i to i + 1; napari's data coordinates
+        # put its centre at i, so a point at (10, 10) sits on pixel (10, 10)
+        visual.transform = STTransform(translate=(-0.5, -0.5))
+        return visual
+
+    def _slice(self, own: tuple[int, ...]) -> None:
+        self._request += 1
+        request = self._request
+        executor = self.renderer.executor
+        if executor is None or isinstance(self.item.data, np.ndarray):
+            self._show(self.item.slice(own))  # in memory: at once
+            return
+
+        def done(future: Future, request: int = request) -> None:
+            if future.cancelled() or request != self._request:
+                return  # a newer step won
+            array = future.result()
+            self.renderer.call_soon(lambda: self._show(array, request))
+
+        executor.submit(self.item.slice, own).add_done_callback(done)
+
+    def _show(self, array: np.ndarray, request: int | None = None) -> None:
+        if request is not None and request != self._request:
+            return
+        self.visual.set_data(array)
+        if self.item.rgb:
+            self._apply_clim(array)
+        self.renderer.canvas.update()
+
+    def _apply_clim(self, array: np.ndarray | None) -> None:
+        if self.item.rgb:
+            # colour channels are shown as they are: uint8 is 0..255,
+            # anything else was scaled to 0..1 by the item
+            if array is not None:
+                is_uint8 = array.dtype == np.uint8
+                self.visual.clim = (0, 255) if is_uint8 else (0, 1)
+        elif self.item.contrast_limits is not None:
+            self.visual.clim = self.item.contrast_limits
+
+    def update(self, what: str) -> None:
+        if what == 'colormap':
+            self.visual.cmap = vispy_colormap(self.item.colormap)
+        elif what == 'contrast_limits':
+            self._apply_clim(None)
+        elif what == 'interpolation':
+            self.visual.interpolation = self.item.interpolation
+        super().update(what)
+
+
+class VispyPoints(_Adapter):
+    """A ``PointsItem`` as a vispy Markers visual."""
+
+    item: PointsItem
+
+    def __init__(self, item: PointsItem, renderer: VispyRenderer) -> None:
+        self._shown = 0
+        super().__init__(item, renderer)
+
+    def _make_visual(self) -> Any:
+        return scene.visuals.Markers(
+            parent=self.renderer.scene_view.scene, scaling='scene'
+        )
+
+    def _slice(self, own: tuple[int, ...]) -> None:
+        item = self.item
+        shown = item.slice(own)
+        self._shown = len(shown)
+        if not self._shown:
+            self.visual.visible = False
+            self.renderer.canvas.update()
+            return
+        self.visual.visible = item.visible
+        coords = item.coords[shown][:, -2:]
+        color = item.color
+        if not isinstance(color, str) and np.ndim(color) == 2:
+            color = np.asarray(color)[shown]
+        rgba = ColorArray(color).rgba
+        self.visual.set_data(
+            pos=np.ascontiguousarray(coords[:, ::-1]),  # x: column, y: row
+            size=item.size[shown],
+            face_color=rgba,
+            edge_width=0,
+            edge_color=rgba,
+            symbol=item.symbol,
+        )
+        self.renderer.canvas.update()
+
+    def update(self, what: str) -> None:
+        if what in ('size', 'color', 'symbol') and self._own_step is not None:
+            self._slice(self._own_step)
+        elif what == 'visible':
+            self.visual.visible = self.item.visible and self._shown > 0
+            self.renderer.canvas.update()
+        else:
+            super().update(what)
+
+
 class VispyRenderer:
     """Draws ``view`` on a vispy scene canvas; ``native`` is the Qt widget.
 
@@ -87,7 +275,19 @@ class VispyRenderer:
         Canvas colour (default black).
     size : (int, int)
         Initial canvas size in pixels, width by height.
+    executor : concurrent.futures.Executor, optional
+        Where lazy arrays are sliced; in-memory arrays are sliced at once.
+        Needs ``call_soon``.  Without an executor everything is sliced at
+        once, on the calling thread.
+    call_soon : callable, optional
+        Runs a function on the thread that owns the canvas; called from
+        the executor's thread (the Qt widget passes a queued signal).
     """
+
+    adapters: ClassVar[dict[type[Item], type[_Adapter]]] = {
+        ImageItem: VispyImage,
+        PointsItem: VispyPoints,
+    }
 
     def __init__(
         self,
@@ -95,10 +295,15 @@ class VispyRenderer:
         *,
         background: Any = 'black',
         size: tuple[int, int] = (800, 600),
+        executor: Executor | None = None,
+        call_soon: Callable[[Callable[[], None]], None] | None = None,
     ) -> None:
+        if executor is not None and call_soon is None:
+            raise ValueError('an executor needs call_soon')
         self.view = view
-        self._visuals: dict[Item, Any] = {}
-        self._callbacks: dict[Item, Any] = {}
+        self.executor = executor
+        self.call_soon = call_soon or (lambda fn: fn())
+        self._adapters: dict[Item, _Adapter] = {}
         # the model leads: nothing the camera does while being set up (its
         # default rectangle, the flip, joining the view box) reaches it
         self._syncing = True
@@ -108,6 +313,7 @@ class VispyRenderer:
         # points lie in the plane of the images: drawn later, they must
         # pass the depth test at an equal depth (napari does the same)
         self.canvas.context.set_depth_func('lequal')
+        self.texture_format = texture_format()
         self.scene_view = self.canvas.central_widget.add_view()
         self.camera = _SyncedCamera(self)
         self.scene_view.camera = self.camera
@@ -132,106 +338,51 @@ class VispyRenderer:
     def close(self) -> None:
         self.view.changed.disconnect(self._on_view_change)
         self.view.camera.changed.disconnect(self._model_to_camera)
-        for item in list(self._visuals):
+        for item in list(self._adapters):
             self._remove(item)
         self.canvas.close()
 
-    # --------------------------- items ------------------------
+    # ----------------------------------------------------------------- items
+    def adapter(self, item: Item) -> _Adapter:
+        """The adapter that draws ``item``."""
+        return self._adapters[item]
+
     def visual(self, item: Item) -> Any:
         """The vispy visual that draws ``item``."""
-        return self._visuals[item]
+        return self._adapters[item].visual
 
     def _on_view_change(self, what: str) -> None:
         if what == 'items':
-            for item in list(self._visuals):
+            for item in list(self._adapters):
                 if item not in self.view.items:
                     self._remove(item)
             for item in self.view.items:
-                if item not in self._visuals:
+                if item not in self._adapters:
                     self._add(item)
             self._order()
         elif what == 'current_step':
-            for item in self._visuals:
-                self._set_data(item)
+            for adapter in self._adapters.values():
+                adapter.set_step(self.view.current_step)
 
     def _add(self, item: Item) -> None:
-        if isinstance(item, ImageItem):
-            visual = scene.visuals.Image(
-                parent=self.scene_view.scene,
-                interpolation=item.interpolation,
-                cmap=vispy_colormap(item.colormap),
-            )
-            if item.contrast_limits is not None:
-                visual.clim = item.contrast_limits
-        elif isinstance(item, PointsItem):
-            visual = scene.visuals.Markers(
-                parent=self.scene_view.scene, scaling='scene'
-            )
+        for cls, adapter_cls in self.adapters.items():
+            if isinstance(item, cls):
+                adapter = adapter_cls(item, self)
+                break
         else:
             raise TypeError(f'cannot draw {item!r}')
-        visual.opacity = item.opacity
-        visual.visible = item.visible
-        self._visuals[item] = visual
-        self._set_data(item)
-        self._callbacks[item] = partial(self._on_item_change, item)
-        item.changed.connect(self._callbacks[item])
+        self._adapters[item] = adapter
+        adapter.set_step(self.view.current_step)
 
     def _remove(self, item: Item) -> None:
-        visual = self._visuals.pop(item)
-        item.changed.disconnect(self._callbacks.pop(item))
-        visual.parent = None
+        self._adapters.pop(item).remove()
 
     def _order(self) -> None:
         for i, item in enumerate(self.view.items):
-            if item in self._visuals:
-                self._visuals[item].order = i
+            if item in self._adapters:
+                self._adapters[item].visual.order = i
 
-    def _on_item_change(self, item: Item, what: str) -> None:
-        visual = self._visuals.get(item)
-        if visual is None:
-            return
-        if what == 'opacity':
-            visual.opacity = item.opacity
-        elif what == 'visible':
-            visual.visible = item.visible
-        elif what == 'colormap' and isinstance(item, ImageItem):
-            visual.cmap = vispy_colormap(item.colormap)
-        elif what == 'contrast_limits' and isinstance(item, ImageItem):
-            if item.contrast_limits is not None:
-                visual.clim = item.contrast_limits
-        elif what == 'interpolation' and isinstance(item, ImageItem):
-            visual.interpolation = item.interpolation
-        elif what in ('size', 'color', 'symbol'):
-            self._set_data(item)
-        self.canvas.update()
-
-    def _set_data(self, item: Item) -> None:
-        visual = self._visuals[item]
-        step = self.view.current_step
-        if isinstance(item, ImageItem):
-            visual.set_data(item.slice(step))
-        elif isinstance(item, PointsItem):
-            shown = item.slice(step)
-            if len(shown) == 0:
-                visual.visible = False
-                return
-            visual.visible = item.visible
-            coords = item.coords[shown][:, -2:]
-            color = item.color
-            if not isinstance(color, str) and np.ndim(color) == 2:
-                color = np.asarray(color)[shown]
-            rgba = ColorArray(color).rgba
-            visual.set_data(
-                pos=coords[:, ::-1],  # x is the column, y the row
-                size=item.size[shown],
-                face_color=rgba,
-                edge_width=0,
-                edge_color=rgba,
-                symbol=item.symbol,
-            )
-        self.canvas.update()
-
-    # ---------------------------------- camera ------------------------
+    # ---------------------------------------------------------------- camera
     def _model_to_camera(self) -> None:
         if self._syncing:
             return

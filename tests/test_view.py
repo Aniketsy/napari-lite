@@ -12,7 +12,7 @@ import textwrap
 import numpy as np
 import pytest
 
-from napari_lite.view import ImageItem, PointsItem, View
+from napari_lite.view import ImageItem, PointsItem, Renderer, View
 
 
 def stack() -> np.ndarray:
@@ -30,8 +30,14 @@ def test_image_item_axes_and_slices() -> None:
     assert item.contrast_limits == (200.0, 1000.0)  # the middle slice
     sliced = item.slice((3,))
     assert sliced.shape == (16, 24)
-    assert sliced.dtype == np.float32
+    assert sliced.dtype == np.uint16  # uploaded as it is
     assert sliced[0, 0] == 300
+    assert ImageItem(np.zeros((4, 4))).slice(()).dtype == np.float32
+    assert (
+        ImageItem(np.zeros((4, 4), dtype=np.int64)).slice(()).dtype
+        == np.float32
+    )
+    assert ImageItem(np.zeros((4, 4), dtype=bool)).slice(()).dtype == np.uint8
     assert item.slice((99,))[0, 0] == 400  # clipped to the last slice
     rgb = ImageItem(np.zeros((8, 8, 3), dtype=np.uint8), rgb=True)
     assert rgb.ndim == 2
@@ -134,6 +140,7 @@ def test_renderer_draws_and_follows_the_model(widget, qtbot) -> None:
     view = widget.view
     image, points = view.items
     renderer = widget.renderer
+    assert isinstance(renderer, Renderer)
     assert isinstance(renderer.visual(image), visuals.Image)
     assert isinstance(renderer.visual(points), visuals.Markers)
     shot = widget.screenshot()
@@ -162,7 +169,8 @@ def test_renderer_draws_and_follows_the_model(widget, qtbot) -> None:
         image.colormap = 'no-such-map'
     # removing an item removes its visual
     view.remove(points)
-    assert points not in renderer._visuals
+    with pytest.raises(KeyError):
+        renderer.visual(points)
 
 
 def test_colormaps_resolve_without_matplotlib() -> None:
@@ -249,6 +257,133 @@ def test_show_opens_a_window(qtbot) -> None:
     ]
     assert w.view.items[0].colormap == 'magma'
     w.close()
+
+
+class _Slow:
+    """An array that is slow to read, like a zarr store over a network."""
+
+    def __init__(self, data: np.ndarray, delay: float) -> None:
+        self._data = data
+        self.delay = delay
+        self.reads = 0
+        self.shape = data.shape
+        self.dtype = data.dtype
+        self.ndim = data.ndim
+
+    def __getitem__(self, index):
+        import time
+
+        self.reads += 1
+        time.sleep(self.delay)
+        return self._data[index]
+
+
+def test_lazy_arrays_are_sliced_in_the_background(qtbot) -> None:
+    import time
+
+    from napari_lite.view import QtView
+
+    data = stack()
+    slow = _Slow(data, delay=0.15)
+    view = View()
+    image = view.add_image(slow, contrast_limits=(0, 1000))  # no read yet
+    assert slow.reads == 0
+    w = QtView(view)
+    qtbot.addWidget(w)
+    w.show()
+    qtbot.waitExposed(w)
+    visual = w.renderer.visual(image)
+    qtbot.waitUntil(lambda: visual._data is not None, timeout=3000)
+    assert visual._data[0, 0] == 200  # the middle slice
+    # three steps in a row return at once; the last one is what is shown
+    t0 = time.perf_counter()
+    for step in (3, 4, 1):
+        view.current_step = (step,)
+    assert time.perf_counter() - t0 < 0.1
+    qtbot.waitUntil(lambda: visual._data[0, 0] == 100, timeout=3000)
+    reads = slow.reads
+    view.current_step = (1,)  # the same step: no new read
+    assert slow.reads == reads
+    w.close()
+
+
+def test_items_are_not_resliced_for_other_axes(qtbot) -> None:
+    from napari_lite.view import QtView
+
+    view = View()
+    flat = view.add_image(np.zeros((16, 24)))  # 2D: no axis of its own
+    view.add_image(stack())
+    w = QtView(view)
+    qtbot.addWidget(w)
+    calls = {'flat': 0, 'deep': 0}
+    original = type(flat).slice
+
+    def counting(item, step):
+        calls['flat' if item is flat else 'deep'] += 1
+        return original(item, step)
+
+    type(flat).slice = counting
+    try:
+        view.current_step = (4,)
+        view.current_step = (1,)
+    finally:
+        type(flat).slice = original
+    assert calls == {'flat': 0, 'deep': 2}
+    w.close()
+
+
+def test_integer_data_is_uploaded_as_it_is(widget) -> None:
+    from napari_lite.view._vispy import texture_format
+
+    image = widget.view.items[0]  # a uint16 stack
+    visual = widget.renderer.visual(image)
+    if texture_format() == 'auto':
+        assert visual._data.dtype == np.uint16
+    else:  # no float textures on this GPU: vispy converts
+        assert visual._data.dtype == np.float32
+    # the contrast limits apply on the GPU: 1000 is white, 200 black
+    image.contrast_limits = (200, 1000)
+    widget.view.camera.rect = (4, 6, 4, 6)  # the bright rectangle only
+    shot = widget.screenshot()[..., :3]
+    assert shot[shot.shape[0] // 2, shot.shape[1] // 2].min() > 250
+
+
+def test_rendering_matches_the_viewer(qtbot) -> None:
+    """The same image through napari's layers (the viewer) and through
+    the view canvas gives the same pixels."""
+    from napari_lite import Viewer
+    from napari_lite.view import VispyRenderer
+
+    rng = np.random.default_rng(3)
+    data = rng.integers(0, 1000, size=(60, 100), dtype=np.uint16)
+    viewer = Viewer(show=False)
+    try:
+        viewer.add_image(
+            data,
+            colormap='gray',
+            contrast_limits=(0, 1000),
+            interpolation2d='nearest',
+        )
+        viewer.window.show()
+        qtbot.waitExposed(viewer.window._qt_window)
+        expected = viewer.export_figure(scale_factor=4)
+    finally:
+        viewer.close()
+    view = View()
+    view.add_image(data, colormap='gray', contrast_limits=(0, 1000))
+    view.camera.rect = (-0.5, -0.5, 60, 100)  # the data, edge to edge
+    renderer = VispyRenderer(view, size=(400, 240))
+    qtbot.addWidget(renderer.native)
+    renderer.native.show()
+    qtbot.waitExposed(renderer.native)
+    got = renderer.screenshot()
+    renderer.close()
+    assert got.shape == expected.shape == (240, 400, 4)
+    # the middle of every magnified data pixel, clear of the edges that
+    # rounding may place a screen pixel apart
+    centres = (slice(2, None, 4), slice(2, None, 4))
+    diff = np.abs(got[centres].astype(int) - expected[centres].astype(int))
+    assert diff.max() <= 1
 
 
 def test_model_imports_without_qt_or_vispy() -> None:

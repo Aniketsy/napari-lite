@@ -33,6 +33,7 @@ from napari_lite.view._model import (
     ImageItem,
     Item,
     PointsItem,
+    Renderer,
     View,
 )
 
@@ -47,6 +48,7 @@ __all__ = [
     'Item',
     'PointsItem',
     'QtView',
+    'Renderer',
     'View',
     'VispyRenderer',
     'show',

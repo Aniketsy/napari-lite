@@ -4,9 +4,10 @@ per non-displayed axis; ``show`` opens it in a window."""
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
-from qtpy.QtCore import Qt
+from qtpy.QtCore import QObject, Qt, Signal
 from qtpy.QtWidgets import (
     QGridLayout,
     QLabel,
@@ -22,6 +23,21 @@ from napari_lite.view._vispy import VispyRenderer
 __all__ = ['QtView', 'show']
 
 _windows: list[QtView] = []  # windows opened by show(), kept alive
+
+
+class _MainThread(QObject):
+    """Runs a function on the Qt thread; ``call.emit(fn)`` is safe from
+    any thread (a queued signal), which is how slices computed in the
+    worker reach the canvas."""
+
+    call = Signal(object)
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.call.connect(self._run)
+
+    def _run(self, fn: Any) -> None:
+        fn()
 
 
 def _slider_slot(widget: QtView, axis: int) -> Any:
@@ -57,7 +73,18 @@ class QtView(QWidget):
         get_qapp()
         super().__init__(parent)
         self.view = view if view is not None else View()
-        self.renderer = VispyRenderer(self.view, background=background)
+        # lazy arrays (dask, zarr) are sliced here, one slice at a time,
+        # so the window stays responsive; numpy arrays never wait
+        self._executor = ThreadPoolExecutor(
+            max_workers=1, thread_name_prefix='napari-lite-view'
+        )
+        self._main_thread = _MainThread()
+        self.renderer = VispyRenderer(
+            self.view,
+            background=background,
+            executor=self._executor,
+            call_soon=self._main_thread.call.emit,
+        )
         self.renderer.native.setParent(self)
         self._sliders: list[QSlider] = []
         self._values: list[QLabel] = []
@@ -167,6 +194,7 @@ class QtView(QWidget):
     def closeEvent(self, event: Any) -> None:
         self.view.changed.disconnect(self._on_view_change)
         self.renderer.close()
+        self._executor.shutdown(wait=False, cancel_futures=True)
         if self in _windows:
             _windows.remove(self)
         super().closeEvent(event)

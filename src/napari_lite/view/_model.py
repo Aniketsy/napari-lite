@@ -15,12 +15,20 @@ from __future__ import annotations
 
 import math
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, Protocol, runtime_checkable
 
 import numpy as np
 from psygnal import Signal
 
-__all__ = ['COLORMAPS', 'Camera', 'ImageItem', 'Item', 'PointsItem', 'View']
+__all__ = [
+    'COLORMAPS',
+    'Camera',
+    'ImageItem',
+    'Item',
+    'PointsItem',
+    'Renderer',
+    'View',
+]
 
 # the colormap names the renderer resolves: vispy's own maps, the
 # matplotlib maps napari carries (``utils/colormaps/vendored``) and
@@ -154,6 +162,13 @@ class Item:
     def __repr__(self) -> str:
         return f'<{type(self).__name__} {self.name!r} {self.shape}>'
 
+    def own_step(self, step: Sequence[int]) -> tuple[int, ...]:
+        """The part of the view's ``step`` that is this item's: one index
+        per non-displayed axis of its own, from the right (items with
+        fewer axes align on the right); entries the step lacks are the
+        middle of the axis."""
+        return _align(step, self.ndim - 2, self.shape)
+
 
 def _align(
     step: Sequence[int], own: int, shape: Sequence[int]
@@ -165,16 +180,27 @@ def _align(
     return tuple(n // 2 for n in shape[:missing]) + step
 
 
+# the dtypes a GPU texture holds as they are; the rest become float32
+NATIVE_DTYPES = (np.uint8, np.uint16, np.int8, np.int16, np.float32)
+
+
 def _to_renderable(array: np.ndarray, rgb: bool) -> np.ndarray:
-    """A dtype the renderer takes as is: uint8 or float32."""
-    if array.dtype == np.uint8:
+    """``array`` in a dtype the renderer uploads as it is, or the nearest:
+    wider integers, float16 and float64 become float32, bool uint8;
+    colour channels stay uint8 or are scaled to 0..1 floats."""
+    dtype = array.dtype
+    if rgb:
+        if dtype == np.uint8:
+            return array
+        if np.issubdtype(dtype, np.integer):
+            info = np.iinfo(dtype)
+            scaled = array.astype(np.float32) - info.min
+            return scaled / np.float32(info.max - info.min)
+        return array.astype(np.float32, copy=False)
+    if dtype in NATIVE_DTYPES:
         return array
-    if array.dtype == np.bool_:
+    if dtype == np.bool_:
         return array.astype(np.uint8)
-    if rgb and np.issubdtype(array.dtype, np.integer):
-        # integer colour channels other than uint8: scale to 0..1
-        info = np.iinfo(array.dtype)
-        return (array.astype(np.float32) - info.min) / (info.max - info.min)
     return array.astype(np.float32, copy=False)
 
 
@@ -290,7 +316,7 @@ class ImageItem(Item):
         array the renderer takes: rows by columns, uint8 or float32, with
         the colour channels last for RGB."""
         own = self.ndim - 2
-        step = _align(step, own, self._shape)
+        step = self.own_step(step)
         index = tuple(
             min(max(s, 0), n - 1)
             for s, n in zip(step, self._shape[:own], strict=True)
@@ -399,9 +425,32 @@ class PointsItem(Item):
         own = self.ndim - 2
         if not own:
             return np.arange(len(self._coords))
-        step = np.asarray(_align(step, own, self.shape))
+        step = np.asarray(self.own_step(step))
         leading = np.round(self._coords[:, :own])
         return np.flatnonzero((leading == step).all(axis=1))
+
+
+@runtime_checkable
+class Renderer(Protocol):
+    """What draws a ``View``: ``VispyRenderer`` is the one here; another
+    one implements this against the same model and nothing else.
+
+    It follows ``view.changed`` ('items', 'current_step'), every item's
+    ``changed`` and ``view.camera.changed``, and writes the rectangle it
+    shows into ``view.camera`` when the user pans or zooms.
+    """
+
+    view: View
+
+    @property
+    def native(self) -> Any:
+        """The widget to put in a window."""
+
+    def screenshot(self) -> np.ndarray:
+        """The canvas as an RGBA uint8 array."""
+
+    def close(self) -> None:
+        """Stop following the view and release the canvas."""
 
 
 class Camera:
