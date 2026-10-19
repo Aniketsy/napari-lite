@@ -8,6 +8,20 @@ importable as `napari_lite` without napari installed.
 
 ### Added
 
+- `Viewer(gui=None)`: a viewer without a window (issue #5). The
+  renderer draws off screen; `screenshot` and `export_figure` work,
+  `window` and `show` say there is none. On Linux vispy's `egl` or
+  `osmesa` application draws with no Qt in the process (text needs
+  `freetype-py` there); elsewhere the Qt binding draws into a widget
+  kept off the screen. `NAPARI_LITE_GUI=none` makes it the default.
+- `napari_lite.backends`: the `Window` contract (what a `Viewer` uses
+  from its window), `get_gui` with the built-in `'qt'` and the
+  entry-point group `napari_lite.guis` for other front ends, and
+  `Viewer(gui=...)` to choose; the vispy renderer's wiring to the model
+  is `VispyBackend` (`_vispy/backend.py`), which `QtCanvas` and the
+  headless viewer share. The copied vispy canvas imports without Qt:
+  the throttle, the fonts, the text metrics and the cursor are Qt's
+  only when vispy runs on Qt (`_vispy/_qt_optional.py`).
 - The model (viewer model, layers, dims, camera, events) imports and
   runs without vispy and without Qt (issue #5): the colour names and
   parsing, the key names, a rotation matrix and an exception helper that

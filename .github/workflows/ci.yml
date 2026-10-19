@@ -44,6 +44,19 @@ jobs:
           fi
       - name: Test (own tests and the copied napari tests)
         run: python -m pytest tests src/napari_lite
+      # The headless viewer with no Qt in the process: vispy on Mesa's EGL
+      # (docs/backends.md); freetype-py renders the text without Qt
+      - name: Headless viewer without Qt (vispy on EGL)
+        if: runner.os == 'Linux'
+        env:
+          NAPARI_LITE_REQUIRE_OFFSCREEN: '1'
+          EGL_PLATFORM: surfaceless
+          PYOPENGL_PLATFORM: egl
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libegl1 libegl-mesa0 libopengl0 libgl1-mesa-dri libosmesa6
+          python -m pip install freetype-py
+          python -m pytest tests/test_headless.py -q -k without_qt
 
   # The dependency tree itself: a plain ``pip install napari-lite[pyqt6]``
   # must not bring the packages own code stands in for, and the own tests

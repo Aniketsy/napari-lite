@@ -113,9 +113,9 @@ rebuild the issue warns about, in another form.
   They are consulted only for a backend name that is not built in.
 - **Headless without any window is platform-dependent.** vispy's `egl`
   and `osmesa` backends exist on Linux, which is where servers and CI
-  are; on Windows and macOS, `gui=None` falls back to a hidden window of
-  the default toolkit, which still means Qt is imported there. The
-  documentation says so.
+  are; on Windows and macOS, `gui=None` falls back to a Qt widget kept
+  off the screen, which still means Qt is imported there (no window
+  appears). The documentation says so.
 - **A Jupyter front end still needs a GL context on the server** (EGL
   or a virtual display), because `jupyter_rfb` streams frames rendered
   on the server. That is fine for the server case it serves.
@@ -140,6 +140,18 @@ rebuild the issue warns about, in another form.
   Windows): importing the model 1.19 s and 627 modules before, 0.80 s
   and 559 modules after; the model with one layer of every kind
   1.80 s and 967 modules before, 1.68 s and 907 after.
+- Step 2 done (branch `fix-5`): `Viewer(gui=None)` draws without a
+  window; `napari_lite.backends` has the `Window` contract, `get_gui`
+  and the `NAPARI_LITE_GUI` variable; the vispy wiring that `QtCanvas`
+  held is `VispyBackend` (`_vispy/backend.py`), shared with the
+  headless canvas, which is the renderer seam of step 3 in all but the
+  written contract. The copied vispy canvas imports without Qt
+  (`_vispy/_qt_optional.py`, twelve rewrite rules). `tests/
+  test_headless.py` runs on every platform through the off-screen Qt
+  widget, and its last test proves the Qt-free path on the Linux CI
+  job, where vispy runs on Mesa's EGL and freetype-py renders text.
+  Without Qt the overlays' text sizes are estimates from the font
+  size, not measured.
 
 ## The plan, step by step
 

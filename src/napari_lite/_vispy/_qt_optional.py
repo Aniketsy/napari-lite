@@ -95,7 +95,7 @@ def available_offscreen_app() -> str | None:
     for name in OFFSCREEN_APPS:
         try:
             app.Application(name)
-        except Exception:  # noqa: BLE001  (vispy says why in a RuntimeError)
+        except Exception:  # vispy says why, in a RuntimeError
             continue
         return name
     return None
@@ -160,14 +160,27 @@ def qdebounced(func: Callable[..., Any], **kwargs: Any) -> Callable[..., Any]:
 
 
 # fonts
-def __getattr__(name: str) -> Any:
-    # ``QtFontManager`` is Qt's (utils/qt_font.py imports Qt); it is
-    # handed out when asked for, so that this module imports without Qt
-    if name == 'QtFontManager':
+class _LazyQtFontManager(type):
+    """Stands for Qt's ``QtFontManager`` (utils/qt_font.py, which imports
+    Qt) until one is made or checked for, so that the canvas module
+    imports without Qt."""
+
+    def _real(cls) -> type:
         from napari_lite._vispy.utils.qt_font import QtFontManager
 
         return QtFontManager
-    raise AttributeError(f'module {__name__!r} has no attribute {name!r}')
+
+    def __call__(cls, *args: Any, **kwargs: Any) -> Any:
+        return cls._real()(*args, **kwargs)
+
+    def __instancecheck__(cls, instance: Any) -> bool:
+        if 'qtpy' not in sys.modules:
+            return False
+        return isinstance(instance, cls._real())
+
+
+class QtFontManager(metaclass=_LazyQtFontManager):
+    """Qt's font manager, imported from utils/qt_font.py when first made."""
 
 
 class _VispyFontManager:
