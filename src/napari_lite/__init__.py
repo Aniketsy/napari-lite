@@ -52,6 +52,7 @@ _submodules = [
     'qt',
     'types',
     'utils',
+    'view',
     'viewer',
 ]
 

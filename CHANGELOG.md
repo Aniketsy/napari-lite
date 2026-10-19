@@ -8,6 +8,12 @@ importable as `napari_lite` without napari installed.
 
 ### Added
 
+- `napari_lite.view`, a view-only canvas for images and points without
+  napari's layers (issue #4): `View` with `ImageItem` and `PointsItem`
+  (contrast limits, colormap, opacity, visibility, the slice shown, a
+  camera), drawn by `VispyRenderer`, in a `QtView` widget with a slider
+  per non-displayed axis; `show(image, points)` opens a window. The model
+  imports numpy and psygnal only; Qt and vispy come with the widget.
 - `napari_lite.Viewer`, `imshow`, `run`, `current_viewer`; a window with a
   status bar and `add_dock_widget`; `QtCanvas` for use in other Qt layouts.
 - The `napari-lite` command (`python -m napari_lite` too): one layer per
