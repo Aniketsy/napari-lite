@@ -3,7 +3,10 @@
 A plan, written before any code, revised after a review of its
 downsides. The goal, in the words of the issue: the core works
 without vispy or Qt imported; vispy and Qt are one option; existing
-scripts keep working the same way by default.
+scripts keep working the same way by default. Steps 1, 2, 3 and 5 are
+done (the Progress section at the end says what each delivered); step
+4, a Jupyter front end, waits for interest. The sections in between
+are the plan as it was written, kept for the reasoning.
 
 ## Where we stand
 
@@ -163,6 +166,12 @@ rebuild the issue warns about, in another form.
   test_backends.py` runs the viewer, with a window and without, on a
   fake renderer that records the calls. vispy's application is chosen
   by the vispy renderer itself from `gui`. No visual change.
+- Step 5 done (branch `fix-5`): `docs/architecture.md` has the three
+  layers and the two contracts, the README a Backends row,
+  `examples/headless_figure.py` writes a figure with no window and the
+  example tests run it; the other examples run unchanged.
+- Step 4 (a Jupyter front end through `jupyter_rfb`) not started: on
+  demand, as planned.
 
 ## The plan, step by step
 

@@ -15,6 +15,9 @@ and where the two meet.
  |  qt/canvas.py            QtCanvas: canvas, dims sliders, status line,   |
  |                          hint with links, dropped files, key events     |
  |  qt/_viewer_actions.py   Ctrl+O file dialog, key bindings window        |
+ |  backends/               CanvasBackend and Window, the two contracts;   |
+ |                          get_renderer, get_gui; headless (gui=None)     |
+ |  _vispy/backend.py       VispyBackend, vispy behind the contract        |
  | - - - - - - - - - - - - - - - - - - - - - - - - - -  copied from napari |
  |  layer list, layer controls, layer and viewer buttons, QtDims,          |
  |  stylesheet and icons (_qt/)            rendering with vispy (_vispy/)  |
@@ -63,6 +66,12 @@ and where the two meet.
   hint in the empty canvas with its links, files dropped on the canvas,
   Ctrl+O, the key bindings window, and `QtCanvas` so the same canvas fits
   into any Qt application.
+- **Backends** (own). Three layers meet at two contracts
+  (`napari_lite.backends`): the model imports neither vispy nor Qt; a
+  renderer (`CanvasBackend`; vispy, in `_vispy/backend.py`) draws it; a
+  front end (`Window`; Qt) shows it. `Viewer(renderer=..., gui=...)`
+  picks them, `gui=None` draws without a window, and another package
+  adds its own by entry point ([backends.md](backends.md)).
 - **Shims** (own). Small modules at napari's import paths, where the
   copied code would call plugins or app-model. A built-in reader and a
   few samples stand in for reader plugins; writers raise a clear error;
@@ -75,7 +84,7 @@ and where the two meet.
   defaults, kept in memory; the dark and light themes; the action manager
   and key types the key bindings need.
 - **Dependencies**. Qt, vispy and numpy do the heavy lifting; the rest
-  are small. 57 files in the package are own code; everything else,
+  are small. 72 files in the package are own code; everything else,
   napari's tests included, is copied.
 
 ## How napari's code gets in
@@ -85,7 +94,7 @@ and where the two meet.
         |
         |  tools/vendor.py with tools/vendor.toml:
         |  which modules to copy, napari -> napari_lite,
-        |  47 text replacements for the places that must differ
+        |  102 text replacements for the places that must differ
         v
  "vendor" branch: the generated copy, listed in VENDORED.json
         |
@@ -116,6 +125,7 @@ and friends.
 ## Where to look next
 
 [design.md](design.md) for how data is interpreted,
+[backends.md](backends.md) for the renderer and front-end contracts,
 [development.md](development.md) and [../SYNC.md](../SYNC.md) for the copy
 and the resync, [benchmarks.md](benchmarks.md) for the numbers,
 [upstream.md](upstream.md) for the patches napari-lite found for napari.

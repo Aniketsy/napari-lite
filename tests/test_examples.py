@@ -35,6 +35,22 @@ def test_canvas_only(qtbot, monkeypatch) -> None:
     canvas.close()
 
 
+def test_headless_figure(tmp_path, monkeypatch) -> None:
+    """examples/headless_figure.py writes a figure with no window."""
+    from napari_lite import Viewer
+
+    monkeypatch.chdir(tmp_path)
+    try:
+        namespace = runpy.run_path(
+            str(EXAMPLES / 'headless_figure.py'), run_name='__main__'
+        )
+    finally:
+        Viewer.close_all()
+    assert (tmp_path / 'headless_figure.png').exists()
+    assert namespace['figure'].shape == (400, 600, 4)
+    assert namespace['viewer'].headless
+
+
 @pytest.fixture
 def run_notebook():
     """The ``run_notebook`` function of tools/run_notebook.py."""
