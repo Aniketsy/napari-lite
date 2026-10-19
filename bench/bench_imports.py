@@ -181,6 +181,23 @@ MEASUREMENTS = {
         ViewerModel().add_image(np.zeros((64, 64), dtype=np.uint8))
         """
     ),
+    # the model alone: one layer of every kind, no window, no canvas
+    'model_all_layers': textwrap.dedent(
+        """
+        import numpy as np
+        from {pkg}.components import ViewerModel
+        v = ViewerModel()
+        v.add_image(np.zeros((4, 64, 64), dtype=np.uint8))
+        v.add_labels(np.zeros((64, 64), dtype=np.uint8))
+        v.add_points(np.zeros((3, 2)), face_color='cyan')
+        v.add_shapes(
+            [np.array([[1, 1], [1, 5], [5, 5], [5, 1]])], edge_color='yellow'
+        )
+        v.add_surface((np.zeros((3, 2)), np.array([[0, 1, 2]]), np.zeros(3)))
+        v.add_tracks(np.array([[0, 0, 1.0, 1.0], [0, 1, 2.0, 2.0]]))
+        v.add_vectors(np.zeros((2, 2, 2)))
+        """
+    ),
     'viewer_no_show': textwrap.dedent(
         """
         import {pkg}

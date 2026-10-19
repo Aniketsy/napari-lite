@@ -77,6 +77,10 @@ jobs:
           done
       - name: Own tests against the plain install
         run: python -m pytest tests
+      - name: The model without vispy installed at all
+        run: |
+          python -m pip uninstall -y vispy
+          python -m pytest tests/test_model_without_vispy.py -q
 
   lint:
     runs-on: ubuntu-latest

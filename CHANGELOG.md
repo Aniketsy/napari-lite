@@ -8,6 +8,13 @@ importable as `napari_lite` without napari installed.
 
 ### Added
 
+- The model (viewer model, layers, dims, camera, events) imports and
+  runs without vispy and without Qt (issue #5): the colour names and
+  parsing, the key names, a rotation matrix and an exception helper that
+  the copied code took from vispy are own modules now; vispy's
+  colormaps by name and its triangulation are imported when first used.
+  A test runs the model with every layer type and vispy blocked, and CI
+  runs it with vispy uninstalled.
 - `napari_lite.view`, a view-only canvas for images and points without
   napari's layers (issue #4): `View` with `ImageItem` and `PointsItem`
   (contrast limits, colormap, opacity, visibility, the slice shown, a

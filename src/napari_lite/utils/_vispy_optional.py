@@ -11,10 +11,10 @@ The vendor tool points the copied imports here (``tools/vendor.toml``):
 - ``Triangulation``: vispy's polygon triangulation, imported when a shapes
   layer first needs the pure-python backend (``layers/shapes/_shapes_utils.py``).
 - ``Colormap``, ``get_colormap``, ``get_colormaps``, ``Color``,
-  ``ColorArray``: what ``utils/colormaps/colormap_utils.py`` names.  vispy's
-  colormaps by name (``hot``, ``ice``, ...) are looked up when asked for,
-  importing vispy then; they are not listed up front, so ``get_colormaps``
-  is empty and ``AVAILABLE_COLORMAPS`` holds napari's own maps.
+  ``ColorArray``: what ``utils/colormaps/colormap_utils.py`` names.
+  ``get_colormaps`` lists vispy's colormap names with stand-ins, so napari
+  knows them as available without vispy being imported; the first use of
+  one (``get_colormap``) imports vispy and hands out the real colormap.
 """
 
 from __future__ import annotations
@@ -30,6 +30,7 @@ import numpy as np
 from napari_lite.utils._colors import Color, ColorArray
 
 __all__ = [
+    'VISPY_COLORMAP_NAMES',
     'Color',
     'ColorArray',
     'Colormap',
@@ -121,6 +122,44 @@ def Triangulation(vertices: Any, edges: Any) -> Any:
 
 
 # vispy's colormaps, by name, when asked for
+# The colormap names only vispy has (its ``Colormap`` instances, vispy
+# 0.17), which napari lists as available: one is imported from vispy when
+# it is first used.  The names napari's own matplotlib tables also have
+# (autumn, cool, coolwarm, cubehelix, RdBu, spring, summer, viridis) are
+# left out, so that building the colormap tables at import asks vispy for
+# nothing; those come from the matplotlib tables.
+VISPY_COLORMAP_NAMES = (
+    'GrBu',
+    'GrBu_d',
+    'PuGr',
+    'RdYeBuCy',
+    'blues',
+    'diverging',
+    'greens',
+    'hsl',
+    'husl',
+    'light_blues',
+    'orange',
+    'reds',
+    'single_hue',
+)
+
+
+class _VispyColormapByName:
+    """Stands for vispy's colormap ``name`` until it is asked for."""
+
+    __slots__ = ('name',)
+
+    def __init__(self, name: str) -> None:
+        self.name = name
+
+    def resolve(self) -> Any:
+        return get_colormap(self.name)
+
+    def __repr__(self) -> str:
+        return f'<vispy colormap {self.name!r}, not imported yet>'
+
+
 def get_colormap(name: str) -> Any:
     """vispy's colormap ``name``; imports vispy.  Raises ``KeyError`` for
     an unknown name, like vispy."""
@@ -130,9 +169,9 @@ def get_colormap(name: str) -> Any:
 
 
 def get_colormaps() -> dict[str, Any]:
-    """vispy's colormaps are not listed up front (that would import
-    vispy with the model); ``get_colormap`` finds them by name."""
-    return {}
+    """vispy's colormaps by name, as stand-ins that count as ``Colormap``
+    instances; ``get_colormap`` gives the real one, importing vispy."""
+    return {name: _VispyColormapByName(name) for name in VISPY_COLORMAP_NAMES}
 
 
 class _LazyVispyClass(type):
@@ -149,6 +188,8 @@ class _LazyVispyClass(type):
         return cls._real()(*args, **kwargs)
 
     def __instancecheck__(cls, instance: Any) -> bool:
+        if isinstance(instance, _VispyColormapByName):
+            return True  # it will be one, once imported
         if 'vispy' not in sys.modules:
             return False
         return isinstance(instance, cls._real())

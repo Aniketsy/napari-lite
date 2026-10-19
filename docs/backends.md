@@ -1,7 +1,7 @@
 # Other rendering and widget backends (issue #5)
 
-A plan, written 2026-10-19 before any code, revised after a review of
-its downsides. The goal, in the words of the issue: the core works
+A plan, written before any code, revised after a review of its
+downsides. The goal, in the words of the issue: the core works
 without vispy or Qt imported; vispy and Qt are one option; existing
 scripts keep working the same way by default.
 
@@ -49,13 +49,13 @@ model        ViewerModel, layers, dims, camera, overlays, events, settings
                 │
                 │  CanvasBackend contract (a Protocol)
                 ▼
-renderer     napari_lite._vispy (today), another one (later)
+renderer     napari_lite._vispy (the one there is), another one (later)
              makes a canvas for a ViewerModel, draws its layers, answers
              screenshots, maps canvas pixels to data coordinates
                 │
                 │  Window contract (a Protocol)
                 ▼
-front end    Qt (today): QtCanvas, Window, the layer panel, the CLI
+front end    Qt (the one there is): QtCanvas, Window, the layer panel, the CLI
              headless (no window, screenshots only), Jupyter (later)
 ```
 
@@ -64,7 +64,7 @@ vispy's: `native` (a widget for the front end, or None), `size`,
 `screenshot()`, `add_layer(layer)`, `remove_layer(layer)`,
 `set_camera_from_model()`, `data_position(canvas_xy)`,
 `deliver_key_event(event)`, `close()`. The vispy-specific things
-`QtCanvas` does today (the grid cameras, the font manager, the 3D depth
+`QtCanvas` does as it stands (the grid cameras, the font manager, the 3D depth
 workaround, the scene canvas for key events) move into the vispy adapter
 and out of the contract, so that a second backend is not asked to imitate
 vispy. The adapter is one own module over `VispyCanvas` as it is; the
@@ -106,7 +106,7 @@ rebuild the issue warns about, in another form.
   never change; a subprocess test fails loudly when vispy comes back,
   and the weekly upstream report shows the changed line.
 - **A contract shaped by vispy would be no contract.** The first draft
-  listed what `QtCanvas` uses today, which includes vispy's grid cameras
+  listed what `QtCanvas` uses as it stands, which includes vispy's grid cameras
   and a depth workaround; that is handled by writing the contract from
   the model's needs and keeping vispy's oddities in the vispy adapter.
 - **Entry points cost startup time** if scanned on every `Viewer()`.
@@ -129,6 +129,17 @@ rebuild the issue warns about, in another form.
   port of every napari layer visual, a project of its own. What this plan
   secures is that it needs no change in the core, which is the point the
   issue makes.
+
+## Progress
+
+- Step 1 done (branch `fix-5`): the model imports and runs with vispy
+  and Qt blocked, every layer type included; `tests/
+  test_model_without_vispy.py` guards it, the plain-install CI job runs
+  it with vispy uninstalled, the benchmark has a `model_all_layers`
+  line. Measured on the benchmark machine (best of 3, Python 3.13,
+  Windows): importing the model 1.19 s and 627 modules before, 0.80 s
+  and 559 modules after; the model with one layer of every kind
+  1.80 s and 967 modules before, 1.68 s and 907 after.
 
 ## The plan, step by step
 
@@ -175,6 +186,6 @@ unchanged).
 Step 1 about a day, all in own modules and `vendor.toml`; it is what
 makes the claim "the core imports without vispy or Qt" true, and it is
 the only step with a risk, which the copied napari tests cover (colour
-and colormap names must match what napari accepts today). Steps 2 and 3
+and colormap names must match what napari accepts). Steps 2 and 3
 a day each, after the release; they add parameters with defaults, so
 nothing breaks. Step 4 depends on demand.
