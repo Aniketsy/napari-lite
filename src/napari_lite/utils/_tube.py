@@ -17,7 +17,8 @@ from __future__ import annotations
 
 import numpy as np
 from numpy.linalg import norm
-from vispy.util.transforms import rotate
+
+from napari_lite.utils._vispy_optional import rotate
 
 
 def _frenet_frames(

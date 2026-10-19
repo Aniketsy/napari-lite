@@ -118,6 +118,21 @@ data = [
 # that provides the pure-python triangulation backend
 "TriangulationBackend.pure_python: 'napari'," = "TriangulationBackend.pure_python: 'napari_lite',"
 
+# The model without vispy (issue #5, docs/backends.md): what the copied
+# core takes from vispy that is not drawing comes from own modules instead.
+# Colour names and parsing (utils/_colors.py); key names
+# (utils/_key_names.py); an exception helper and vispy's colormaps
+# imported only when used (utils/_vispy_optional.py).  Each key is a
+# whole import line, so the copied code's own lines do not change.  The
+# shapes triangulation is in the [[rewrite]] block below; utils/_tube.py
+# is own code and imports its rotation matrix from _vispy_optional.
+"from vispy.color import ColorArray, get_color_dict, get_color_names" = "from napari_lite.utils._colors import ColorArray, get_color_dict, get_color_names"
+"from vispy.color.color_array import _string_to_rgb" = "from napari_lite.utils._colors import _string_to_rgb"
+"from vispy.color import get_color_names" = "from napari_lite.utils._colors import get_color_names"
+"from vispy.util import keys" = "from napari_lite.utils import _key_names as keys"
+"from vispy.util.logs import _handle_exception" = "from napari_lite.utils._vispy_optional import _handle_exception"
+"from vispy.color import (\n    Color,\n    ColorArray,\n    Colormap as VispyColormap," = "from napari_lite.utils._vispy_optional import (\n    Color,\n    ColorArray,\n    Colormap as VispyColormap,"
+
 # Multi-line substitutions, same effect as ``literal_rewrites``; the tool
 # fails when ``old`` no longer occurs anywhere, so a napari change that
 # moves the code is noticed at resync.  Keep the ``# napari-lite:`` comment
@@ -604,19 +619,21 @@ new = '''
 # layers/shapes/_shapes_utils.py: one helper function imported from
 # vispy.visuals.tube loaded every vispy visual and vispy.gloo (about 100
 # modules) with the layers, before any canvas exists; utils/_tube.py is a
-# copy of that function.
+# copy of that function.  The triangulation is vispy's too, imported when
+# a shapes layer first needs it (utils/_vispy_optional.py), so the layers
+# import without vispy (issue 5).
 [[rewrite]]
 old = '''
 from vispy.geometry import Triangulation
 from vispy.visuals.tube import _frenet_frames
 '''
 new = '''
-from vispy.geometry import Triangulation
-
-# napari-lite: own copy of vispy's helper (utils/_tube.py); importing
-# vispy.visuals.tube would load every vispy visual and vispy.gloo with the
-# layers, before any canvas exists
+# napari-lite: an own copy of vispy's tube helper (utils/_tube.py) and
+# vispy's triangulation imported when first used (utils/_vispy_optional.py):
+# importing vispy.visuals.tube would load every vispy visual and vispy.gloo
+# with the layers, before any canvas exists
 from napari_lite.utils._tube import _frenet_frames
+from napari_lite.utils._vispy_optional import Triangulation
 '''
 
 # components/viewer_model.py and _qt/qthreading.py: ``progress`` (and tqdm
