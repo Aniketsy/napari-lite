@@ -13,14 +13,20 @@ from weakref import WeakSet
 
 import numpy as np
 from OpenGL.error import GLError
-from superqt.utils import qthrottled
 from vispy.scene import Grid, SceneCanvas as SceneCanvas_, ViewBox, Widget
 
+# napari-lite: Qt is optional for the renderer: the throttle and the
+# fonts are Qt's when vispy runs on Qt and plain otherwise; the Qt
+# cursor is imported where it is set
+from napari_lite._vispy._qt_optional import (
+    FontInfo,
+    QtFontManager,
+    qthrottled,
+    vispy_app_is_qt,
+)
 from napari_lite._vispy.camera import VispyCamera
 from napari_lite._vispy.mouse_event import NapariMouseEvent
-from napari_lite._vispy.utils.cursor import QtCursorVisual
 from napari_lite._vispy.utils.gl import get_max_texture_sizes
-from napari_lite._vispy.utils.qt_font import FontInfo, QtFontManager
 from napari_lite._vispy.utils.visual import create_vispy_overlay
 from napari_lite.components._viewer_constants import CanvasPosition
 from napari_lite.components.overlays import CanvasOverlay
@@ -65,6 +71,10 @@ class NapariSceneCanvas(SceneCanvas_):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        # napari-lite: without a Qt widget (the headless and notebook
+        # viewers on egl) there are no enter and leave events to wrap
+        if not hasattr(self.native, 'enterEvent'):
+            return
         orig_enterEvent = self.native.enterEvent
         orig_leaveEvent = self.native.leaveEvent
 
@@ -192,8 +202,10 @@ class VispyCanvas:
 
         self._font_info = FontInfo(face=font_family, font_manager=font_manager)
         self.viewer = viewer
+        # napari-lite: vispy's egl application (the headless and notebook
+        # viewers on Linux) has no vsync and refuses it
         self._scene_canvas = NapariSceneCanvas(
-            *args, keys=None, vsync=True, **kwargs
+            *args, keys=None, vsync=vispy_app_is_qt(), **kwargs
         )
 
         self.view: ViewBox = self.central_widget.add_view(border_width=0)
@@ -321,7 +333,10 @@ class VispyCanvas:
         )
 
         self.viewer.canvas.events.size.connect(self._on_model_size_change)
-        self.destroyed.connect(self._disconnect_events)
+        # napari-lite: without a Qt widget (the headless viewer) ``delete``
+        # disconnects, there being no destroyed signal
+        if hasattr(self.native, 'destroyed'):
+            self.destroyed.connect(self._disconnect_events)
         get_settings().appearance.events.font_size.connect(
             self._update_overlay_font_sizes
         )
@@ -394,6 +409,12 @@ class VispyCanvas:
 
     def _on_cursor(self) -> None:
         """Create a QCursor based on the napari cursor settings and set in Vispy."""
+        # napari-lite: the cursor is a Qt one; a canvas without a Qt
+        # widget (the headless viewer) has none to set
+        if not hasattr(self.native, 'setCursor'):
+            return
+        from napari_lite._vispy.utils.cursor import QtCursorVisual
+
         cursor = self.viewer.cursor.style
         brush_overlay = self.viewer.canvas.overlays._brush_circle
         brush_overlay.visible = False
@@ -429,6 +450,11 @@ class VispyCanvas:
 
     def delete(self) -> None:
         """Schedules the native widget for deletion"""
+        # napari-lite: without a Qt widget (the headless viewer) close now
+        if not hasattr(self.native, 'deleteLater'):
+            self._disconnect_events()
+            self._scene_canvas.close()
+            return
         self.native.deleteLater()
 
     def _on_interactive(self) -> None:

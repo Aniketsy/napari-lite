@@ -10,12 +10,12 @@ import numpy as np
 # so scikit-image is not a dependency
 from napari_lite.utils import _draw as draw
 from napari_lite.utils import _draw as measure
-from vispy.geometry import Triangulation
-
-# napari-lite: own copy of vispy's helper (utils/_tube.py); importing
-# vispy.visuals.tube would load every vispy visual and vispy.gloo with the
-# layers, before any canvas exists
+# napari-lite: an own copy of vispy's tube helper (utils/_tube.py) and
+# vispy's triangulation imported when first used (utils/_vispy_optional.py):
+# importing vispy.visuals.tube would load every vispy visual and vispy.gloo
+# with the layers, before any canvas exists
 from napari_lite.utils._tube import _frenet_frames
+from napari_lite.utils._vispy_optional import Triangulation
 
 from napari_lite.layers.shapes import (
     _accelerated_triangulate_dispatch as _triangulate_dispatch,

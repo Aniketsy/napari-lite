@@ -1,11 +1,9 @@
 import logging
 
-from qtpy import API_NAME
-from vispy import app
-
-# set vispy application to the appropriate qt backend
-app.use_app(API_NAME)
-del app
+# napari-lite: vispy's application (the Qt binding, or egl for the
+# headless and notebook viewers) is chosen by the front end that makes the
+# first canvas (_vispy/_qt_optional.py), so that this package imports
+# without Qt
 
 # set vispy logger to show warning and errors only
 vispy_logger = logging.getLogger('vispy')

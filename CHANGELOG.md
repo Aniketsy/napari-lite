@@ -8,6 +8,52 @@ importable as `napari_lite` without napari installed.
 
 ### Added
 
+- `Viewer(gui='jupyter')`: the viewer as widgets in a notebook cell
+  (issue #5; the `jupyter` extra). The canvas is a jupyter_rfb widget
+  that streams frames the kernel draws off the screen, so it works on a
+  remote server too; drag, wheel and napari's keys work on it. Around
+  it: a slider and a play button per extra dimension, a layer list
+  (visibility, selection), 2D/3D and reset-view buttons, the status
+  line, and `add_dock_widget` for ipywidgets. The messages of these
+  widgets, docked ones included, are handled on the kernel's main shell:
+  JupyterLab would deliver them on a subshell's thread, where the canvas
+  cannot be used. `examples/jupyter.ipynb` shows it.
+  `nbscreenshot` no longer creates a Qt application (which turned on
+  IPython's Qt event loop) for viewers that have none.
+- `Viewer(gui=None)`: a viewer without a window (issue #5). The
+  renderer draws off screen; `screenshot` and `export_figure` work,
+  `window` and `show` say there is none. On Linux with EGL vispy's
+  `egl` application draws with no Qt in the process (text then needs
+  freetype-py: the `headless` extra). napari's GL calls go through
+  PyOpenGL, so napari-lite sets `PYOPENGL_PLATFORM=egl` for that, unless
+  the variable is set or PyOpenGL is imported already. Elsewhere the Qt
+  binding draws into a widget kept off the screen. `NAPARI_LITE_GUI=none`
+  makes it the default, and `napari_lite.run()` returns at once when no
+  viewer has a window.
+- `napari_lite.backends`: the two contracts between the model, the
+  renderer and the front end (issue #5). `CanvasBackend` is what a
+  front end uses from a renderer (`native`, `screenshot`, `key_event`,
+  `close`; the renderer follows the model by itself); `Window` is what
+  a `Viewer` uses from its window. `get_renderer` and `get_gui` find
+  them by name: the built-in `'vispy'` and `'qt'`, or names other
+  packages register under the entry-point groups
+  `napari_lite.renderers` and `napari_lite.guis`.
+  `Viewer(renderer=..., gui=...)` and `QtCanvas(renderer=...)` take a
+  name or the class itself; `NAPARI_LITE_RENDERER` and
+  `NAPARI_LITE_GUI` set the defaults. The vispy renderer is
+  `VispyBackend` (`_vispy/backend.py`), the wiring to the model that
+  `QtCanvas` held; `QtCanvas` and the headless viewer only use the
+  contract, so a test runs both on a renderer that is not vispy. The
+  copied vispy canvas imports without Qt: the throttle, the fonts, the
+  text metrics and the cursor are Qt's only when vispy runs on Qt
+  (`_vispy/_qt_optional.py`).
+- The model (viewer model, layers, dims, camera, events) imports and
+  runs without vispy and without Qt (issue #5): the colour names and
+  parsing, the key names, a rotation matrix and an exception helper that
+  the copied code took from vispy are own modules now; vispy's
+  colormaps by name and its triangulation are imported when first used.
+  A test runs the model with every layer type and vispy blocked, and CI
+  runs it with vispy uninstalled.
 - `napari_lite.view`, a view-only canvas for images and points without
   napari's layers (issue #4): `View` with `ImageItem` and `PointsItem`
   (contrast limits, colormap, opacity, visibility, the slice shown, a

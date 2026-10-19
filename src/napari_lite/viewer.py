@@ -1,14 +1,19 @@
 # napari-lite: own code
-"""``Viewer``: a ``ViewerModel`` with a window.
+"""``Viewer``: a ``ViewerModel`` with a window, or without one.
 
 Same constructor and methods as napari's ``Viewer`` where napari-lite has
 the feature: ``title``, ``ndisplay``, ``order``, ``axis_labels``, ``show``;
 ``window``, ``screenshot``, ``export_figure``, ``show``, ``close``,
 ``close_all``.  There is no console, so ``update_console`` is absent.
+``gui`` picks the front end and ``renderer`` the renderer
+(``napari_lite.backends``): the Qt window and vispy by default; a
+notebook cell with ``gui='jupyter'``; no window at all with ``gui=None``
+(screenshots only).
 """
 
 from __future__ import annotations
 
+import sys
 from typing import TYPE_CHECKING, Any, ClassVar
 from weakref import WeakSet
 
@@ -16,9 +21,12 @@ from napari_lite.components.viewer_model import ViewerModel
 from napari_lite.utils.events.event_utils import disconnect_events
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     import numpy as np
 
-    from napari_lite.window import Window
+    from napari_lite.backends import CanvasBackend, Window
+    from napari_lite.backends.headless import HeadlessCanvas
 
 __all__ = ['Viewer', 'current_viewer']
 
@@ -42,9 +50,24 @@ class Viewer(ViewerModel):
     show_welcome_screen : bool, optional
         Accepted for compatibility with napari and ignored: napari-lite has
         no welcome screen.
+    gui : str or None, optional
+        The front end: ``'qt'``; ``'jupyter'``, the viewer as widgets in a
+        notebook cell (the ``jupyter`` extra); the name of one another
+        package registers (``napari_lite.backends``); or None for no window
+        at all: the viewer draws off screen, ``screenshot`` and
+        ``export_figure`` work, ``window`` and ``show`` do not. By default
+        ``'default'``: what the environment variable ``NAPARI_LITE_GUI``
+        says (``'qt'``, ``'jupyter'``, ``'none'``, or a name), and ``'qt'``
+        when it is not set.
+    renderer : str or callable, optional
+        What draws the layers: ``'vispy'``, the name of a renderer another
+        package registers, or the renderer class itself. By default
+        ``'default'``: what ``NAPARI_LITE_RENDERER`` says, and vispy when
+        it is not set.
     """
 
-    _window: Window = None  # type: ignore[assignment]
+    _window: Window | None = None
+    _headless: HeadlessCanvas | None = None
     _instances: ClassVar[WeakSet[Viewer]] = WeakSet()
 
     def __init__(
@@ -56,6 +79,8 @@ class Viewer(ViewerModel):
         axis_labels: tuple[str, ...] = (),
         show: bool = True,
         show_welcome_screen: bool = False,
+        gui: str | None = 'default',
+        renderer: str | Callable[..., CanvasBackend] = 'default',
     ) -> None:
         super().__init__(
             title=title,
@@ -63,10 +88,24 @@ class Viewer(ViewerModel):
             order=order,
             axis_labels=axis_labels,
         )
-        # Qt is imported here, when the first Viewer is created
-        from napari_lite.window import Window
+        from napari_lite.backends import (
+            get_gui,
+            resolve_gui,
+            resolve_renderer,
+        )
 
-        self._window = Window(self, show=show)
+        name = resolve_gui(gui)
+        renderer_class = resolve_renderer(renderer, gui=name)
+        if name is None:
+            from napari_lite.backends.headless import HeadlessCanvas
+
+            self._headless = HeadlessCanvas(self, renderer=renderer_class)
+        else:
+            # the toolkit (Qt by default) is imported here, when the first
+            # Viewer is created
+            self._window = get_gui(name)(
+                self, show=show, renderer=renderer_class
+            )
         self._instances.add(self)
 
     def __new__(cls, *args: Any, **kwargs: Any) -> Viewer:
@@ -76,8 +115,21 @@ class Viewer(ViewerModel):
 
     @property
     def window(self) -> Window:
-        """The window (kept off the pydantic model)."""
+        """The window (kept off the pydantic model).  A viewer made with
+        ``gui=None`` has none: asking raises ``AttributeError``, so that
+        ``hasattr(viewer, 'window')`` says so."""
+        if self._window is None:
+            raise AttributeError(
+                'this viewer has no window: it was made with gui=None '
+                '(headless); screenshot() and export_figure() work, '
+                'the window and show() do not'
+            )
         return self._window
+
+    @property
+    def headless(self) -> bool:
+        """Whether the viewer draws without a window (``gui=None``)."""
+        return self._window is None
 
     def screenshot(
         self,
@@ -99,10 +151,14 @@ class Viewer(ViewerModel):
         scale : float, optional
             Scale factor for the canvas size. Canvas only.
         canvas_only : bool
-            Only the canvas (default) or the whole window.
+            Only the canvas (default) or the whole window.  A viewer
+            without a window (``gui=None``) gives its canvas either way, as
+            the notebook window does, so ``nbscreenshot`` works for both.
         flash : bool
             Flash the widget after capturing (default False).
         """
+        if self._headless is not None:
+            return self._headless.screenshot(path, size=size, scale=scale)
         return self.window.screenshot(
             path=path,
             size=size,
@@ -120,6 +176,8 @@ class Viewer(ViewerModel):
     ) -> np.ndarray:
         """Screenshot tightly fitted around the data, one pixel per data
         pixel (times ``scale_factor``)."""
+        if self._headless is not None:
+            return self._headless.export_figure(path, scale=scale_factor)
         return self.window.export_figure(
             path=path, scale=scale_factor, flash=flash
         )
@@ -129,13 +187,16 @@ class Viewer(ViewerModel):
         self.window.show(block=block)
 
     def close(self) -> None:
-        """Close the window."""
+        """Close the window, or release the off-screen canvas."""
         # shut the slicer down first so no more tasks are processed
         self._layer_slicer.shutdown()
         # no slicing while the layers are removed one by one
         disconnect_events(self.dims.events, self)
         self.layers.clear()
-        self.window.close()
+        if self._headless is not None:
+            self._headless.close()
+        else:
+            self.window.close()
         self._instances.discard(self)
 
     @classmethod
@@ -148,9 +209,17 @@ class Viewer(ViewerModel):
 
 
 def current_viewer() -> Viewer | None:
-    """The viewer whose window was active last, or None."""
-    try:
+    """The viewer whose Qt window was active last; without one, the viewer
+    whose notebook window was shown last; or None.  A front end that was
+    never imported has no windows, so asking imports no toolkit."""
+    if 'napari_lite._qt.qt_main_window' in sys.modules:
         from napari_lite._qt.qt_main_window import _QtMainWindow
-    except ImportError:
-        return None
-    return _QtMainWindow.current_viewer()  # type: ignore[return-value]
+
+        viewer = _QtMainWindow.current_viewer()
+        if viewer is not None:
+            return viewer  # type: ignore[return-value]
+    if 'napari_lite.backends.jupyter' in sys.modules:
+        from napari_lite.backends.jupyter import JupyterWindow
+
+        return JupyterWindow.current_viewer()  # type: ignore[return-value]
+    return None

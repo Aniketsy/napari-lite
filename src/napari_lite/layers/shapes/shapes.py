@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, ClassVar
 import numpy as np
 import numpy.typing as npt
 from psygnal.containers import Selection
-from vispy.color import get_color_names
+from napari_lite.utils._colors import get_color_names
 
 from napari_lite.layers.base import Layer, _LayerSlicingState, no_op
 from napari_lite.layers.base._base_constants import ActionType

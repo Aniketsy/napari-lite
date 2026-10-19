@@ -14,7 +14,7 @@ from typing import (
 )
 
 import numpy as np
-from vispy.color import (
+from napari_lite.utils._vispy_optional import (
     Color,
     ColorArray,
     Colormap as VispyColormap,

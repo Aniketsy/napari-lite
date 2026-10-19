@@ -16,6 +16,10 @@ run right after a reboot is a cold one):
 - `import`, `import_components`, `import_layers`: the import alone.
 - `first_image`: `ViewerModel().add_image(...)`, the imports it triggers
   included.
+- `model_all_layers`: a `ViewerModel` with one layer of each kind a plain
+  install has (Tracks need pandas, the features extra, so they are left
+  out for both packages) and no window or canvas, the imports included:
+  the model on its own, which imports neither vispy nor Qt (issue #5).
 - `viewer_no_show`, `viewer_shown`: a `Viewer` made and closed, without
   and with its window shown and painted once.
 - `first_frame`: from the start of the process to the first paint event

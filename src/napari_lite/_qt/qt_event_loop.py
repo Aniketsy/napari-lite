@@ -14,6 +14,7 @@ import sys
 from typing import TYPE_CHECKING
 from warnings import warn
 
+from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QApplication
 
 from napari_lite._qt.qthreading import wait_for_workers_to_quit
@@ -64,6 +65,7 @@ def get_qapp(
     org_domain: str | None = None,
     app_id: str | None = None,
     ipy_interactive: bool | None = None,
+    ipython_loop: bool = True,
 ) -> QApplication:
     """Get or create the Qt QApplication.
 
@@ -72,9 +74,11 @@ def get_qapp(
     ``%gui qt``) they are ignored with a warning.  ``ipy_interactive``
     turns on IPython's Qt event loop integration when running inside an
     interactive IPython session (default: the ``application.ipy_interactive``
-    setting).
+    setting).  ``ipython_loop=False`` leaves that integration as it is:
+    a canvas drawn off the screen needs no event loop, and in a notebook
+    its frames are scheduled on asyncio.
     """
-    set_values = {k for k, v in locals().items() if v}
+    set_values = {k for k, v in locals().items() if v and k != 'ipython_loop'}
     global _app_ref
 
     app = QApplication.instance()
@@ -126,7 +130,7 @@ def get_qapp(
         from napari_lite.settings import get_settings
 
         ipy_interactive = get_settings().application.ipy_interactive
-    if _IPYTHON_WAS_HERE_FIRST:
+    if _IPYTHON_WAS_HERE_FIRST and ipython_loop:
         _try_enable_ipython_gui('qt' if ipy_interactive else None)
 
     if not _app_ref:  # running for first time
@@ -224,6 +228,21 @@ def _try_enable_ipython_gui(gui: str | None = 'qt') -> None:
         shell.enable_gui(gui)
 
 
+def _only_windowless_viewers() -> bool:
+    """Whether viewers exist and none has a Qt window: they are headless
+    or in a notebook."""
+    viewer_module = sys.modules.get('napari_lite.viewer')
+    if viewer_module is None:
+        return False
+    viewers = list(viewer_module.Viewer._instances)
+    window_module = sys.modules.get('napari_lite._qt.qt_main_window')
+    qt_window = getattr(window_module, 'Window', None)
+    return bool(viewers) and not any(
+        qt_window is not None and isinstance(viewer._window, qt_window)
+        for viewer in viewers
+    )
+
+
 def run(
     *,
     force: bool = False,
@@ -252,11 +271,22 @@ def run(
         return
 
     if not app:
+        if _only_windowless_viewers():
+            return  # nothing to run: no viewer has a Qt window
         raise RuntimeError(
             'No Qt app has been created. One can be created by calling '
             '`get_qapp()` or `qtpy.QtWidgets.QApplication([])`'
         )
-    if not app.topLevelWidgets() and not force:
+    # a canvas drawn off the screen (a viewer without a window, or in a
+    # notebook) is a top-level widget that never closes: not a window
+    windows = [
+        widget
+        for widget in app.topLevelWidgets()
+        if not widget.testAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen)
+    ]
+    if not windows and not force:
+        if _only_windowless_viewers():
+            return  # viewers without a window: nothing to run, no warning
         warn(
             'Refusing to run a QApplication with no topLevelWidgets. To run '
             f'the app anyway, use `{_func_name}(force=True)`',
