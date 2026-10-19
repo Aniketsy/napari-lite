@@ -134,6 +134,32 @@ class QtView(QWidget):
         step[axis] = value
         self.view.current_step = step
 
+    def keyPressEvent(self, event: Any) -> None:
+        """Left and Right step the last extra axis, Up and Down the one
+        before it (the sliders' order); Home and End go to its ends."""
+        nsteps = self.view.nsteps
+        if not nsteps or event is None:
+            super().keyPressEvent(event)
+            return
+        key = event.key()
+        axis = len(nsteps) - 1
+        if key in (Qt.Key.Key_Up, Qt.Key.Key_Down) and axis > 0:
+            axis -= 1
+        step = list(self.view.current_step)
+        if key in (Qt.Key.Key_Right, Qt.Key.Key_Up):
+            step[axis] += 1
+        elif key in (Qt.Key.Key_Left, Qt.Key.Key_Down):
+            step[axis] -= 1
+        elif key == Qt.Key.Key_Home:
+            step[axis] = 0
+        elif key == Qt.Key.Key_End:
+            step[axis] = nsteps[axis] - 1
+        else:
+            super().keyPressEvent(event)
+            return
+        self.view.current_step = step
+        event.accept()
+
     def screenshot(self) -> Any:
         """The canvas as an RGBA uint8 array."""
         return self.renderer.screenshot()

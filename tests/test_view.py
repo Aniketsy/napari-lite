@@ -213,6 +213,29 @@ def test_sliders_follow_the_axes(widget, qtbot) -> None:
     assert widget.sliders == ()
 
 
+def test_arrow_keys_step_the_axes(widget, qtbot) -> None:
+    from qtpy.QtCore import Qt
+
+    view = widget.view
+    widget.setFocus()
+    qtbot.keyClick(widget, Qt.Key.Key_Right)
+    assert view.current_step == (3,)
+    qtbot.keyClick(widget, Qt.Key.Key_Left)
+    assert view.current_step == (2,)
+    qtbot.keyClick(widget, Qt.Key.Key_End)
+    assert view.current_step == (4,)
+    qtbot.keyClick(widget, Qt.Key.Key_Right)  # stays at the end
+    assert view.current_step == (4,)
+    qtbot.keyClick(widget, Qt.Key.Key_Home)
+    assert view.current_step == (0,)
+    view.add_image(np.zeros((3, 5, 16, 24)))
+    assert view.current_step == (1, 0)
+    qtbot.keyClick(widget, Qt.Key.Key_Up)  # the axis before the last
+    assert view.current_step == (2, 0)
+    qtbot.keyClick(widget, Qt.Key.Key_Down)
+    assert view.current_step == (1, 0)
+
+
 def test_show_opens_a_window(qtbot) -> None:
     from napari_lite.view import show
 
