@@ -15,6 +15,8 @@ provides a small module of its own at each such import path.
 - `main`: `vendor` plus napari-lite's own code. Upstream updates arrive with
   `git merge vendor`.
 - Own files start with `# napari-lite: own code`; the tool never overwrites them.
+  Sections inside them are marked with one short comment (`# camera`),
+  not with rows of dashes.
 
 How to resync is written in [SYNC.md](../SYNC.md). The current copy is listed
 in [VENDORED.json](../VENDORED.json): which napari commit, which modules,

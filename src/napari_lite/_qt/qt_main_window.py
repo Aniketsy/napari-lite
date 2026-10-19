@@ -282,9 +282,7 @@ class Window:
         if show:
             self.show()
 
-    # ------------------------------------------------------------------
     # accessors kept from napari's Window
-    # ------------------------------------------------------------------
 
     @property
     def qt_viewer(self) -> QtCanvas:
@@ -325,9 +323,7 @@ class Window:
             task_status_id, status, description
         )
 
-    # ------------------------------------------------------------------
     # dock widgets
-    # ------------------------------------------------------------------
 
     def add_dock_widget(
         self,
@@ -452,9 +448,7 @@ class Window:
             for name, dock in self._wrapped_dock_widgets.items()
         }
 
-    # ------------------------------------------------------------------
     # geometry, show, close
-    # ------------------------------------------------------------------
 
     def resize(self, width: int, height: int) -> None:
         self._qt_window.resize(width, height)
@@ -504,9 +498,7 @@ class Window:
             self._qt_window.close()
             del self._qt_window
 
-    # ------------------------------------------------------------------
     # theme and title
-    # ------------------------------------------------------------------
 
     def _update_theme(self, event: Event | None = None) -> None:
         """Apply napari's stylesheet in the viewer's theme, with the
@@ -522,9 +514,7 @@ class Window:
         if hasattr(self, '_qt_window'):
             self._qt_window.setWindowTitle(event.value)
 
-    # ------------------------------------------------------------------
     # screenshots
-    # ------------------------------------------------------------------
 
     def _screenshot(
         self,

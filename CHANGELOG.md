@@ -17,7 +17,12 @@ importable as `napari_lite` without napari installed.
   Integer images are uploaded as they are with the contrast limits
   applied on the GPU; lazy arrays (dask, zarr) are sliced in a worker
   thread so the window stays responsive; arrow keys and Home/End step
-  the axes.
+  the axes. A readout under the sliders gives the position under the
+  pointer and the value there. `napari-lite --view` opens files in it,
+  `--points` adds points (`.npy`, `.csv`), in the viewer too. A second
+  renderer, `PygfxRenderer` (the `pygfx` extra, `QtView(view,
+  renderer='pygfx')`), draws the same model with pygfx and matches the
+  vispy one pixel for pixel at every data pixel centre.
 - `napari_lite.Viewer`, `imshow`, `run`, `current_viewer`; a window with a
   status bar and `add_dock_widget`; `QtCanvas` for use in other Qt layouts.
 - The `napari-lite` command (`python -m napari_lite` too): one layer per

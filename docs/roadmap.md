@@ -44,8 +44,9 @@ with Python 3.11 to 3.13 (PyQt6 or PySide6).
 - **View-only canvas.** `napari_lite.view` draws images and points with
   contrast limits, colormap, opacity, zoom and a slider per extra axis,
   with nothing to edit and none of napari's layer code: a small model,
-  a vispy renderer behind it, a Qt widget; `show(image, points)` opens a
-  window (issue #4).
+  a vispy or a pygfx renderer behind it, a Qt widget with a readout of
+  the value under the pointer; `show(image, points)` or `napari-lite
+  --view` opens a window (issues #4 and #6).
 - **Embedding.** `QtCanvas`: canvas, sliders and status line as one Qt
   widget for your own window; the layer list, controls and button rows
   come on first access (`examples/canvas_only.py`).

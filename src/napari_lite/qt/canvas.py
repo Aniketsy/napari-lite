@@ -240,9 +240,7 @@ class QtCanvas(QWidget):
         for layer in viewer.layers:
             self._add_layer(layer)
 
-    # ------------------------------------------------------------------
     # layers
-    # ------------------------------------------------------------------
 
     @property
     def layer_to_visual(self) -> dict[Layer, VispyBaseLayer]:
@@ -311,9 +309,7 @@ class QtCanvas(QWidget):
         for camera in [self.canvas.camera, *self.canvas.grid_cameras]:
             camera._3D_camera.depth_value = min(128 * diameter, max_depth)
 
-    # ------------------------------------------------------------------
     # the layer panel: napari's layer list, layer controls, button rows
-    # ------------------------------------------------------------------
 
     @property
     def controls(self) -> QtLayerControlsContainer:
@@ -404,9 +400,7 @@ class QtCanvas(QWidget):
             )
         return self._dockLayerControls
 
-    # ------------------------------------------------------------------
     # the hint in the empty canvas
-    # ------------------------------------------------------------------
 
     @property
     def hint(self) -> str:
@@ -461,9 +455,7 @@ class QtCanvas(QWidget):
         elif href.startswith('sample:'):
             open_sample(self.viewer, href.partition(':')[2])
 
-    # ------------------------------------------------------------------
     # files dropped on the canvas
-    # ------------------------------------------------------------------
 
     def dragEnterEvent(self, event: QDragEnterEvent | None) -> None:
         """Files can be dropped on the canvas."""
@@ -496,9 +488,7 @@ class QtCanvas(QWidget):
         open_paths(self.viewer, paths, stack=stack)
         event.acceptProposedAction()
 
-    # ------------------------------------------------------------------
     # mouse and keyboard
-    # ------------------------------------------------------------------
 
     def _enter_canvas(self) -> None:
         """Called by the vispy canvas when the mouse enters it."""
@@ -527,9 +517,7 @@ class QtCanvas(QWidget):
         )
         event.accept()
 
-    # ------------------------------------------------------------------
     # screenshots
-    # ------------------------------------------------------------------
 
     def screenshot(
         self,
@@ -639,9 +627,7 @@ class QtCanvas(QWidget):
         if cb is not None:
             cb.setImage(self._screenshot(flash))
 
-    # ------------------------------------------------------------------
     # lifecycle
-    # ------------------------------------------------------------------
 
     def _on_cursor_position(self) -> None:
         self._status_update()

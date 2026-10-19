@@ -117,6 +117,60 @@ def test_cli_returns_none_so_the_command_exits_with_status_0(
     assert ran == [True]
 
 
+def test_view_option(qtbot, tmp_path, viewers) -> None:
+    from napari_lite.__main__ import main
+    from napari_lite.view import ImageItem, PointsItem, QtView
+
+    npy = tmp_path / 'stack.npy'
+    np.save(npy, np.zeros((3, 8, 8), dtype=np.uint16))
+    csv = tmp_path / 'spots.csv'
+    csv.write_text('z,y,x\n1,2,3\n1,4,5\n')
+    widget = main(
+        [str(npy), '--view', '--points', str(csv), '--title', 'look'],
+        run=False,
+    )
+    viewers.append(widget)
+    assert isinstance(widget, QtView)
+    assert widget.windowTitle() == 'look'
+    image, points = widget.view.items
+    assert isinstance(image, ImageItem)
+    assert image.name == 'stack'
+    assert isinstance(points, PointsItem)
+    assert points.coords.shape == (2, 3)
+    assert len(widget.sliders) == 1
+
+
+def test_view_option_with_a_sample(qtbot, viewers) -> None:
+    from napari_lite.__main__ import main
+
+    widget = main(['--view', '--sample', 'astronaut'], run=False)
+    viewers.append(widget)
+    (image,) = widget.view.items
+    assert image.rgb
+
+
+def test_view_option_rejects_labels_and_3d(capsys) -> None:
+    from napari_lite.__main__ import main
+
+    with pytest.raises(SystemExit):
+        main(['--view', '--labels'], run=False)
+    assert '--labels' in capsys.readouterr().err
+    with pytest.raises(SystemExit):
+        main(['--view', '--ndisplay', '3'], run=False)
+
+
+def test_points_file_in_the_viewer(qtbot, tmp_path, viewers) -> None:
+    from napari_lite.__main__ import main
+    from napari_lite.layers import Points
+
+    npy = tmp_path / 'spots.npy'
+    np.save(npy, np.array([[1.0, 2.0], [3.0, 4.0]]))
+    viewer = main(['--points', str(npy)], run=False)
+    viewers.append(viewer)
+    assert isinstance(viewer.layers['spots'], Points)
+    assert len(viewer.layers['spots'].data) == 2
+
+
 def test_sample(qtbot, viewers) -> None:
     from napari_lite.__main__ import main
 

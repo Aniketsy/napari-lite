@@ -17,9 +17,10 @@ no painting, no drawing, no clicking to add points (GitHub issue #4).
     img.colormap = 'viridis'; view.current_step = (3,); view.camera.zoom(2)
 
 Three small parts: ``View`` and its items are the model (numpy and
-psygnal only); ``VispyRenderer`` draws it with vispy and is the one place
-another renderer would replace; ``QtView`` adds a slider per
-non-displayed axis.  Importing this package loads none of Qt or vispy:
+psygnal only); ``VispyRenderer`` draws it with vispy, ``PygfxRenderer``
+with pygfx (the ``pygfx`` extra; ``QtView(view, renderer='pygfx')``),
+and ``QtView`` adds a slider per non-displayed axis and a readout of the
+value under the pointer.  Importing this package loads none of Qt or vispy:
 they come with ``QtView``, ``VispyRenderer`` and ``show``.
 """
 
@@ -38,6 +39,7 @@ from napari_lite.view._model import (
 )
 
 if TYPE_CHECKING:
+    from napari_lite.view._pygfx import PygfxRenderer
     from napari_lite.view._qt import QtView, show
     from napari_lite.view._vispy import VispyRenderer
 
@@ -47,6 +49,7 @@ __all__ = [
     'ImageItem',
     'Item',
     'PointsItem',
+    'PygfxRenderer',
     'QtView',
     'Renderer',
     'View',
@@ -58,6 +61,7 @@ _LAZY = {
     'QtView': 'napari_lite.view._qt',
     'show': 'napari_lite.view._qt',
     'VispyRenderer': 'napari_lite.view._vispy',
+    'PygfxRenderer': 'napari_lite.view._pygfx',
 }
 
 
