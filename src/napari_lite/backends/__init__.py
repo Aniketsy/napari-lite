@@ -10,7 +10,8 @@ Two contracts, both Protocols, no base classes:
   events and closes it.  The built-in one is ``'vispy'``
   (``napari_lite._vispy.backend.VispyBackend``).
 - ``Window`` is what a ``Viewer`` asks of its window, whichever toolkit
-  draws it.  The built-in front end is ``'qt'``.
+  draws it.  The built-in front ends are ``'qt'`` (the window) and
+  ``'jupyter'`` (a notebook cell, ``backends.jupyter``).
 
 ``get_renderer`` and ``get_gui`` find them by name: a built-in name costs
 no lookup; any other is looked for in the entry-point groups
@@ -67,6 +68,7 @@ DEFAULT_RENDERER = 'vispy'
 
 _BUILTIN_GUIS: dict[str, tuple[str, str]] = {
     'qt': ('napari_lite._qt.qt_main_window', 'Window'),
+    'jupyter': ('napari_lite.backends.jupyter', 'JupyterWindow'),
 }
 _BUILTIN_RENDERERS: dict[str, tuple[str, str]] = {
     'vispy': ('napari_lite._vispy.backend', 'VispyBackend'),
@@ -78,14 +80,16 @@ class CanvasBackend(Protocol):
     """What a front end uses from a renderer.
 
     A renderer is made as ``Renderer(viewer, *, gui=None, parent=None)``:
-    ``gui`` is the front end's name (``'qt'``, or None for no window),
-    ``parent`` the front end's parent widget when it has one.  From then
-    on the renderer follows the model by itself: layers added and
-    removed, the camera, the dims, the overlays, the canvas size.
+    ``gui`` is the front end's name (``'qt'``, ``'jupyter'``, or None for
+    no window), ``parent`` the front end's parent widget when it has one.
+    From then on the renderer follows the model by itself: layers added
+    and removed, the camera, the dims, the overlays, the canvas size.  A
+    renderer that cannot draw for a front end raises ``ValueError``.
     """
 
     native: Any
-    """The widget to place (the toolkit's), or None without a window."""
+    """The widget to place, in the front end's toolkit (a QWidget for
+    'qt', an ipywidget for 'jupyter'), or None without a window."""
 
     def screenshot(
         self,

@@ -163,8 +163,8 @@ def test_renderer_lookup(monkeypatch) -> None:
     assert backends.resolve_renderer('vispy').__name__ == 'VispyBackend'
 
 
-def test_the_vispy_renderer_only_draws_for_qt_or_no_window() -> None:
+def test_the_vispy_renderer_draws_for_its_front_ends_only() -> None:
     from napari_lite._vispy.backend import VispyBackend
 
-    with pytest.raises(ValueError, match="'qt' front end or for none"):
+    with pytest.raises(ValueError, match="'qt' or 'jupyter' front end"):
         VispyBackend(_model(), gui='something else')

@@ -12,8 +12,11 @@ viewer on Linux, with no Qt in the process) the plain version is used.
 
 - ``use_vispy_app``: picks vispy's application once per process, the Qt
   binding qtpy uses or an offscreen one.
-- ``qthrottled``, ``qdebounced``: superqt's on Qt; the function itself
-  otherwise (there are no mouse moves to throttle without a window).
+- ``qthrottled``, ``qdebounced``: superqt's for a canvas in a Qt window,
+  whose event loop fires their timers; the function itself for a canvas
+  drawn off the screen (no window, or a notebook), where nothing may run
+  Qt's event loop and a call waiting for a timer would never happen
+  (``qt_timers`` says which, around the making of a canvas).
 - ``FontInfo``, ``QtFontManager``, ``default_font_manager``,
   ``default_font_family``: the font behind every text visual; Qt's font
   manager on Qt, vispy's own (freetype) otherwise.
@@ -23,8 +26,10 @@ viewer on Linux, with no Qt in the process) the plain version is used.
 
 from __future__ import annotations
 
+import contextlib
 import sys
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextvars import ContextVar
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -41,6 +46,7 @@ __all__ = [
     'default_font_manager',
     'font_metrics',
     'qdebounced',
+    'qt_timers',
     'qthrottled',
     'use_vispy_app',
     'vispy_app_is_qt',
@@ -117,8 +123,8 @@ def use_vispy_app(kind: Literal['qt', 'offscreen']) -> str:
         if kind == 'qt' and not _is_qt(current.backend_name):
             raise RuntimeError(
                 f'vispy already draws on {current.backend_name!r} in this '
-                'process (a headless viewer came first); a Qt window '
-                'needs a process of its own'
+                'process (a headless or notebook viewer came first); a Qt '
+                'window needs a process of its own'
             )
         return current.backend_name
     if kind == 'qt':
@@ -139,10 +145,35 @@ def use_vispy_app(kind: Literal['qt', 'offscreen']) -> str:
 
 
 # superqt's throttle and debounce
+# Whether the canvas being made sits in a Qt window, whose event loop
+# fires Qt's timers; None outside ``qt_timers``: then any Qt canvas counts
+_QT_TIMERS: ContextVar[bool | None] = ContextVar(
+    'napari_lite_qt_timers', default=None
+)
+
+
+@contextlib.contextmanager
+def qt_timers(enabled: bool) -> Iterator[None]:
+    """Within, ``qthrottled`` and ``qdebounced`` use Qt's timers only if
+    ``enabled``: the renderer says so while it makes a canvas and its
+    layer visuals, True for a Qt window, False for a canvas drawn off the
+    screen."""
+    token = _QT_TIMERS.set(enabled)
+    try:
+        yield
+    finally:
+        _QT_TIMERS.reset(token)
+
+
+def _use_qt_timers() -> bool:
+    enabled = _QT_TIMERS.get()
+    return vispy_app_is_qt() and enabled is not False
+
+
 def qthrottled(func: Callable[..., Any], **kwargs: Any) -> Callable[..., Any]:
-    """superqt's ``qthrottled`` when vispy runs on Qt; ``func`` itself
-    otherwise."""
-    if vispy_app_is_qt():
+    """superqt's ``qthrottled`` for a canvas in a Qt window; ``func``
+    itself otherwise."""
+    if _use_qt_timers():
         from superqt.utils import qthrottled as _qthrottled
 
         return _qthrottled(func, **kwargs)
@@ -150,9 +181,9 @@ def qthrottled(func: Callable[..., Any], **kwargs: Any) -> Callable[..., Any]:
 
 
 def qdebounced(func: Callable[..., Any], **kwargs: Any) -> Callable[..., Any]:
-    """superqt's ``qdebounced`` when vispy runs on Qt; ``func`` itself
-    otherwise."""
-    if vispy_app_is_qt():
+    """superqt's ``qdebounced`` for a canvas in a Qt window; ``func``
+    itself otherwise."""
+    if _use_qt_timers():
         from superqt.utils import qdebounced as _qdebounced
 
         return _qdebounced(func, **kwargs)

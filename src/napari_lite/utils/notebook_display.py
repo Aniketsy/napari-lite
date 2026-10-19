@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import base64
 import html
+import sys
 from io import BytesIO
 from typing import TYPE_CHECKING
 
@@ -63,9 +64,15 @@ class NotebookScreenshot:
 
     def _repr_png_(self) -> bytes:
         """The screenshot as PNG bytes (for IPython)."""
-        from napari_lite._qt.qt_event_loop import get_qapp
+        # a Qt window may have events to handle first; without a Qt
+        # application (a notebook or headless viewer) there are none, and
+        # making one would also turn on IPython's Qt event loop
+        if 'qtpy' in sys.modules:
+            from qtpy.QtWidgets import QApplication
 
-        get_qapp().processEvents()
+            app = QApplication.instance()
+            if app is not None:
+                app.processEvents()
         self.image = self.viewer.screenshot(
             canvas_only=self.canvas_only, flash=False
         )

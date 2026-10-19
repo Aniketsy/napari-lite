@@ -51,6 +51,29 @@ def test_headless_figure(tmp_path, monkeypatch) -> None:
     assert namespace['viewer'].headless
 
 
+def test_jupyter_notebook(qtbot, run_notebook) -> None:
+    """examples/jupyter.ipynb runs through (its cells in one namespace,
+    without a kernel) and ends with a picture of the canvas."""
+    pytest.importorskip('jupyter_rfb')
+    from napari_lite import Viewer
+    from napari_lite._vispy._qt_optional import use_vispy_app
+
+    use_vispy_app('qt')  # Qt draws off the screen in this process
+    try:
+        notebook = run_notebook(EXAMPLES / 'jupyter.ipynb', write=False)
+    finally:
+        Viewer.close_all()
+    cells = [c for c in notebook['cells'] if c['cell_type'] == 'code']
+    images = [
+        o['data']['image/png']
+        for c in cells
+        for o in c['outputs']
+        if o['output_type'] == 'execute_result' and 'image/png' in o['data']
+    ]
+    assert len(images) == 1
+    assert base64.b64decode(images[0])[:8] == b'\x89PNG\r\n\x1a\n'
+
+
 @pytest.fixture
 def run_notebook():
     """The ``run_notebook`` function of tools/run_notebook.py."""

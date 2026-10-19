@@ -81,6 +81,13 @@ fast-shapes = [
     "triangle; python_version <= '3.13'",
 ]
 tiff = ["tifffile>=2022.7.28"]
+# the viewer in a notebook cell, Viewer(gui='jupyter'); on Linux vispy can
+# draw there without Qt (EGL), and freetype-py then renders the text
+jupyter = [
+    "jupyter_rfb>=1.0",
+    "ipywidgets>=8",
+    "freetype-py; sys_platform == 'linux'",
+]
 all = ["napari-lite[pyqt6,features,scipy,dask,fast-shapes,tiff]"]
 dev = [
     "pytest>=8.3.5",
@@ -98,6 +105,7 @@ dev = [
     "matplotlib>=3.6.1",  # vispy's get_colormap falls back to matplotlib names
     "pydantic-settings",  # utils/events/debugging: event tracing for developers
     "napari-lite[dask]",  # the copied dask tests
+    "napari-lite[jupyter]",  # tests/test_jupyter.py, the notebook front end
     "npe2>=0.9.0",  # two copied test modules import it (their plugin tests skip)
     "ruff",
 ]

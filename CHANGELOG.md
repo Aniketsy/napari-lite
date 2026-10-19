@@ -8,6 +8,17 @@ importable as `napari_lite` without napari installed.
 
 ### Added
 
+- `Viewer(gui='jupyter')`: the viewer as widgets in a notebook cell
+  (issue #5; the `jupyter` extra). The canvas is a jupyter_rfb widget
+  that streams frames the kernel draws off the screen, so it works on a
+  remote server too; drag, wheel and napari's keys work on it. Around
+  it: a slider and a play button per extra dimension, a layer list
+  (visibility, selection), 2D/3D and reset-view buttons, the status
+  line, and `add_dock_widget` for ipywidgets. Widget messages that
+  JupyterLab delivers on a kernel subshell's thread are handed to the
+  viewer's thread. `examples/jupyter.ipynb` shows it.
+  `nbscreenshot` no longer creates a Qt application (which turned on
+  IPython's Qt event loop) for viewers that have none.
 - `Viewer(gui=None)`: a viewer without a window (issue #5). The
   renderer draws off screen; `screenshot` and `export_figure` work,
   `window` and `show` say there is none. On Linux vispy's `egl` or

@@ -17,7 +17,9 @@ and where the two meet.
  |  qt/_viewer_actions.py   Ctrl+O file dialog, key bindings window        |
  |  backends/               CanvasBackend and Window, the two contracts;   |
  |                          get_renderer, get_gui; headless (gui=None)     |
+ |  backends/jupyter.py     the notebook window (gui='jupyter')            |
  |  _vispy/backend.py       VispyBackend, vispy behind the contract        |
+ |  _vispy/_jupyter.py      the canvas as a jupyter_rfb widget             |
  | - - - - - - - - - - - - - - - - - - - - - - - - - -  copied from napari |
  |  layer list, layer controls, layer and viewer buttons, QtDims,          |
  |  stylesheet and icons (_qt/)            rendering with vispy (_vispy/)  |
@@ -70,8 +72,9 @@ and where the two meet.
   (`napari_lite.backends`): the model imports neither vispy nor Qt; a
   renderer (`CanvasBackend`; vispy, in `_vispy/backend.py`) draws it; a
   front end (`Window`; Qt) shows it. `Viewer(renderer=..., gui=...)`
-  picks them, `gui=None` draws without a window, and another package
-  adds its own by entry point ([backends.md](backends.md)).
+  picks them, `gui='jupyter'` shows the viewer in a notebook cell,
+  `gui=None` draws without a window, and another package adds its own
+  by entry point ([backends.md](backends.md)).
 - **Shims** (own). Small modules at napari's import paths, where the
   copied code would call plugins or app-model. A built-in reader and a
   few samples stand in for reader plugins; writers raise a clear error;
@@ -84,7 +87,7 @@ and where the two meet.
   defaults, kept in memory; the dark and light themes; the action manager
   and key types the key bindings need.
 - **Dependencies**. Qt, vispy and numpy do the heavy lifting; the rest
-  are small. 72 files in the package are own code; everything else,
+  are small. 75 files in the package are own code; everything else,
   napari's tests included, is copied.
 
 ## How napari's code gets in

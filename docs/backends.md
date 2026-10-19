@@ -3,10 +3,10 @@
 A plan, written before any code, revised after a review of its
 downsides. The goal, in the words of the issue: the core works
 without vispy or Qt imported; vispy and Qt are one option; existing
-scripts keep working the same way by default. Steps 1, 2, 3 and 5 are
-done (the Progress section at the end says what each delivered); step
-4, a Jupyter front end, waits for interest. The sections in between
-are the plan as it was written, kept for the reasoning.
+scripts keep working the same way by default. All five steps are
+done (the Progress section at the end says what each delivered). The
+sections in between are the plan as it was written, kept for the
+reasoning.
 
 ## Where we stand
 
@@ -170,8 +170,26 @@ rebuild the issue warns about, in another form.
   layers and the two contracts, the README a Backends row,
   `examples/headless_figure.py` writes a figure with no window and the
   example tests run it; the other examples run unchanged.
-- Step 4 (a Jupyter front end through `jupyter_rfb`) not started: on
-  demand, as planned.
+- Step 4 done (branch `fix-5`): `Viewer(gui='jupyter')`
+  (`backends/jupyter.py`) shows the viewer as ipywidgets in the cell.
+  The canvas is the vispy renderer's notebook widget
+  (`_vispy/_jupyter.py`): a jupyter_rfb widget that streams the frames
+  of the same off-screen canvas as the headless viewer (EGL or OSMesa
+  on Linux, a Qt widget kept off the screen elsewhere) and hands the
+  browser's pointer, wheel and key events to vispy. vispy's own
+  jupyter_rfb backend was not used: it needs a GL context from glfw or
+  a hidden Qt canvas, which a server often cannot give. Two things
+  found on the way, both fixed: JupyterLab delivers widget messages on
+  a kernel subshell's thread, and a GL context used from there ends
+  the process (Qt aborts), so events, draws and widget callbacks are
+  handed to the viewer's thread (`utils/_owner_thread.py`), through Qt
+  when IPython runs Qt's loop (`%gui qt`), which leaves the kernel's
+  asyncio loop waiting for the next cell; and vispy
+  passes an update to its backend only after a draw event, which
+  `render()` is not, so the off-screen path clears that flag itself.
+  Checked in JupyterLab in a browser, with and without `%gui qt`: drag,
+  wheel, arrow key, layer checkbox, 3D; `tests/test_jupyter.py` plays
+  the browser in-process and from another thread.
 
 ## The plan, step by step
 

@@ -6,12 +6,14 @@ the feature: ``title``, ``ndisplay``, ``order``, ``axis_labels``, ``show``;
 ``window``, ``screenshot``, ``export_figure``, ``show``, ``close``,
 ``close_all``.  There is no console, so ``update_console`` is absent.
 ``gui`` picks the front end and ``renderer`` the renderer
-(``napari_lite.backends``): the Qt window and vispy by default; no window
-at all with ``gui=None`` (screenshots only).
+(``napari_lite.backends``): the Qt window and vispy by default; a
+notebook cell with ``gui='jupyter'``; no window at all with ``gui=None``
+(screenshots only).
 """
 
 from __future__ import annotations
 
+import sys
 from typing import TYPE_CHECKING, Any, ClassVar
 from weakref import WeakSet
 
@@ -49,12 +51,14 @@ class Viewer(ViewerModel):
         Accepted for compatibility with napari and ignored: napari-lite has
         no welcome screen.
     gui : str or None, optional
-        The front end: ``'qt'``, the name of one another package registers
-        (``napari_lite.backends``), or None for no window at all: the
-        viewer draws off screen, ``screenshot`` and ``export_figure`` work,
-        ``window`` and ``show`` do not. By default ``'default'``: what the
-        environment variable ``NAPARI_LITE_GUI`` says (``'qt'``,
-        ``'none'``, or a name), and ``'qt'`` when it is not set.
+        The front end: ``'qt'``; ``'jupyter'``, the viewer as widgets in a
+        notebook cell (the ``jupyter`` extra); the name of one another
+        package registers (``napari_lite.backends``); or None for no window
+        at all: the viewer draws off screen, ``screenshot`` and
+        ``export_figure`` work, ``window`` and ``show`` do not. By default
+        ``'default'``: what the environment variable ``NAPARI_LITE_GUI``
+        says (``'qt'``, ``'jupyter'``, ``'none'``, or a name), and ``'qt'``
+        when it is not set.
     renderer : str or callable, optional
         What draws the layers: ``'vispy'``, the name of a renderer another
         package registers, or the renderer class itself. By default
@@ -208,9 +212,17 @@ class Viewer(ViewerModel):
 
 
 def current_viewer() -> Viewer | None:
-    """The viewer whose window was active last, or None."""
-    try:
+    """The viewer whose Qt window was active last; without one, the viewer
+    whose notebook window was shown last; or None.  A front end that was
+    never imported has no windows, so asking imports no toolkit."""
+    if 'napari_lite._qt.qt_main_window' in sys.modules:
         from napari_lite._qt.qt_main_window import _QtMainWindow
-    except ImportError:
-        return None
-    return _QtMainWindow.current_viewer()  # type: ignore[return-value]
+
+        viewer = _QtMainWindow.current_viewer()
+        if viewer is not None:
+            return viewer  # type: ignore[return-value]
+    if 'napari_lite.backends.jupyter' in sys.modules:
+        from napari_lite.backends.jupyter import JupyterWindow
+
+        return JupyterWindow.current_viewer()  # type: ignore[return-value]
+    return None
