@@ -9,7 +9,7 @@ description = "The napari viewer core without the application: layers, canvas an
 readme = "README.md"
 requires-python = ">=3.11"
 license = "BSD-3-Clause"
-license-files = ["LICENSE", "licenses/*"]
+license-files = ["LICENSE"]
 authors = [{ name = "Aniket Singh Yadav" }]
 classifiers = [
     "Development Status :: 3 - Alpha",

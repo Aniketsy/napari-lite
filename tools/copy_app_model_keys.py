@@ -7,16 +7,18 @@ napari uses app-model (BSD-3) for ``KeyCode``, ``KeyMod``, ``KeyCombo``,
 ``KeyChord`` and ``KeyBinding``; nothing else of app-model is needed in
 napari-lite.  This copies the three source files from the installed
 app-model into a subpackage, rewrites their imports to be relative, and
-adds a header with the origin and version.  Run it again to pick up a
-newer app-model; ``vendor.toml``'s ``literal_rewrites`` then point the
-copied napari code at the subpackage.
+adds a header with the origin, the version and app-model's licence (read
+from its installed metadata; BSD-3 asks that the notice, conditions and
+disclaimer go with every copy).  Run it again to pick up a newer
+app-model; ``vendor.toml``'s ``literal_rewrites`` then point the copied
+napari code at the subpackage.
 """
 
 from __future__ import annotations
 
 import re
 import sys
-from importlib.metadata import version
+from importlib.metadata import distribution, version
 from pathlib import Path
 
 DEST = (
@@ -36,6 +38,8 @@ FILES = {
 HEADER = """# napari-lite: copied from app-model {version} ({path}), BSD 3-Clause
 # License, Copyright (c) 2022 Talley Lambert.  Only the imports were changed;
 # run tools/copy_app_model_keys.py to refresh.  Do not edit by hand.
+# app-model's licence, which goes with this copy:
+#
 """
 INIT = '''# napari-lite: own code
 """Key codes, modifiers and key bindings, copied from app-model (BSD-3).
@@ -68,6 +72,21 @@ __all__ = [
 '''
 
 
+def licence_comment() -> str:
+    """app-model's licence text from its installed metadata, as comments."""
+    dist = distribution('app-model')
+    for name in ('licenses/LICENSE', 'LICENSE'):
+        licence = dist.read_text(name)
+        if licence:
+            break
+    else:
+        raise SystemExit(
+            "app-model's licence is not in its installed metadata"
+        )
+    lines = licence.strip().splitlines()
+    return ''.join(f'# {line}'.rstrip() + '\n' for line in lines) + '\n'
+
+
 def main() -> int:
     import app_model
 
@@ -89,6 +108,7 @@ def main() -> int:
             flags=re.MULTILINE,
         )
         header = HEADER.format(version=app_model_version, path=rel)
+        header += licence_comment()
         (DEST / name).write_text(header + text, encoding='utf-8', newline='\n')
         print(f'wrote {DEST / name} ({text.count(chr(10))} lines)')
     (DEST / '__init__.py').write_text(INIT, encoding='utf-8', newline='\n')
