@@ -7,7 +7,7 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
-from qtpy.QtCore import QObject, Qt, Signal
+from qtpy.QtCore import QEvent, QObject, Qt, Signal
 from qtpy.QtWidgets import (
     QGridLayout,
     QLabel,
@@ -18,11 +18,40 @@ from qtpy.QtWidgets import (
 
 from napari_lite._qt.qt_event_loop import get_qapp
 from napari_lite.view._model import View
-from napari_lite.view._vispy import VispyRenderer
 
 __all__ = ['QtView', 'show']
 
 _windows: list[QtView] = []  # windows opened by show(), kept alive
+
+
+def _renderer_class(renderer: Any) -> Any:
+    """The renderer class for a name or a class."""
+    if renderer == 'vispy':
+        from napari_lite.view._vispy import VispyRenderer
+
+        return VispyRenderer
+    if renderer == 'pygfx':
+        try:
+            from napari_lite.view._pygfx import PygfxRenderer
+        except ImportError as e:
+            raise ImportError(
+                "the pygfx renderer needs the 'pygfx' extra: "
+                "pip install 'napari-lite[pygfx]'"
+            ) from e
+        return PygfxRenderer
+    if isinstance(renderer, str):
+        raise ValueError(
+            f"renderer is 'vispy', 'pygfx' or a class, not {renderer!r}"
+        )
+    return renderer
+
+
+def _format_value(value: Any) -> str:
+    if isinstance(value, list):
+        return '[' + ' '.join(_format_value(v) for v in value) + ']'
+    if isinstance(value, float):
+        return f'{value:.4g}'
+    return str(value)
 
 
 class _MainThread(QObject):
@@ -61,6 +90,10 @@ class QtView(QWidget):
     parent : QWidget, optional
     background : colour
         Canvas colour (default black).
+    renderer : 'vispy', 'pygfx' or a renderer class
+        What draws the view: vispy (default), pygfx (the ``pygfx`` extra),
+        or any class taking ``(view, *, background, executor, call_soon)``
+        and implementing ``Renderer``.
     """
 
     def __init__(
@@ -69,6 +102,7 @@ class QtView(QWidget):
         parent: QWidget | None = None,
         *,
         background: Any = 'black',
+        renderer: Any = 'vispy',
     ) -> None:
         get_qapp()
         super().__init__(parent)
@@ -79,7 +113,7 @@ class QtView(QWidget):
             max_workers=1, thread_name_prefix='napari-lite-view'
         )
         self._main_thread = _MainThread()
-        self.renderer = VispyRenderer(
+        self.renderer = _renderer_class(renderer)(
             self.view,
             background=background,
             executor=self._executor,
@@ -100,12 +134,19 @@ class QtView(QWidget):
         layout.setSpacing(0)
         layout.addWidget(self.renderer.native, stretch=1)
         layout.addWidget(self._axes)
+        # the readout: the position under the pointer and the value there
+        self._readout = QLabel('')
+        self._readout.setObjectName('view readout')
+        self._readout.setContentsMargins(8, 2, 8, 4)
+        layout.addWidget(self._readout)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
         self._rebuild_sliders()
         self.view.changed.connect(self._on_view_change)
+        self.renderer.cursor_moved.connect(self._on_cursor)
+        self.renderer.native.installEventFilter(self)
 
-    # ------------------- model  -----------------------
+    # model
     def _on_view_change(self, what: str) -> None:
         if what == 'items':
             self._rebuild_sliders()
@@ -187,12 +228,36 @@ class QtView(QWidget):
         self.view.current_step = step
         event.accept()
 
+    # readout
+    @property
+    def readout(self) -> str:
+        """What the line under the sliders says: ``[step... row col]: value``
+        for the pointer's position, '' when the pointer is not on the
+        canvas."""
+        return self._readout.text()
+
+    def _on_cursor(self, position: Any) -> None:
+        row, col = position
+        coords = [*self.view.current_step, round(row), round(col)]
+        text = '[' + ' '.join(str(c) for c in coords) + ']'
+        value = self.renderer.value_at(row, col)
+        if value is not None:
+            text += ': ' + _format_value(value)
+        self._readout.setText(text)
+
+    def eventFilter(self, obj: Any, event: Any) -> bool:
+        if obj is self.renderer.native and event.type() == QEvent.Type.Leave:
+            self._readout.setText('')
+        return super().eventFilter(obj, event)
+
+    # output
     def screenshot(self) -> Any:
         """The canvas as an RGBA uint8 array."""
         return self.renderer.screenshot()
 
     def closeEvent(self, event: Any) -> None:
         self.view.changed.disconnect(self._on_view_change)
+        self.renderer.cursor_moved.disconnect(self._on_cursor)
         self.renderer.close()
         self._executor.shutdown(wait=False, cancel_futures=True)
         if self in _windows:
@@ -212,6 +277,7 @@ def show(
     color: Any = 'cyan',
     title: str = 'napari-lite view',
     run: bool = True,
+    renderer: Any = 'vispy',
 ) -> QtView:
     """Open a window showing ``image`` and/or ``points``.
 
@@ -231,7 +297,7 @@ def show(
         )
     if points is not None:
         view.add_points(points, size=size, color=color)
-    widget = QtView(view)
+    widget = QtView(view, renderer=renderer)
     widget.setWindowTitle(title)
     widget.resize(800, 640)
     _windows.append(widget)

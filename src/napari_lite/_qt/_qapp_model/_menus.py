@@ -40,7 +40,7 @@ Operation = Callable[['LayerList'], Any]
 Item = tuple[str, Any, Rule, Rule | None] | None
 
 
-# ---------------------------------------------------------------- rules
+# rules
 def _n(ll: LayerList) -> int:
     return len(ll.selection)
 
@@ -178,7 +178,7 @@ def _paste_possible(ll: LayerList) -> bool:
     return _n(ll) > 0 and clip.is_valid_spatial_in_clipboard()
 
 
-# -------------------------------------------------------------- entries
+# entries
 _DTYPES = ('int8', 'int16', 'int32', 'int64')
 _DTYPES += tuple('u' + d for d in _DTYPES)
 _PROJECTIONS = ('max', 'min', 'mean', 'median', 'sum', 'std')

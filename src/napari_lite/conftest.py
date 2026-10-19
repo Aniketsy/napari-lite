@@ -32,9 +32,7 @@ if TYPE_CHECKING:
 
     from napari_lite.components import ViewerModel
 
-# ---------------------------------------------------------------------------
 # tests that cannot run without the application
-# ---------------------------------------------------------------------------
 
 NEEDS_VIEWER = 'needs napari_lite.Viewer with a window (issue 13)'
 NEEDS_PLUGINS = 'needs npe2 plugins (napari-lite has none)'
@@ -145,9 +143,7 @@ def make_napari_viewer_proxy(make_napari_viewer, monkeypatch):
     return actual_factory
 
 
-# ---------------------------------------------------------------------------
 # data fixtures (from napari's conftest.py)
-# ---------------------------------------------------------------------------
 
 
 @pytest.fixture
@@ -344,9 +340,7 @@ def mock_qt_method_ctx(monkeypatch, qtbot):
     return _mock_fun
 
 
-# ---------------------------------------------------------------------------
 # test hygiene (autouse), from napari's conftest.py and _testsupport.py
-# ---------------------------------------------------------------------------
 
 
 @pytest.fixture(autouse=True)

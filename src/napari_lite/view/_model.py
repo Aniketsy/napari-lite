@@ -437,10 +437,16 @@ class Renderer(Protocol):
 
     It follows ``view.changed`` ('items', 'current_step'), every item's
     ``changed`` and ``view.camera.changed``, and writes the rectangle it
-    shows into ``view.camera`` when the user pans or zooms.
+    shows into ``view.camera`` when the user pans or zooms.  It emits
+    ``cursor_moved`` with ``(row, column)`` as the pointer moves and
+    answers ``value_at`` with the value of the topmost image there.
     """
 
     view: View
+    cursor_moved: Any
+
+    def value_at(self, row: float, col: float) -> Any:
+        """The value under ``(row, col)``, or None outside every image."""
 
     @property
     def native(self) -> Any:
@@ -514,7 +520,7 @@ class View:
         self._current_step: tuple[int, ...] = ()
         self.camera = Camera()
 
-    # --------------------------- items -------------------------*
+    # items
     @property
     def items(self) -> tuple[Item, ...]:
         """In drawing order: the last one is on top."""
@@ -560,7 +566,7 @@ class View:
         if step_changed:
             self.changed.emit('current_step')
 
-    # ------------------- axes -------------------------------
+    # axes
     @property
     def ndim(self) -> int:
         """Axes of the item with the most; at least 2."""
@@ -617,7 +623,7 @@ class View:
             return True
         return False
 
-    # ---------------------- camera -------------------------
+    # camera
     @property
     def extent(self) -> tuple[tuple[float, float], tuple[float, float]]:
         """((row_min, row_max), (col_min, col_max)) over all items, in data

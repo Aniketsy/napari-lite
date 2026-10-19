@@ -23,9 +23,9 @@ from concurrent.futures import Executor, Future
 from typing import Any, ClassVar
 
 import numpy as np
+from psygnal import Signal
 from vispy import scene
 from vispy.color import (
-    Color,
     ColorArray,
     Colormap,
     get_colormap,
@@ -35,6 +35,7 @@ from vispy.color.colormap import BaseColormap
 from vispy.visuals.transforms import STTransform
 
 from napari_lite._vispy.utils.gl import get_gl_extensions
+from napari_lite.view._colormaps import RAMP_RGB
 from napari_lite.view._model import (
     LISTED_COLORMAPS,
     RAMP_COLORMAPS,
@@ -74,7 +75,7 @@ def vispy_colormap(spec: Any) -> BaseColormap:
 
             return Colormap(np.asarray(getattr(_cm_listed, f'_{name}_data')))
         if name in RAMP_COLORMAPS:
-            return Colormap([Color('black').rgba, Color(name).rgba])
+            return Colormap([[0.0, 0.0, 0.0, 1.0], [*RAMP_RGB[name], 1.0]])
         raise ValueError(f'unknown colormap {spec!r}')
     return Colormap(ColorArray(spec).rgba)
 
@@ -157,6 +158,7 @@ class VispyImage(_Adapter):
 
     def __init__(self, item: ImageItem, renderer: VispyRenderer) -> None:
         self._request = 0
+        self.array: np.ndarray | None = None  # the slice shown
         super().__init__(item, renderer)
         self._apply_clim(None)
 
@@ -191,6 +193,7 @@ class VispyImage(_Adapter):
     def _show(self, array: np.ndarray, request: int | None = None) -> None:
         if request is not None and request != self._request:
             return
+        self.array = array
         self.visual.set_data(array)
         if self.item.rgb:
             self._apply_clim(array)
@@ -289,6 +292,10 @@ class VispyRenderer:
         PointsItem: VispyPoints,
     }
 
+    cursor_moved = Signal(object)
+    """Emitted with ``(row, column)`` in data coordinates as the pointer
+    moves over the canvas."""
+
     def __init__(
         self,
         view: View,
@@ -323,6 +330,7 @@ class VispyRenderer:
         self._order()
         view.changed.connect(self._on_view_change)
         view.camera.changed.connect(self._model_to_camera)
+        self.canvas.events.mouse_move.connect(self._on_mouse_move)
         self._syncing = False
         self._model_to_camera()
 
@@ -338,11 +346,12 @@ class VispyRenderer:
     def close(self) -> None:
         self.view.changed.disconnect(self._on_view_change)
         self.view.camera.changed.disconnect(self._model_to_camera)
+        self.canvas.events.mouse_move.disconnect(self._on_mouse_move)
         for item in list(self._adapters):
             self._remove(item)
         self.canvas.close()
 
-    # ----------------------------------------------------------------- items
+    # items
     def adapter(self, item: Item) -> _Adapter:
         """The adapter that draws ``item``."""
         return self._adapters[item]
@@ -382,7 +391,32 @@ class VispyRenderer:
             if item in self._adapters:
                 self._adapters[item].visual.order = i
 
-    # ---------------------------------------------------------------- camera
+    # cursor
+    def data_position(self, canvas_xy: Any) -> tuple[float, float]:
+        """``(row, column)`` in data coordinates under canvas pixel
+        ``canvas_xy`` (x, y)."""
+        x, y = self.scene_view.scene.transform.imap(list(canvas_xy))[:2]
+        return (float(y), float(x))
+
+    def value_at(self, row: float, col: float) -> Any:
+        """The value of the topmost visible image under ``(row, col)``:
+        a number, a list for RGB, or None outside every image."""
+        r, c = round(row), round(col)
+        for item in reversed(self.view.items):
+            adapter = self._adapters.get(item)
+            if not isinstance(adapter, VispyImage) or not item.visible:
+                continue
+            array = adapter.array
+            if array is None:
+                continue
+            if 0 <= r < array.shape[0] and 0 <= c < array.shape[1]:
+                return array[r, c].tolist()
+        return None
+
+    def _on_mouse_move(self, event: Any) -> None:
+        self.cursor_moved.emit(self.data_position(event.pos))
+
+    # camera
     def _model_to_camera(self) -> None:
         if self._syncing:
             return

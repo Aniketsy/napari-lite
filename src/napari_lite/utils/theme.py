@@ -93,9 +93,7 @@ class Theme(EventedModel):
         }
 
 
-# ---------------------------------------------------------------------------
 # QSS template helpers (used when stylesheets are built for Qt widgets)
-# ---------------------------------------------------------------------------
 
 increase_pattern = re.compile(r'{{\s?increase\((\w+),?\s?([-\d]+)?\)\s?}}')
 decrease_pattern = re.compile(r'{{\s?decrease\((\w+),?\s?([-\d]+)?\)\s?}}')
@@ -262,9 +260,7 @@ def template(css: str, **theme: Any) -> str:
     return css
 
 
-# ---------------------------------------------------------------------------
 # registry
-# ---------------------------------------------------------------------------
 
 
 def get_system_theme() -> str:

@@ -183,9 +183,8 @@ def test_colormaps_resolve_without_matplotlib() -> None:
         assert name in COLORMAPS
         assert isinstance(vispy_colormap(name), BaseColormap)
     assert len(vispy_colormap('magma').colors) == 256  # napari's listed data
-    assert vispy_colormap('green').colors.rgb[-1].tolist() == pytest.approx(
-        [0, 128 / 255, 0], abs=1e-6
-    )
+    # napari's green: black to pure green
+    assert vispy_colormap('green').colors.rgb[-1].tolist() == [0, 1, 0]
     assert isinstance(vispy_colormap(['black', 'red']), BaseColormap)
     with pytest.raises(ValueError, match='unknown colormap'):
         vispy_colormap('no-such-map')
@@ -242,6 +241,30 @@ def test_arrow_keys_step_the_axes(widget, qtbot) -> None:
     assert view.current_step == (2, 0)
     qtbot.keyClick(widget, Qt.Key.Key_Down)
     assert view.current_step == (1, 0)
+
+
+def test_readout_follows_the_pointer(widget, qtbot) -> None:
+    from qtpy.QtCore import QEvent
+    from qtpy.QtWidgets import QApplication
+
+    view = widget.view
+    renderer = widget.renderer
+    assert widget.readout == ''
+    # data (4, 8) is in the bright rectangle of the stack: value 1000
+    canvas_xy = renderer.scene_view.scene.transform.map([8.0, 4.0])[:2]
+    renderer.canvas.events.mouse_move(pos=canvas_xy)
+    assert widget.readout == '[2 4 8]: 1000'
+    assert renderer.value_at(4, 8) == 1000
+    assert renderer.value_at(-3, 8) is None  # outside the image
+    view.current_step = (0,)
+    renderer.canvas.events.mouse_move(pos=canvas_xy)
+    assert widget.readout == '[0 4 8]: 1000'
+    view.items[0].visible = False
+    renderer.canvas.events.mouse_move(pos=canvas_xy)
+    assert widget.readout == '[0 4 8]'
+    # leaving the canvas clears it
+    QApplication.sendEvent(renderer.native, QEvent(QEvent.Type.Leave))
+    assert widget.readout == ''
 
 
 def test_show_opens_a_window(qtbot) -> None:
