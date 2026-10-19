@@ -1344,3 +1344,222 @@ new = '''
         registry = pint.get_application_registry()
     return registry
 '''
+
+# The vispy renderer without Qt (issue 5, docs/backends.md).  The copied
+# canvas selected vispy's Qt application at import and took the mouse
+# throttle, the fonts, the text metrics and the cursor from Qt at module
+# level.  _vispy/_qt_optional.py gives the Qt versions when vispy runs on
+# Qt and plain ones when it runs on egl or osmesa (the headless viewer);
+# the Qt widget's enter/leave events, cursor and destroyed signal are
+# used only when there is a Qt widget.
+
+# _vispy/__init__.py
+[[rewrite]]
+old = '''
+import logging
+
+from qtpy import API_NAME
+from vispy import app
+
+# set vispy application to the appropriate qt backend
+app.use_app(API_NAME)
+del app
+
+'''
+new = '''
+import logging
+
+# napari-lite: vispy's application (the Qt binding, or egl/osmesa for the
+# headless viewer) is chosen by the front end that makes the first canvas
+# (_vispy/_qt_optional.py), so that this package imports without Qt
+# (docs/backends.md)
+
+'''
+
+# _vispy/canvas.py: imports
+[[rewrite]]
+old = '''
+import numpy as np
+from OpenGL.error import GLError
+from superqt.utils import qthrottled
+from vispy.scene import Grid, SceneCanvas as SceneCanvas_, ViewBox, Widget
+
+from napari_lite._vispy.camera import VispyCamera
+from napari_lite._vispy.mouse_event import NapariMouseEvent
+from napari_lite._vispy.utils.cursor import QtCursorVisual
+from napari_lite._vispy.utils.gl import get_max_texture_sizes
+from napari_lite._vispy.utils.qt_font import FontInfo, QtFontManager
+from napari_lite._vispy.utils.visual import create_vispy_overlay
+'''
+new = '''
+import numpy as np
+from OpenGL.error import GLError
+from vispy.scene import Grid, SceneCanvas as SceneCanvas_, ViewBox, Widget
+
+# napari-lite: Qt is optional for the renderer (docs/backends.md): the
+# throttle and the fonts are Qt's when vispy runs on Qt and plain
+# otherwise; the Qt cursor is imported where it is set
+from napari_lite._vispy._qt_optional import (
+    FontInfo,
+    QtFontManager,
+    qthrottled,
+)
+from napari_lite._vispy.camera import VispyCamera
+from napari_lite._vispy.mouse_event import NapariMouseEvent
+from napari_lite._vispy.utils.gl import get_max_texture_sizes
+from napari_lite._vispy.utils.visual import create_vispy_overlay
+'''
+
+# _vispy/canvas.py: the enter and leave events of the Qt widget
+[[rewrite]]
+old = '''
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        orig_enterEvent = self.native.enterEvent
+        orig_leaveEvent = self.native.leaveEvent
+'''
+new = '''
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # napari-lite: without a Qt widget (the headless viewer on egl or
+        # osmesa) there are no enter and leave events to wrap
+        if not hasattr(self.native, 'enterEvent'):
+            return
+        orig_enterEvent = self.native.enterEvent
+        orig_leaveEvent = self.native.leaveEvent
+'''
+
+# _vispy/canvas.py: the cursor is a Qt one
+[[rewrite]]
+old = '''
+    def _on_cursor(self) -> None:
+        """Create a QCursor based on the napari cursor settings and set in Vispy."""
+        cursor = self.viewer.cursor.style
+'''
+new = '''
+    def _on_cursor(self) -> None:
+        """Create a QCursor based on the napari cursor settings and set in Vispy."""
+        # napari-lite: the cursor is a Qt one; a canvas without a Qt
+        # widget (the headless viewer) has none to set
+        if not hasattr(self.native, 'setCursor'):
+            return
+        from napari_lite._vispy.utils.cursor import QtCursorVisual
+
+        cursor = self.viewer.cursor.style
+'''
+
+# _vispy/canvas.py: the widget's destroyed signal
+[[rewrite]]
+old = '''
+        self.viewer.canvas.events.size.connect(self._on_model_size_change)
+        self.destroyed.connect(self._disconnect_events)
+'''
+new = '''
+        self.viewer.canvas.events.size.connect(self._on_model_size_change)
+        # napari-lite: without a Qt widget (the headless viewer) ``delete``
+        # disconnects, there being no destroyed signal
+        if hasattr(self.native, 'destroyed'):
+            self.destroyed.connect(self._disconnect_events)
+'''
+
+# _vispy/canvas.py: deleting the widget
+[[rewrite]]
+old = '''
+    def delete(self) -> None:
+        """Schedules the native widget for deletion"""
+        self.native.deleteLater()
+'''
+new = '''
+    def delete(self) -> None:
+        """Schedules the native widget for deletion"""
+        # napari-lite: without a Qt widget (the headless viewer) close now
+        if not hasattr(self.native, 'deleteLater'):
+            self._disconnect_events()
+            self._scene_canvas.close()
+            return
+        self.native.deleteLater()
+'''
+
+# _vispy/layers/shapes.py: superqt's debounce
+[[rewrite]]
+old = '''
+import numpy as np
+from superqt.utils import qdebounced
+
+from napari_lite._vispy.layers.base import VispyBaseLayer
+'''
+new = '''
+import numpy as np
+
+# napari-lite: Qt is optional for the renderer (docs/backends.md)
+from napari_lite._vispy._qt_optional import qdebounced
+from napari_lite._vispy.layers.base import VispyBaseLayer
+'''
+
+# _vispy/layers/surface.py: the one visual that imports FontInfo at
+# runtime (the others under TYPE_CHECKING, which is fine)
+[[rewrite]]
+old = '''
+from napari_lite._vispy.layers.base import VispyBaseLayer
+from napari_lite._vispy.utils.qt_font import FontInfo
+from napari_lite._vispy.visuals.surface import SurfaceVisual
+'''
+new = '''
+# napari-lite: Qt is optional for the renderer (docs/backends.md)
+from napari_lite._vispy._qt_optional import FontInfo
+from napari_lite._vispy.layers.base import VispyBaseLayer
+from napari_lite._vispy.visuals.surface import SurfaceVisual
+'''
+
+# _vispy/utils/text.py: Qt's font metrics, imported by every layer
+# visual with text
+[[rewrite]]
+old = '''
+import numpy as np
+from qtpy.QtGui import QFontMetricsF, QGuiApplication
+
+from napari_lite._vispy.utils.qt_font import SDF_FONT_SIZE, make_qfont
+from napari_lite.layers import Points, Shapes
+from napari_lite.layers.utils.string_encoding import ConstantStringEncoding
+
+if TYPE_CHECKING:
+    from napari_lite._vispy.visuals.text import Text
+'''
+new = '''
+import numpy as np
+
+# napari-lite: Qt is optional for the renderer (docs/backends.md): the
+# metrics are Qt's when vispy runs on Qt and estimates otherwise
+from napari_lite._vispy._qt_optional import (
+    SDF_FONT_SIZE,
+    default_font_family,
+    font_metrics,
+)
+from napari_lite.layers import Points, Shapes
+from napari_lite.layers.utils.string_encoding import ConstantStringEncoding
+
+if TYPE_CHECKING:
+    from qtpy.QtGui import QFontMetricsF
+
+    from napari_lite._vispy.visuals.text import Text
+'''
+
+[[rewrite]]
+old = '''
+    return QFontMetricsF(make_qfont(face, size, bold=bold, italic=italic))
+'''
+new = '''
+    return font_metrics(face, size, bold=bold, italic=italic)
+'''
+
+[[rewrite]]
+old = '''
+    face = (
+        text.face if hasattr(text, 'face') else QGuiApplication.font().family()
+    )
+'''
+new = '''
+    face = text.face if hasattr(text, 'face') else default_font_family()
+'''
