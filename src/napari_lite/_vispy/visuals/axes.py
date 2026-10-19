@@ -5,7 +5,7 @@ from typing import Literal
 import numpy as np
 from vispy.scene.visuals import Compound, Line, Mesh
 
-# napari-lite: Qt is optional for the renderer (docs/backends.md)
+# napari-lite: Qt is optional for the renderer
 from napari_lite._vispy._qt_optional import FontInfo
 from napari_lite._vispy.visuals.text import Text
 from napari_lite.layers.shapes._shapes_utils import triangulate_ellipse

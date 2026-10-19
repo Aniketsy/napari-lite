@@ -1,6 +1,5 @@
 # napari-lite: own code
-"""What the vispy renderer takes from Qt, made optional (issue 5,
-docs/backends.md).
+"""What the vispy renderer takes from Qt, made optional (issue 5).
 
 napari's vispy canvas assumes Qt: it selects vispy's Qt application when
 imported, throttles mouse moves with superqt, renders text through Qt's

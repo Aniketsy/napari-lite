@@ -45,7 +45,7 @@ jobs:
       - name: Test (own tests and the copied napari tests)
         run: python -m pytest tests src/napari_lite
       # The headless and notebook viewers with no Qt in the process: vispy on
-      # Mesa's EGL (docs/backends.md); freetype-py (the headless extra, in
+      # Mesa's EGL; freetype-py (the headless extra, in
       # dev through the jupyter extra) renders the text without Qt
       - name: Headless and notebook viewers without Qt (vispy on EGL)
         if: runner.os == 'Linux'

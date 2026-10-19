@@ -15,9 +15,9 @@ import numpy as np
 from OpenGL.error import GLError
 from vispy.scene import Grid, SceneCanvas as SceneCanvas_, ViewBox, Widget
 
-# napari-lite: Qt is optional for the renderer (docs/backends.md): the
-# throttle and the fonts are Qt's when vispy runs on Qt and plain
-# otherwise; the Qt cursor is imported where it is set
+# napari-lite: Qt is optional for the renderer: the throttle and the
+# fonts are Qt's when vispy runs on Qt and plain otherwise; the Qt
+# cursor is imported where it is set
 from napari_lite._vispy._qt_optional import (
     FontInfo,
     QtFontManager,
@@ -71,8 +71,8 @@ class NapariSceneCanvas(SceneCanvas_):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # napari-lite: without a Qt widget (the headless viewer on egl or
-        # osmesa) there are no enter and leave events to wrap
+        # napari-lite: without a Qt widget (the headless and notebook
+        # viewers on egl) there are no enter and leave events to wrap
         if not hasattr(self.native, 'enterEvent'):
             return
         orig_enterEvent = self.native.enterEvent
@@ -203,7 +203,7 @@ class VispyCanvas:
         self._font_info = FontInfo(face=font_family, font_manager=font_manager)
         self.viewer = viewer
         # napari-lite: vispy's egl application (the headless and notebook
-        # viewers on Linux) has no vsync and refuses it (docs/backends.md)
+        # viewers on Linux) has no vsync and refuses it
         self._scene_canvas = NapariSceneCanvas(
             *args, keys=None, vsync=vispy_app_is_qt(), **kwargs
         )

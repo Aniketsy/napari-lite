@@ -118,7 +118,7 @@ data = [
 # that provides the pure-python triangulation backend
 "TriangulationBackend.pure_python: 'napari'," = "TriangulationBackend.pure_python: 'napari_lite',"
 
-# The model without vispy (issue #5, docs/backends.md): what the copied
+# The model without vispy (issue #5): what the copied
 # core takes from vispy that is not drawing comes from own modules instead.
 # Colour names and parsing (utils/_colors.py); key names
 # (utils/_key_names.py); an exception helper and vispy's colormaps
@@ -1347,11 +1347,11 @@ new = '''
     return registry
 '''
 
-# The vispy renderer without Qt (issue 5, docs/backends.md).  The copied
+# The vispy renderer without Qt (issue 5).  The copied
 # canvas selected vispy's Qt application at import and took the mouse
 # throttle, the fonts, the text metrics and the cursor from Qt at module
 # level.  _vispy/_qt_optional.py gives the Qt versions when vispy runs on
-# Qt and plain ones when it runs on egl or osmesa (the headless viewer);
+# Qt and plain ones when it runs on egl (the headless and notebook viewers);
 # the Qt widget's enter/leave events, cursor and destroyed signal are
 # used only when there is a Qt widget.
 
@@ -1371,10 +1371,10 @@ del app
 new = '''
 import logging
 
-# napari-lite: vispy's application (the Qt binding, or egl/osmesa for the
-# headless viewer) is chosen by the front end that makes the first canvas
-# (_vispy/_qt_optional.py), so that this package imports without Qt
-# (docs/backends.md)
+# napari-lite: vispy's application (the Qt binding, or egl for the
+# headless and notebook viewers) is chosen by the front end that makes the
+# first canvas (_vispy/_qt_optional.py), so that this package imports
+# without Qt
 
 '''
 
@@ -1398,9 +1398,9 @@ import numpy as np
 from OpenGL.error import GLError
 from vispy.scene import Grid, SceneCanvas as SceneCanvas_, ViewBox, Widget
 
-# napari-lite: Qt is optional for the renderer (docs/backends.md): the
-# throttle and the fonts are Qt's when vispy runs on Qt and plain
-# otherwise; the Qt cursor is imported where it is set
+# napari-lite: Qt is optional for the renderer: the throttle and the
+# fonts are Qt's when vispy runs on Qt and plain otherwise; the Qt
+# cursor is imported where it is set
 from napari_lite._vispy._qt_optional import (
     FontInfo,
     QtFontManager,
@@ -1423,7 +1423,7 @@ old = '''
 '''
 new = '''
         # napari-lite: vispy's egl application (the headless and notebook
-        # viewers on Linux) has no vsync and refuses it (docs/backends.md)
+        # viewers on Linux) has no vsync and refuses it
         self._scene_canvas = NapariSceneCanvas(
             *args, keys=None, vsync=vispy_app_is_qt(), **kwargs
         )
@@ -1442,8 +1442,8 @@ new = '''
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # napari-lite: without a Qt widget (the headless viewer on egl or
-        # osmesa) there are no enter and leave events to wrap
+        # napari-lite: without a Qt widget (the headless and notebook
+        # viewers on egl) there are no enter and leave events to wrap
         if not hasattr(self.native, 'enterEvent'):
             return
         orig_enterEvent = self.native.enterEvent
@@ -1512,7 +1512,7 @@ from napari_lite._vispy.layers.base import VispyBaseLayer
 new = '''
 import numpy as np
 
-# napari-lite: Qt is optional for the renderer (docs/backends.md)
+# napari-lite: Qt is optional for the renderer
 from napari_lite._vispy._qt_optional import qdebounced
 from napari_lite._vispy.layers.base import VispyBaseLayer
 '''
@@ -1526,7 +1526,7 @@ from napari_lite._vispy.utils.qt_font import FontInfo
 from napari_lite._vispy.visuals.surface import SurfaceVisual
 '''
 new = '''
-# napari-lite: Qt is optional for the renderer (docs/backends.md)
+# napari-lite: Qt is optional for the renderer
 from napari_lite._vispy._qt_optional import FontInfo
 from napari_lite._vispy.layers.base import VispyBaseLayer
 from napari_lite._vispy.visuals.surface import SurfaceVisual
@@ -1549,8 +1549,8 @@ if TYPE_CHECKING:
 new = '''
 import numpy as np
 
-# napari-lite: Qt is optional for the renderer (docs/backends.md): the
-# metrics are Qt's when vispy runs on Qt and estimates otherwise
+# napari-lite: Qt is optional for the renderer: the metrics are Qt's
+# when vispy runs on Qt and estimates otherwise
 from napari_lite._vispy._qt_optional import (
     SDF_FONT_SIZE,
     default_font_family,
@@ -1592,7 +1592,7 @@ from napari_lite._vispy.visuals.text import Text
 from napari_lite.layers.shapes._shapes_utils import triangulate_ellipse
 '''
 new = '''
-# napari-lite: Qt is optional for the renderer (docs/backends.md)
+# napari-lite: Qt is optional for the renderer
 from napari_lite._vispy._qt_optional import FontInfo
 from napari_lite._vispy.visuals.text import Text
 from napari_lite.layers.shapes._shapes_utils import triangulate_ellipse

@@ -1,8 +1,8 @@
 # napari-lite: own code
-"""``Viewer(gui=None)``: a viewer without a window (issue 5,
-docs/backends.md), and the front-end lookup behind ``gui``.
+"""``Viewer(gui=None)``: a viewer without a window (issue 5), and the
+front-end lookup behind ``gui``.
 
-On Linux with vispy's egl or osmesa application the headless viewer
+On Linux with vispy's egl application the headless viewer
 draws with no Qt in the process; elsewhere the Qt binding draws into a
 widget kept off the screen.  In this process the tests draw with Qt off
 the screen (vispy has one application per process, and the other tests

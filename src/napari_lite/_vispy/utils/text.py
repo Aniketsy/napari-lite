@@ -5,8 +5,8 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-# napari-lite: Qt is optional for the renderer (docs/backends.md): the
-# metrics are Qt's when vispy runs on Qt and estimates otherwise
+# napari-lite: Qt is optional for the renderer: the metrics are Qt's
+# when vispy runs on Qt and estimates otherwise
 from napari_lite._vispy._qt_optional import (
     SDF_FONT_SIZE,
     default_font_family,

@@ -1,6 +1,5 @@
 # napari-lite: own code
-"""A viewer in a notebook cell: ``Viewer(gui='jupyter')`` (issue 5,
-docs/backends.md).
+"""A viewer in a notebook cell: ``Viewer(gui='jupyter')`` (issue 5).
 
 The canvas is the renderer's notebook widget: for vispy, a jupyter_rfb
 widget that streams the frames of an off-screen canvas, so the mouse and

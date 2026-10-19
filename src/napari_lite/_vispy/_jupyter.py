@@ -1,5 +1,5 @@
 # napari-lite: own code
-"""The vispy renderer's canvas in a notebook (issue 5, docs/backends.md).
+"""The vispy renderer's canvas in a notebook (issue 5).
 
 ``VispyFrameWidget`` is a jupyter_rfb widget: it streams the frames of
 the renderer's off-screen canvas to the browser and hands the browser's

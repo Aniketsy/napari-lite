@@ -4,7 +4,7 @@ import typing
 
 import numpy as np
 
-# napari-lite: Qt is optional for the renderer (docs/backends.md)
+# napari-lite: Qt is optional for the renderer
 from napari_lite._vispy._qt_optional import qdebounced
 from napari_lite._vispy.layers.base import VispyBaseLayer
 from napari_lite._vispy.utils.gl import BLENDING_MODES

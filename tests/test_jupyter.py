@@ -1,12 +1,12 @@
 # napari-lite: own code
 """``Viewer(gui='jupyter')``: the viewer as widgets in a notebook cell
-(issue 5, docs/backends.md).
+(issue 5).
 
 The canvas widget streams frames of the renderer's off-screen canvas and
 hands browser events back to it; these tests play the browser by calling
 the widget the way jupyter_rfb does.  In-process tests draw with Qt off
 the screen; the last test proves the Qt-free path where vispy has an
-offscreen application (Linux with EGL or OSMesa).
+offscreen application (Linux with EGL).
 """
 
 from __future__ import annotations

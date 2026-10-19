@@ -1,7 +1,7 @@
 # napari-lite: own code
 """vispy draws a ``ViewerModel``: the canvas, one visual per layer and the
 wiring between model and canvas that napari keeps in its ``QtViewer``
-(docs/backends.md).
+(issue 5).
 
 The built-in renderer behind the ``CanvasBackend`` contract
 (``napari_lite.backends``).  A front end builds one and puts its

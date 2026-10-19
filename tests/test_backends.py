@@ -1,5 +1,5 @@
 # napari-lite: own code
-"""The renderer contract (issue 5, docs/backends.md): a renderer that is
+"""The renderer contract (issue 5): a renderer that is
 not vispy, made of nothing but the ``CanvasBackend`` methods, drives the
 viewer with a window and without one; the lookup by name and by
 environment variable."""

@@ -1,6 +1,5 @@
 # napari-lite: own code
-"""A viewer without a window: ``Viewer(gui=None)`` (issue 5,
-docs/backends.md).
+"""A viewer without a window: ``Viewer(gui=None)`` (issue 5).
 
 The renderer draws into a canvas nobody shows; ``screenshot`` and
 ``export_figure`` give the pictures.  With the vispy renderer, on Linux

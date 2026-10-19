@@ -74,7 +74,7 @@ and where the two meet.
   front end (`Window`; Qt) shows it. `Viewer(renderer=..., gui=...)`
   picks them, `gui='jupyter'` shows the viewer in a notebook cell,
   `gui=None` draws without a window, and another package adds its own
-  by entry point ([backends.md](backends.md)).
+  by entry point.
 - **Shims** (own). Small modules at napari's import paths, where the
   copied code would call plugins or app-model. A built-in reader and a
   few samples stand in for reader plugins; writers raise a clear error;
@@ -128,7 +128,8 @@ and friends.
 ## Where to look next
 
 [design.md](design.md) for how data is interpreted,
-[backends.md](backends.md) for the renderer and front-end contracts,
+[`napari_lite.backends`](../src/napari_lite/backends/__init__.py) for the
+renderer and front-end contracts,
 [development.md](development.md) and [../SYNC.md](../SYNC.md) for the copy
 and the resync, [benchmarks.md](benchmarks.md) for the numbers,
 [upstream.md](upstream.md) for the patches napari-lite found for napari.

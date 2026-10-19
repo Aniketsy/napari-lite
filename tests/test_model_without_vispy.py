@@ -1,6 +1,6 @@
 # napari-lite: own code
 """The model (viewer model, layers, dims, camera, events) works without
-vispy and without Qt: issue 5, docs/backends.md.
+vispy and without Qt: issue 5.
 
 Each check runs in a fresh interpreter with the libraries blocked at
 import time, so a leak anywhere in the import chain fails here, with

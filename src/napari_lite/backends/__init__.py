@@ -1,6 +1,5 @@
 # napari-lite: own code
-"""The seams between the model, the renderer and the front end (issue 5,
-docs/backends.md).
+"""The seams between the model, the renderer and the front end (issue 5).
 
 Two contracts, both Protocols, no base classes:
 

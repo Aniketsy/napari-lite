@@ -15,7 +15,7 @@ layout:
 itself is a renderer's, behind the ``CanvasBackend`` contract
 (``napari_lite.backends``): vispy by default, the one ``renderer`` names
 otherwise; the headless viewer uses the same renderer without any widget
-(docs/backends.md).
+(``napari_lite.backends.headless``).
 """
 
 from __future__ import annotations

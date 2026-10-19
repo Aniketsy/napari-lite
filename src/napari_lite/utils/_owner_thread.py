@@ -1,6 +1,5 @@
 # napari-lite: own code
-"""Keep a viewer's work on the thread that made it (issue 5,
-docs/backends.md).
+"""Keep a viewer's work on the thread that made it (issue 5).
 
 A viewer, its GL context and its Qt objects belong to the thread that
 made them, which in a notebook kernel runs the kernel's asyncio loop; Qt
