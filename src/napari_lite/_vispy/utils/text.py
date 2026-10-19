@@ -4,13 +4,20 @@ from functools import lru_cache
 from typing import TYPE_CHECKING
 
 import numpy as np
-from qtpy.QtGui import QFontMetricsF, QGuiApplication
 
-from napari_lite._vispy.utils.qt_font import SDF_FONT_SIZE, make_qfont
+# napari-lite: Qt is optional for the renderer (docs/backends.md): the
+# metrics are Qt's when vispy runs on Qt and estimates otherwise
+from napari_lite._vispy._qt_optional import (
+    SDF_FONT_SIZE,
+    default_font_family,
+    font_metrics,
+)
 from napari_lite.layers import Points, Shapes
 from napari_lite.layers.utils.string_encoding import ConstantStringEncoding
 
 if TYPE_CHECKING:
+    from qtpy.QtGui import QFontMetricsF
+
     from napari_lite._vispy.visuals.text import Text
 
 
@@ -104,7 +111,7 @@ def _get_qt_font_metrics(
     QFontMetricsF
         Qt font metrics object.
     """
-    return QFontMetricsF(make_qfont(face, size, bold=bold, italic=italic))
+    return font_metrics(face, size, bold=bold, italic=italic)
 
 
 def _get_scaled_metrics(text: Text) -> tuple[QFontMetricsF, float]:
@@ -115,9 +122,7 @@ def _get_scaled_metrics(text: Text) -> tuple[QFontMetricsF, float]:
     Qt rounds each glyph advance up, which made measured text wider than the
     rendered one.
     """
-    face = (
-        text.face if hasattr(text, 'face') else QGuiApplication.font().family()
-    )
+    face = text.face if hasattr(text, 'face') else default_font_family()
     bold = text.bold if hasattr(text, 'bold') else False
     italic = text.italic if hasattr(text, 'italic') else False
 

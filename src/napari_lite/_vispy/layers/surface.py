@@ -7,8 +7,9 @@ from vispy.color import Colormap as VispyColormap
 from vispy.geometry import MeshData
 from vispy.visuals.filters import TextureFilter
 
+# napari-lite: Qt is optional for the renderer (docs/backends.md)
+from napari_lite._vispy._qt_optional import FontInfo
 from napari_lite._vispy.layers.base import VispyBaseLayer
-from napari_lite._vispy.utils.qt_font import FontInfo
 from napari_lite._vispy.visuals.surface import SurfaceVisual
 from napari_lite.utils.colormaps.colormap_utils import _napari_cmap_to_vispy
 
