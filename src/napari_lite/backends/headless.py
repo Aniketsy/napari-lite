@@ -35,7 +35,10 @@ class HeadlessCanvas:
         The model to draw.
     renderer : str or callable, optional
         The renderer's name or class (``napari_lite.backends``); by
-        default the one ``NAPARI_LITE_RENDERER`` names, else vispy.
+        default the one ``NAPARI_LITE_RENDERER`` names, else vispy.  On
+        Linux, the name gives the Qt-free path; the class, imported
+        first, has settled PyOpenGL on GLX, and Qt then draws off the
+        screen.
 
     Attributes
     ----------

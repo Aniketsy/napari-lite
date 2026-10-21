@@ -24,6 +24,7 @@ no window at all (``backends.headless``), and by default whatever
 
 from __future__ import annotations
 
+import functools
 import importlib
 import os
 from collections.abc import Callable, Sequence
@@ -125,7 +126,12 @@ class Window(Protocol):
     (``renderer``: the renderer class to draw with, None for the
     default) and gives these methods; the Qt one is
     ``napari_lite._qt.qt_main_window.Window``.  The two task-status
-    hooks are what thread workers report to.
+    methods are what thread workers report to (the built-in windows
+    answer to napari's underscore names for them as well).  Two methods are optional:
+    ``show_shortcuts()`` and ``open_files()``, the window's own versions
+    of the actions behind Ctrl+Alt+/ and Ctrl+O
+    (``napari_lite.backends._actions``); without them a bare model in a
+    ``QtCanvas`` gets Qt dialogs and a window without Qt a status line.
     """
 
     def show(self, *, block: bool = False) -> None: ...
@@ -173,7 +179,7 @@ class Window(Protocol):
 
     def remove_dock_widget(self, widget: Any, menu: Any = None) -> None: ...
 
-    def _register_task_status(
+    def register_task_status(
         self,
         provider: str,
         task_status: Status,
@@ -181,7 +187,7 @@ class Window(Protocol):
         cancel_callback: Callable[[], None] | None = None,
     ) -> uuid.UUID: ...
 
-    def _update_task_status(
+    def update_task_status(
         self,
         task_status_id: uuid.UUID,
         status: Status,
@@ -204,7 +210,11 @@ def resolve_gui(gui: str | None) -> str | None:
     return name
 
 
+@functools.cache
 def _registered(group: str) -> dict[str, Any]:
+    """The entry points of ``group`` by lower-case name, read once per
+    process (the scan of the installed distributions is the slow
+    part; ``_registered.cache_clear()`` after installing a package)."""
     return {
         entry_point.name.lower(): entry_point
         for entry_point in entry_points(group=group)
@@ -263,7 +273,10 @@ def resolve_renderer(
     set or empty.  ``gui`` is the toolkit the renderer will draw for: for
     a viewer without a Qt window (None, ``'jupyter'``) vispy may draw with
     its egl application, and PyOpenGL is readied for it before vispy is
-    first imported (``utils/_pyopengl.py``)."""
+    first imported (``utils/_pyopengl.py``).  That works for the name
+    only: importing the renderer class imports PyOpenGL, which settles
+    its platform then, so with the class Qt draws off the screen unless
+    ``PYOPENGL_PLATFORM=egl`` was set before the import."""
     if callable(renderer):
         return renderer
     name = renderer

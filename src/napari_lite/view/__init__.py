@@ -20,7 +20,9 @@ Three small parts: ``View`` and its items are the model (numpy and
 psygnal only); ``VispyRenderer`` draws it with vispy, ``PygfxRenderer``
 with pygfx (the ``pygfx`` extra; ``QtView(view, renderer='pygfx')``),
 and ``QtView`` adds a slider per non-displayed axis and a readout of the
-value under the pointer.  Importing this package loads none of Qt or vispy:
+value under the pointer.  The two renderers are the view's own, a smaller
+contract than the viewer's (``napari_lite.backends``), picked with
+``QtView(view, renderer=...)``.  Importing this package loads none of Qt or vispy:
 they come with ``QtView``, ``VispyRenderer`` and ``show``.
 """
 

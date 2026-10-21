@@ -304,3 +304,180 @@ def test_the_vispy_renderer_draws_for_its_front_ends_only() -> None:
 
     with pytest.raises(ValueError, match="'qt' or 'jupyter' toolkit"):
         VispyBackend(_model(), gui='something else')
+
+
+def test_off_screen_slices_wait_for_whichever_comes_first(qapp) -> None:
+    """A slicing result that arrives on another thread while the canvas's
+    loop is busy (a notebook cell still running) is applied by the next
+    screenshot, and not again when the loop gets to it."""
+    import threading
+
+    from napari_lite._vispy._qt_optional import use_vispy_app
+    from napari_lite._vispy.backend import VispyBackend
+
+    use_vispy_app('qt')
+    renderer = VispyBackend(_model(), gui=None)
+    try:
+        handed_over = []
+        renderer._owner.loop = SimpleNamespace(
+            call_soon_threadsafe=lambda func, *args: handed_over.append(
+                (func, args)
+            ),
+            is_closed=lambda: False,
+        )
+        applied = []
+        renderer._apply_slice_ready = lambda event: applied.append(event.value)
+        thread = threading.Thread(
+            target=renderer._slice_ready_off_screen,
+            args=(SimpleNamespace(value='slice 1'),),
+        )
+        thread.start()
+        thread.join()
+        assert applied == []
+        assert len(handed_over) == 1  # queued for the loop
+        renderer._apply_pending_slices()  # what a screenshot does first
+        assert applied == ['slice 1']
+        func, args = handed_over[0]
+        func(*args)  # the loop gets to it later: nothing left to apply
+        assert applied == ['slice 1']
+        # on the canvas's own thread a result is applied at once
+        renderer._slice_ready_off_screen(SimpleNamespace(value='slice 2'))
+        assert applied == ['slice 1', 'slice 2']
+    finally:
+        renderer._owner.loop = None
+        renderer.close()
+
+
+class FakeWindow:
+    """A front end another package could register: what a Viewer asks of
+    its window, recorded."""
+
+    made: ClassVar[list[FakeWindow]] = []
+
+    def __init__(self, viewer, *, show=True, renderer=None):
+        self.viewer = viewer
+        self.shown = show
+        self.renderer = renderer
+        self.closed = False
+        FakeWindow.made.append(self)
+
+    def show(self, *, block=False):
+        self.shown = True
+
+    def close(self):
+        self.closed = True
+
+
+class _EntryPoint:
+    def __init__(self, name, target):
+        self.name = name
+        self._target = target
+
+    def load(self):
+        return self._target
+
+
+@pytest.fixture
+def registered(monkeypatch):
+    """A renderer and a front end registered under the entry-point groups,
+    as another package's metadata would."""
+    groups = {
+        backends.RENDERER_ENTRY_POINT_GROUP: [
+            _EntryPoint('Fake', FakeBackend)
+        ],
+        backends.ENTRY_POINT_GROUP: [_EntryPoint('fakegui', FakeWindow)],
+    }
+    monkeypatch.setattr(
+        backends, 'entry_points', lambda group: groups.get(group, [])
+    )
+    backends._registered.cache_clear()
+    FakeWindow.made.clear()
+    yield
+    backends._registered.cache_clear()
+    FakeWindow.made.clear()
+
+
+def test_registered_renderer_and_front_end(registered) -> None:
+    from napari_lite import Viewer
+
+    assert backends.available_renderers() == ['vispy', 'fake']
+    assert backends.available_guis() == ['qt', 'jupyter', 'fakegui']
+    assert backends.get_renderer('Fake') is FakeBackend
+    assert backends.get_renderer('fake') is FakeBackend
+    assert backends.get_gui('FakeGUI') is FakeWindow
+    with pytest.raises(ValueError, match="'fake'"):
+        backends.get_renderer('nope')  # the known names name the fake too
+
+    viewer = Viewer(gui=None, renderer='fake')
+    try:
+        (fake,) = FakeBackend.made
+        assert fake.gui is None
+        assert viewer.screenshot().shape == (10, 20, 4)
+    finally:
+        viewer.close()
+    assert fake.closed
+
+    viewer = Viewer(gui='fakegui', renderer='fake', show=False)
+    try:
+        (window,) = FakeWindow.made
+        assert viewer.window is window
+        assert window.renderer is FakeBackend
+        assert not window.shown
+        viewer.show()
+        assert window.shown
+    finally:
+        viewer.close()
+    assert window.closed
+
+
+def test_entry_points_are_read_once(registered, monkeypatch) -> None:
+    calls = []
+    original = backends.entry_points
+    monkeypatch.setattr(
+        backends,
+        'entry_points',
+        lambda group: calls.append(group) or original(group=group),
+    )
+    backends._registered.cache_clear()
+    backends.available_renderers()
+    backends.available_renderers()
+    backends.get_renderer('fake')
+    assert calls == [backends.RENDERER_ENTRY_POINT_GROUP]
+
+
+def test_the_private_vispy_names_still_exist(qapp) -> None:
+    """The vispy renderer fills in what vispy's backends leave out and
+    cleans up after the egl one, through private names
+    (``_vispy/backend.py``, ``_vispy/_jupyter.py``).  vispy is pinned
+    below 0.18; this says which name a newer version took away."""
+    from vispy.app.backends import _egl
+    from vispy.scene import SceneCanvas
+
+    from napari_lite._vispy._qt_optional import use_vispy_app
+
+    use_vispy_app('qt')
+    from vispy.app.backends import _qt
+
+    canvas_backend = _qt.CanvasBackendDesktop
+    missing = [
+        name
+        for name in (
+            '_keyEvent',
+            '_vispy_update',
+            '_vispy_set_size',
+            '_vispy_get_size',
+            '_vispy_set_current',
+            '_vispy_mouse_press',
+            '_vispy_mouse_release',
+            '_vispy_mouse_move',
+            '_vispy_mouse_double_click',
+        )
+        if not hasattr(canvas_backend, name)
+    ]
+    assert missing == [], f'vispy renamed {missing}'
+    assert hasattr(_egl, '_VP_EGL_ALL_WINDOWS')
+    if _egl.available:  # Linux with EGL: the context release needs these
+        assert hasattr(_egl, '_EGL_DISPLAY')
+        assert hasattr(_egl, 'egl')
+    # capture() resets it after render(), which is no draw event
+    assert '_update_pending' in SceneCanvas.__init__.__code__.co_names

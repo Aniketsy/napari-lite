@@ -23,9 +23,11 @@ from __future__ import annotations
 
 import contextlib
 import html
+import tempfile
 import weakref
 from collections.abc import Callable, Iterator, Sequence
 from functools import partial
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar
 
 try:
@@ -116,6 +118,9 @@ class JupyterWindow:
         self._visible_boxes: dict[int, widgets.Checkbox] = {}
         self._docks: dict[str, tuple[widgets.Box, Any]] = {}
         self._unnamed_dock_count = 1
+        self._slider_spec: list[tuple[int, int, str]] = []
+        self._status_due = False  # an update is scheduled
+        self._status_dirty = False  # the cursor moved while waiting
 
         self._title = widgets.HTML()
         self._ndisplay = widgets.ToggleButton(
@@ -195,6 +200,14 @@ class JupyterWindow:
         self._connect(layers.selection.events.changed, self._update_selection)
         self._connect(layers.selection.events.active, self._update_selection)
 
+        # The model computes the status text on every cursor move; here at
+        # most every 50 ms, the last position always shown, as the Qt
+        # canvas does: each update is two widget messages to the browser.
+        viewer.cursor.events.position.disconnect(
+            viewer.update_status_from_cursor
+        )
+        viewer.cursor.events.position.connect(self._on_cursor_position)
+
         # napari's shortcuts (arrow keys through the slices, ...) bound to
         # their actions, as the Qt canvas does
         bind_shortcuts_from_settings()
@@ -263,6 +276,19 @@ class JupyterWindow:
         self._status.value = html.escape(text)
         self._help.value = html.escape(self.viewer.help)
 
+    def _on_cursor_position(self) -> None:
+        if self._status_due:
+            self._status_dirty = True
+            return
+        self.viewer.update_status_from_cursor()
+        self._status_due = self._owner.schedule(0.05, self._status_timeout)
+
+    def _status_timeout(self) -> None:
+        self._status_due = False
+        if self._status_dirty:
+            self._status_dirty = False
+            self._on_cursor_position()
+
     def _update_ndisplay_button(self, event: Any = None) -> None:
         with self._quiet():
             self._ndisplay.value = self.viewer.dims.ndisplay == 3
@@ -292,13 +318,19 @@ class JupyterWindow:
         displayed and has more than one step, as napari's sliders."""
         dims = self.viewer.dims
         nsteps = dims.nsteps
+        spec = [
+            (axis, int(nsteps[axis]), str(dims.axis_labels[axis]))
+            for axis in range(dims.ndim)
+            if axis not in dims.displayed and int(nsteps[axis]) > 1
+        ]
+        if spec == self._slider_spec:
+            self._update_sliders()  # the same sliders, maybe new values
+            return
+        self._slider_spec = spec
         rows: list[widgets.Widget] = []
         built: list[widgets.Widget] = []
         sliders: dict[int, widgets.IntSlider] = {}
-        for axis in range(dims.ndim):
-            steps = int(nsteps[axis])
-            if axis in dims.displayed or steps <= 1:
-                continue
+        for axis, steps, _label in spec:
             slider = widgets.IntSlider(
                 value=int(dims.current_step[axis]),
                 min=0,
@@ -345,7 +377,13 @@ class JupyterWindow:
 
     def _rebuild_layers(self, event: Any = None) -> None:
         """A row per layer, top layer first as in napari: a visibility box
-        and the name, which selects the layer when clicked."""
+        and the name, which selects the layer when clicked.  The same
+        layers in the same order keep their rows."""
+        if [id(layer) for layer in reversed(self.viewer.layers)] == list(
+            self._name_buttons
+        ):
+            self._update_selection()
+            return
         for connections in self._layer_connections.values():
             for emitter, callback in connections:
                 emitter.disconnect(callback)
@@ -462,12 +500,70 @@ class JupyterWindow:
                 emitter.disconnect(callback)
         self._connections = []
         self._layer_connections = {}
+        self.viewer.cursor.events.position.disconnect(self._on_cursor_position)
+        self.viewer.cursor.events.position.connect(
+            self.viewer.update_status_from_cursor
+        )
         for wrapper, _inner in self._docks.values():
             wrapper.close()
         self._docks = {}
         _close(self._slider_widgets + self._row_widgets + self._own_widgets)
         self.backend.close()
         self._forget()
+
+    # the two actions whose napari version opens a Qt dialog
+
+    def show_shortcuts(self) -> None:
+        """Ctrl+Alt+/: the key bindings as a table under the layer list;
+        pressed again, it goes away."""
+        if self._toggle_dock('Key bindings'):
+            return
+        from napari_lite.backends._actions import shortcuts_html
+
+        self.add_dock_widget(
+            widgets.HTML(shortcuts_html()), name='Key bindings', area='left'
+        )
+
+    def open_files(self) -> list[Layer]:
+        """Ctrl+O: an upload box under the layer list; every file
+        uploaded is opened with the built-in reader, one layer per file,
+        as a file dropped on the canvas would be.  Pressed again, the
+        box goes away.  Returns nothing: the layers come with the
+        uploads."""
+        if self._toggle_dock('Open files'):
+            return []
+        upload = widgets.FileUpload(
+            accept='.png,.jpg,.jpeg,.bmp,.gif,.webp,.tif,.tiff,.npy,.npz',
+            multiple=True,
+            description='Upload',
+        )
+        upload.observe(self._owned(self._on_upload), names='value')
+        self.add_dock_widget(upload, name='Open files', area='left')
+        return []
+
+    def _toggle_dock(self, name: str) -> bool:
+        """Remove the dock called ``name`` if it is there."""
+        if name in self._docks:
+            self.remove_dock_widget(name)
+            return True
+        return False
+
+    def _on_upload(self, change: dict[str, Any]) -> None:
+        """Uploaded files, written to a temporary folder and opened; the
+        box is emptied so that the same file can be chosen again."""
+        from napari_lite.backends._actions import open_paths
+
+        uploads = change['new']
+        if not uploads:
+            return
+        folder = Path(tempfile.mkdtemp(prefix='napari-lite-upload-'))
+        paths = []
+        for item in uploads:
+            path = folder / Path(item['name']).name
+            path.write_bytes(bytes(item['content']))
+            paths.append(str(path))
+        open_paths(self.viewer, paths)
+        change['owner'].value = ()
 
     def resize(self, width: int, height: int) -> None:
         """Size the canvas, in CSS pixels; the browser then reports the
@@ -652,7 +748,7 @@ class JupyterWindow:
         """Name -> widget of each dock."""
         return {name: inner for name, (_wrapper, inner) in self._docks.items()}
 
-    def _register_task_status(
+    def register_task_status(
         self,
         provider: str,
         task_status: Status,
@@ -664,7 +760,7 @@ class JupyterWindow:
             provider, task_status, description, cancel_callback
         )
 
-    def _update_task_status(
+    def update_task_status(
         self,
         task_status_id: uuid.UUID,
         status: Status,
@@ -673,6 +769,10 @@ class JupyterWindow:
         return self._task_status_manager.update_task_status(
             task_status_id, status, description
         )
+
+    # napari's names for the two, for code written for its window
+    _register_task_status = register_task_status
+    _update_task_status = update_task_status
 
 
 def _close(items: Sequence[widgets.Widget]) -> None:

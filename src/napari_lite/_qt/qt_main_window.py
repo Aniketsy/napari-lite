@@ -52,6 +52,7 @@ if TYPE_CHECKING:
     from qtpy.QtGui import QCloseEvent, QImage, QKeyEvent
 
     from napari_lite.components import ViewerModel
+    from napari_lite.layers import Layer
     from napari_lite.utils.events import Event
 
 __all__ = ['Window']
@@ -316,7 +317,7 @@ class Window:
     def _status_bar(self) -> ViewerStatusBar:
         return self._qt_window.statusBar()
 
-    def _register_task_status(
+    def register_task_status(
         self,
         provider: str,
         task_status: Status,
@@ -328,7 +329,7 @@ class Window:
             provider, task_status, description, cancel_callback
         )
 
-    def _update_task_status(
+    def update_task_status(
         self,
         task_status_id: uuid.UUID,
         status: Status,
@@ -337,6 +338,10 @@ class Window:
         return self._task_status_manager.update_task_status(
             task_status_id, status, description
         )
+
+    # napari's names for the two, for code written for its window
+    _register_task_status = register_task_status
+    _update_task_status = update_task_status
 
     # dock widgets
 
@@ -462,6 +467,20 @@ class Window:
             name: dock.widget()
             for name, dock in self._wrapped_dock_widgets.items()
         }
+
+    # the two actions whose napari version opens a Qt dialog
+
+    def show_shortcuts(self) -> Any:
+        """Ctrl+Alt+/: a window listing the key bindings."""
+        from napari_lite.qt._viewer_actions import show_shortcuts_dialog
+
+        return show_shortcuts_dialog(self.viewer, self._qt_window)
+
+    def open_files(self) -> list[Layer]:
+        """Ctrl+O: a file dialog in front of the built-in reader."""
+        from napari_lite.qt._viewer_actions import open_files_dialog
+
+        return open_files_dialog(self.viewer, self._qt_window)
 
     # geometry, show, close
 

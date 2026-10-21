@@ -116,6 +116,21 @@ class OwnerThread:
             self.loop.call_soon_threadsafe(func, *args)  # type: ignore[union-attr]
         return True
 
+    def schedule(self, delay: float, func: Callable[[], Any]) -> bool:
+        """Run ``func()`` on the owner thread after ``delay`` seconds,
+        through Qt's loop when IPython runs it there, else on the
+        owner's asyncio loop.  Returns whether it could be scheduled
+        (a plain script has neither; the caller then does without)."""
+        if self._through_qt():
+            from qtpy.QtCore import QTimer
+
+            QTimer.singleShot(int(delay * 1000), func)
+            return True
+        if self.loop is not None and not self.loop.is_closed():
+            self.loop.call_later(delay, func)
+            return True
+        return False
+
     def run(
         self,
         func: Callable[..., Any],

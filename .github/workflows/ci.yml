@@ -57,6 +57,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libegl1 libegl-mesa0 libopengl0 libgl1-mesa-dri
           python -m pytest tests/test_headless.py tests/test_jupyter.py -q -k without_qt
+      # The notebook example in a real kernel: the widget comms, the streamed
+      # frames and the kernel's threads, which in-process tests cannot see
+      - name: The notebook example in a kernel (vispy on EGL)
+        if: runner.os == 'Linux'
+        env:
+          EGL_PLATFORM: surfaceless
+          PYOPENGL_PLATFORM: egl
+        run: |
+          python -m pip install nbclient ipykernel
+          python tools/run_notebook_in_kernel.py examples/jupyter.ipynb
 
   # The dependency tree itself: a plain ``pip install napari-lite[pyqt6]``
   # must not bring the packages own code stands in for, and the own tests

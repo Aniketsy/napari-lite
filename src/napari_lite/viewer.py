@@ -17,6 +17,7 @@ import sys
 from typing import TYPE_CHECKING, Any, ClassVar
 from weakref import WeakSet
 
+import napari_lite.backends._actions  # noqa: F401  (registers Ctrl+O and co.)
 from napari_lite.components.viewer_model import ViewerModel
 from napari_lite.utils.events.event_utils import disconnect_events
 
@@ -63,7 +64,10 @@ class Viewer(ViewerModel):
         What draws the layers: ``'vispy'``, the name of a renderer another
         package registers, or the renderer class itself. By default
         ``'default'``: what ``NAPARI_LITE_RENDERER`` says, and vispy when
-        it is not set.
+        it is not set. For a viewer without a Qt window on Linux, name
+        the renderer: importing the vispy class first settles PyOpenGL
+        on GLX, and Qt then draws off the screen (unless
+        ``PYOPENGL_PLATFORM=egl`` is set before the import).
     """
 
     _window: Window | None = None

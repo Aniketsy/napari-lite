@@ -21,6 +21,7 @@ import sys
 import textwrap
 import threading
 import time
+from datetime import UTC
 from types import SimpleNamespace
 
 import numpy as np
@@ -28,6 +29,7 @@ import pytest
 
 pytest.importorskip('jupyter_rfb')
 widgets = pytest.importorskip('ipywidgets')
+
 
 from napari_lite import backends  # noqa: E402
 
@@ -587,3 +589,124 @@ def test_notebook_viewer_without_qt_in_the_process() -> None:
     assert info['requests'] > 0
     assert tuple(info['centre'])[:3] != (0, 0, 0)
     assert tuple(info['small_centre'])[:3] != (0, 0, 0)  # laid out anew
+
+
+def test_shortcuts_and_open_files_in_the_notebook(
+    make_notebook_viewer,
+) -> None:
+    """Ctrl+Alt+/ and Ctrl+O have no Qt dialog to open in a notebook: the
+    key bindings dock as a table, files come in through an upload box."""
+    import io
+    from datetime import datetime
+
+    import imageio.v3 as iio
+
+    viewer = make_notebook_viewer()
+    window = viewer.window
+    rfb = window.backend.native
+    rfb.get_frame()
+    for kind in ('key_down', 'key_up'):
+        rfb.handle_event(
+            {'type': kind, 'key': '/', 'modifiers': ['Control', 'Alt']}
+        )
+    table = window.dock_widgets['Key bindings']
+    assert isinstance(table, widgets.HTML)
+    assert 'Toggle 2D/3D view' in table.value
+    window.show_shortcuts()  # again: gone
+    assert 'Key bindings' not in window.dock_widgets
+
+    for kind in ('key_down', 'key_up'):
+        rfb.handle_event({'type': kind, 'key': 'o', 'modifiers': ['Control']})
+    upload = window.dock_widgets['Open files']
+    assert isinstance(upload, widgets.FileUpload)
+    red = np.zeros((8, 12, 3), np.uint8)
+    red[..., 0] = 255
+    buffer = io.BytesIO()
+    iio.imwrite(buffer, red, extension='.png')
+    png = buffer.getvalue()
+    upload.value = (
+        {
+            'name': 'red.png',
+            'type': 'image/png',
+            'size': len(png),
+            'content': memoryview(png),
+            'last_modified': datetime.now(UTC),
+        },
+    )
+    assert [layer.name for layer in viewer.layers] == ['red']
+    assert viewer.layers[0].data.shape == (8, 12, 3)
+    assert upload.value == ()  # ready for the next file
+    window.open_files()  # again: gone
+    assert 'Open files' not in window.dock_widgets
+
+
+def test_status_updates_at_most_every_50_ms(make_notebook_viewer) -> None:
+    """A cursor move updates the status at once; moves within the next
+    50 ms are coalesced into one update with the last position."""
+    viewer = make_notebook_viewer()
+    window = viewer.window
+    viewer.add_image(np.arange(64, dtype=np.uint8).reshape(8, 8))
+    viewer.mouse_over_canvas = True
+    scheduled = []
+    owner = window._owner
+    loop_before = owner.loop
+    owner.loop = SimpleNamespace(
+        call_later=lambda delay, func: scheduled.append((delay, func)),
+        is_closed=lambda: False,
+    )
+    try:
+        viewer.cursor.position = (2.0, 2.0)  # the cursor starts at (1, 1)
+        assert viewer.status['coordinates'] == '[2, 2]: 18'
+        assert '[2, 2]' in window._status.value
+        viewer.cursor.position = (3.0, 3.0)
+        viewer.cursor.position = (5.0, 5.0)
+        assert viewer.status['coordinates'] == '[2, 2]: 18'  # not yet
+        assert [delay for delay, _ in scheduled] == [0.05]
+        scheduled.pop()[1]()  # the 50 ms are over
+        assert viewer.status['coordinates'] == '[5, 5]: 45'
+        assert '[5, 5]' in window._status.value
+        scheduled.pop()[1]()  # nothing moved meanwhile: nothing to do
+        assert scheduled == []
+    finally:
+        owner.loop = loop_before
+    window.close()
+    viewer.cursor.position = (4.0, 4.0)  # the model's own update again
+    assert viewer.status['coordinates'] == '[4, 4]: 36'
+
+
+def test_widgets_stay_when_nothing_structural_changed(
+    make_notebook_viewer,
+) -> None:
+    """Range and list events that leave the axes and the layers as they
+    are keep the slider and row widgets; a change rebuilds them."""
+    viewer = make_notebook_viewer()
+    window = viewer.window
+    layer = viewer.add_image(np.zeros((3, 8, 8)))
+    slider = window._sliders_by_axis[0]
+    button = window._name_buttons[id(layer)]
+    viewer.dims.events.range()  # as slicing a lazy layer sends it
+    viewer.layers.events.reordered()
+    assert window._sliders_by_axis[0] is slider
+    assert window._name_buttons[id(layer)] is button
+    viewer.dims.set_current_step(0, 2)
+    assert slider.value == 2
+    viewer.dims.axis_labels = ('z', 'y', 'x')
+    assert window._sliders_by_axis[0] is not slider
+    assert window._sliders_by_axis[0].description == 'z'
+    second = viewer.add_image(np.zeros((3, 8, 8)))
+    assert window._name_buttons[id(layer)] is not button
+    assert list(window._name_buttons) == [id(second), id(layer)]
+
+
+def test_the_private_jupyter_rfb_names_still_exist() -> None:
+    """The notebook canvas shows its errors in jupyter_rfb's output widget
+    and draws through its own draw step (``_vispy/_jupyter.py``);
+    jupyter_rfb is pinned below 2.  Kernel subshell routing
+    (``utils/_owner_thread.py``) needs no name: without ipykernel's
+    attribute there are no subshells to route around."""
+    import inspect
+
+    from jupyter_rfb import RemoteFrameBuffer
+
+    assert '_output_context' in inspect.getsource(RemoteFrameBuffer.__init__)
+    assert callable(getattr(RemoteFrameBuffer, '_rfb_maybe_draw', None))
