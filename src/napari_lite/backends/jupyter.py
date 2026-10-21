@@ -748,7 +748,7 @@ class JupyterWindow:
         """Name -> widget of each dock."""
         return {name: inner for name, (_wrapper, inner) in self._docks.items()}
 
-    def _register_task_status(
+    def register_task_status(
         self,
         provider: str,
         task_status: Status,
@@ -760,7 +760,7 @@ class JupyterWindow:
             provider, task_status, description, cancel_callback
         )
 
-    def _update_task_status(
+    def update_task_status(
         self,
         task_status_id: uuid.UUID,
         status: Status,
@@ -769,6 +769,10 @@ class JupyterWindow:
         return self._task_status_manager.update_task_status(
             task_status_id, status, description
         )
+
+    # napari's names for the two, for code written for its window
+    _register_task_status = register_task_status
+    _update_task_status = update_task_status
 
 
 def _close(items: Sequence[widgets.Widget]) -> None:

@@ -192,7 +192,7 @@ def create_worker(
 
     if (viewer := current_viewer()) and hasattr(viewer, 'window'):
         window = viewer.window
-        worker_status_id = window._register_task_status(
+        worker_status_id = window.register_task_status(
             'napari-worker',
             Status.PENDING,
             f'{func} execution pending',
@@ -200,7 +200,7 @@ def create_worker(
         )
         worker.started.connect(
             partial(
-                lambda task_status_id, function: window._update_task_status(
+                lambda task_status_id, function: window.update_task_status(
                     task_status_id,
                     Status.BUSY,
                     description=f'Executing {function}',
@@ -211,7 +211,7 @@ def create_worker(
         )
         worker.errored.connect(
             partial(
-                lambda task_status_id, function: window._update_task_status(
+                lambda task_status_id, function: window.update_task_status(
                     task_status_id,
                     Status.FAILED,
                     description=f'{function} execution failed',
@@ -222,7 +222,7 @@ def create_worker(
         )
         worker.finished.connect(
             partial(
-                lambda task_status_id, function: window._update_task_status(
+                lambda task_status_id, function: window.update_task_status(
                     task_status_id,
                     Status.COMPLETED,
                     description=f'{function} execution completed',
@@ -234,12 +234,10 @@ def create_worker(
         if hasattr(worker.signals, 'aborted'):
             worker.aborted.connect(
                 partial(
-                    lambda task_status_id, function: (
-                        window._update_task_status(
-                            task_status_id,
-                            Status.CANCELLED,
-                            description=f'{function} execution cancelled',
-                        )
+                    lambda task_status_id, function: window.update_task_status(
+                        task_status_id,
+                        Status.CANCELLED,
+                        description=f'{function} execution cancelled',
                     ),
                     worker_status_id,
                     func,

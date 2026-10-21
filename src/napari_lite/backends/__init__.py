@@ -126,7 +126,8 @@ class Window(Protocol):
     (``renderer``: the renderer class to draw with, None for the
     default) and gives these methods; the Qt one is
     ``napari_lite._qt.qt_main_window.Window``.  The two task-status
-    hooks are what thread workers report to.  Two methods are optional:
+    methods are what thread workers report to (the built-in windows
+    answer to napari's underscore names for them as well).  Two methods are optional:
     ``show_shortcuts()`` and ``open_files()``, the window's own versions
     of the actions behind Ctrl+Alt+/ and Ctrl+O
     (``napari_lite.backends._actions``); without them a bare model in a
@@ -178,7 +179,7 @@ class Window(Protocol):
 
     def remove_dock_widget(self, widget: Any, menu: Any = None) -> None: ...
 
-    def _register_task_status(
+    def register_task_status(
         self,
         provider: str,
         task_status: Status,
@@ -186,7 +187,7 @@ class Window(Protocol):
         cancel_callback: Callable[[], None] | None = None,
     ) -> uuid.UUID: ...
 
-    def _update_task_status(
+    def update_task_status(
         self,
         task_status_id: uuid.UUID,
         status: Status,

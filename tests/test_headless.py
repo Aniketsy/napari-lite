@@ -226,6 +226,10 @@ def test_the_qt_window_meets_the_window_contract(qtbot) -> None:
     try:
         assert not viewer.headless
         assert isinstance(viewer.window, backends.Window)
+        # the task-status hooks under their public names, and napari's
+        window = viewer.window
+        assert window._register_task_status == window.register_task_status
+        assert window._update_task_status == window.update_task_status
     finally:
         viewer.close()
 
