@@ -19,7 +19,9 @@ importable as `napari_lite` without napari installed.
   JupyterLab would deliver them on a subshell's thread, where the canvas
   cannot be used. Ctrl+O docks an upload box and Ctrl+Alt+/ the key
   bindings as a table; the Qt dialogs behind those keys are the Qt
-  window's. `examples/jupyter.ipynb` shows it.
+  window's. The status text follows the cursor at most 20 times a
+  second, and the sliders and layer rows stay when nothing about them
+  changes. `examples/jupyter.ipynb` shows it.
   `nbscreenshot` no longer creates a Qt application (which turned on
   IPython's Qt event loop) for viewers that have none.
 - `Viewer(gui=None)`: a viewer without a window (issue #5). The

@@ -118,6 +118,9 @@ class JupyterWindow:
         self._visible_boxes: dict[int, widgets.Checkbox] = {}
         self._docks: dict[str, tuple[widgets.Box, Any]] = {}
         self._unnamed_dock_count = 1
+        self._slider_spec: list[tuple[int, int, str]] = []
+        self._status_due = False  # an update is scheduled
+        self._status_dirty = False  # the cursor moved while waiting
 
         self._title = widgets.HTML()
         self._ndisplay = widgets.ToggleButton(
@@ -197,6 +200,14 @@ class JupyterWindow:
         self._connect(layers.selection.events.changed, self._update_selection)
         self._connect(layers.selection.events.active, self._update_selection)
 
+        # The model computes the status text on every cursor move; here at
+        # most every 50 ms, the last position always shown, as the Qt
+        # canvas does: each update is two widget messages to the browser.
+        viewer.cursor.events.position.disconnect(
+            viewer.update_status_from_cursor
+        )
+        viewer.cursor.events.position.connect(self._on_cursor_position)
+
         # napari's shortcuts (arrow keys through the slices, ...) bound to
         # their actions, as the Qt canvas does
         bind_shortcuts_from_settings()
@@ -265,6 +276,19 @@ class JupyterWindow:
         self._status.value = html.escape(text)
         self._help.value = html.escape(self.viewer.help)
 
+    def _on_cursor_position(self) -> None:
+        if self._status_due:
+            self._status_dirty = True
+            return
+        self.viewer.update_status_from_cursor()
+        self._status_due = self._owner.schedule(0.05, self._status_timeout)
+
+    def _status_timeout(self) -> None:
+        self._status_due = False
+        if self._status_dirty:
+            self._status_dirty = False
+            self._on_cursor_position()
+
     def _update_ndisplay_button(self, event: Any = None) -> None:
         with self._quiet():
             self._ndisplay.value = self.viewer.dims.ndisplay == 3
@@ -294,13 +318,19 @@ class JupyterWindow:
         displayed and has more than one step, as napari's sliders."""
         dims = self.viewer.dims
         nsteps = dims.nsteps
+        spec = [
+            (axis, int(nsteps[axis]), str(dims.axis_labels[axis]))
+            for axis in range(dims.ndim)
+            if axis not in dims.displayed and int(nsteps[axis]) > 1
+        ]
+        if spec == self._slider_spec:
+            self._update_sliders()  # the same sliders, maybe new values
+            return
+        self._slider_spec = spec
         rows: list[widgets.Widget] = []
         built: list[widgets.Widget] = []
         sliders: dict[int, widgets.IntSlider] = {}
-        for axis in range(dims.ndim):
-            steps = int(nsteps[axis])
-            if axis in dims.displayed or steps <= 1:
-                continue
+        for axis, steps, _label in spec:
             slider = widgets.IntSlider(
                 value=int(dims.current_step[axis]),
                 min=0,
@@ -347,7 +377,13 @@ class JupyterWindow:
 
     def _rebuild_layers(self, event: Any = None) -> None:
         """A row per layer, top layer first as in napari: a visibility box
-        and the name, which selects the layer when clicked."""
+        and the name, which selects the layer when clicked.  The same
+        layers in the same order keep their rows."""
+        if [id(layer) for layer in reversed(self.viewer.layers)] == list(
+            self._name_buttons
+        ):
+            self._update_selection()
+            return
         for connections in self._layer_connections.values():
             for emitter, callback in connections:
                 emitter.disconnect(callback)
@@ -464,6 +500,10 @@ class JupyterWindow:
                 emitter.disconnect(callback)
         self._connections = []
         self._layer_connections = {}
+        self.viewer.cursor.events.position.disconnect(self._on_cursor_position)
+        self.viewer.cursor.events.position.connect(
+            self.viewer.update_status_from_cursor
+        )
         for wrapper, _inner in self._docks.values():
             wrapper.close()
         self._docks = {}

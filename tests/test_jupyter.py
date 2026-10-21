@@ -638,3 +638,61 @@ def test_shortcuts_and_open_files_in_the_notebook(
     assert upload.value == ()  # ready for the next file
     window.open_files()  # again: gone
     assert 'Open files' not in window.dock_widgets
+
+
+def test_status_updates_at_most_every_50_ms(make_notebook_viewer) -> None:
+    """A cursor move updates the status at once; moves within the next
+    50 ms are coalesced into one update with the last position."""
+    viewer = make_notebook_viewer()
+    window = viewer.window
+    viewer.add_image(np.arange(64, dtype=np.uint8).reshape(8, 8))
+    viewer.mouse_over_canvas = True
+    scheduled = []
+    owner = window._owner
+    loop_before = owner.loop
+    owner.loop = SimpleNamespace(
+        call_later=lambda delay, func: scheduled.append((delay, func)),
+        is_closed=lambda: False,
+    )
+    try:
+        viewer.cursor.position = (2.0, 2.0)  # the cursor starts at (1, 1)
+        assert viewer.status['coordinates'] == '[2, 2]: 18'
+        assert '[2, 2]' in window._status.value
+        viewer.cursor.position = (3.0, 3.0)
+        viewer.cursor.position = (5.0, 5.0)
+        assert viewer.status['coordinates'] == '[2, 2]: 18'  # not yet
+        assert [delay for delay, _ in scheduled] == [0.05]
+        scheduled.pop()[1]()  # the 50 ms are over
+        assert viewer.status['coordinates'] == '[5, 5]: 45'
+        assert '[5, 5]' in window._status.value
+        scheduled.pop()[1]()  # nothing moved meanwhile: nothing to do
+        assert scheduled == []
+    finally:
+        owner.loop = loop_before
+    window.close()
+    viewer.cursor.position = (4.0, 4.0)  # the model's own update again
+    assert viewer.status['coordinates'] == '[4, 4]: 36'
+
+
+def test_widgets_stay_when_nothing_structural_changed(
+    make_notebook_viewer,
+) -> None:
+    """Range and list events that leave the axes and the layers as they
+    are keep the slider and row widgets; a change rebuilds them."""
+    viewer = make_notebook_viewer()
+    window = viewer.window
+    layer = viewer.add_image(np.zeros((3, 8, 8)))
+    slider = window._sliders_by_axis[0]
+    button = window._name_buttons[id(layer)]
+    viewer.dims.events.range()  # as slicing a lazy layer sends it
+    viewer.layers.events.reordered()
+    assert window._sliders_by_axis[0] is slider
+    assert window._name_buttons[id(layer)] is button
+    viewer.dims.set_current_step(0, 2)
+    assert slider.value == 2
+    viewer.dims.axis_labels = ('z', 'y', 'x')
+    assert window._sliders_by_axis[0] is not slider
+    assert window._sliders_by_axis[0].description == 'z'
+    second = viewer.add_image(np.zeros((3, 8, 8)))
+    assert window._name_buttons[id(layer)] is not button
+    assert list(window._name_buttons) == [id(second), id(layer)]
