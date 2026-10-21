@@ -443,3 +443,41 @@ def test_entry_points_are_read_once(registered, monkeypatch) -> None:
     backends.available_renderers()
     backends.get_renderer('fake')
     assert calls == [backends.RENDERER_ENTRY_POINT_GROUP]
+
+
+def test_the_private_vispy_names_still_exist(qapp) -> None:
+    """The vispy renderer fills in what vispy's backends leave out and
+    cleans up after the egl one, through private names
+    (``_vispy/backend.py``, ``_vispy/_jupyter.py``).  vispy is pinned
+    below 0.18; this says which name a newer version took away."""
+    from vispy.app.backends import _egl
+    from vispy.scene import SceneCanvas
+
+    from napari_lite._vispy._qt_optional import use_vispy_app
+
+    use_vispy_app('qt')
+    from vispy.app.backends import _qt
+
+    canvas_backend = _qt.CanvasBackendDesktop
+    missing = [
+        name
+        for name in (
+            '_keyEvent',
+            '_vispy_update',
+            '_vispy_set_size',
+            '_vispy_get_size',
+            '_vispy_set_current',
+            '_vispy_mouse_press',
+            '_vispy_mouse_release',
+            '_vispy_mouse_move',
+            '_vispy_mouse_double_click',
+        )
+        if not hasattr(canvas_backend, name)
+    ]
+    assert missing == [], f'vispy renamed {missing}'
+    assert hasattr(_egl, '_VP_EGL_ALL_WINDOWS')
+    if _egl.available:  # Linux with EGL: the context release needs these
+        assert hasattr(_egl, '_EGL_DISPLAY')
+        assert hasattr(_egl, 'egl')
+    # capture() resets it after render(), which is no draw event
+    assert '_update_pending' in SceneCanvas.__init__.__code__.co_names

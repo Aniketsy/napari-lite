@@ -87,8 +87,8 @@ headless = ["freetype-py; sys_platform == 'linux'"]
 # the viewer in a notebook cell, Viewer(gui='jupyter')
 jupyter = [
     "napari-lite[headless]",
-    "jupyter_rfb>=1.0",
-    "ipywidgets>=8",
+    "jupyter_rfb>=1.0,<2",
+    "ipywidgets>=8,<9",
 ]
 all = ["napari-lite[pyqt6,features,scipy,dask,fast-shapes,tiff]"]
 dev = [

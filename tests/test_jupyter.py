@@ -696,3 +696,17 @@ def test_widgets_stay_when_nothing_structural_changed(
     second = viewer.add_image(np.zeros((3, 8, 8)))
     assert window._name_buttons[id(layer)] is not button
     assert list(window._name_buttons) == [id(second), id(layer)]
+
+
+def test_the_private_jupyter_rfb_names_still_exist() -> None:
+    """The notebook canvas shows its errors in jupyter_rfb's output widget
+    and draws through its own draw step (``_vispy/_jupyter.py``);
+    jupyter_rfb is pinned below 2.  Kernel subshell routing
+    (``utils/_owner_thread.py``) needs no name: without ipykernel's
+    attribute there are no subshells to route around."""
+    import inspect
+
+    from jupyter_rfb import RemoteFrameBuffer
+
+    assert '_output_context' in inspect.getsource(RemoteFrameBuffer.__init__)
+    assert callable(getattr(RemoteFrameBuffer, '_rfb_maybe_draw', None))
