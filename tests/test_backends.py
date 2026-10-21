@@ -304,3 +304,45 @@ def test_the_vispy_renderer_draws_for_its_front_ends_only() -> None:
 
     with pytest.raises(ValueError, match="'qt' or 'jupyter' toolkit"):
         VispyBackend(_model(), gui='something else')
+
+
+def test_off_screen_slices_wait_for_whichever_comes_first(qapp) -> None:
+    """A slicing result that arrives on another thread while the canvas's
+    loop is busy (a notebook cell still running) is applied by the next
+    screenshot, and not again when the loop gets to it."""
+    import threading
+
+    from napari_lite._vispy._qt_optional import use_vispy_app
+    from napari_lite._vispy.backend import VispyBackend
+
+    use_vispy_app('qt')
+    renderer = VispyBackend(_model(), gui=None)
+    try:
+        handed_over = []
+        renderer._owner.loop = SimpleNamespace(
+            call_soon_threadsafe=lambda func, *args: handed_over.append(
+                (func, args)
+            ),
+            is_closed=lambda: False,
+        )
+        applied = []
+        renderer._apply_slice_ready = lambda event: applied.append(event.value)
+        thread = threading.Thread(
+            target=renderer._slice_ready_off_screen,
+            args=(SimpleNamespace(value='slice 1'),),
+        )
+        thread.start()
+        thread.join()
+        assert applied == []
+        assert len(handed_over) == 1  # queued for the loop
+        renderer._apply_pending_slices()  # what a screenshot does first
+        assert applied == ['slice 1']
+        func, args = handed_over[0]
+        func(*args)  # the loop gets to it later: nothing left to apply
+        assert applied == ['slice 1']
+        # on the canvas's own thread a result is applied at once
+        renderer._slice_ready_off_screen(SimpleNamespace(value='slice 2'))
+        assert applied == ['slice 1', 'slice 2']
+    finally:
+        renderer._owner.loop = None
+        renderer.close()

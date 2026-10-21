@@ -295,16 +295,18 @@ class VispyBackend:
         )
 
     def _slice_ready_off_screen(self, event: Event) -> None:
-        """A slicing result for a canvas drawn off the screen: applied on
-        the canvas's thread, handed to its loop when it has one (a
-        notebook), else kept for the next screenshot, which runs there (a
-        script)."""
+        """A slicing result for a canvas drawn off the screen, applied on
+        the canvas's thread: now when this is it; otherwise queued, and
+        applied by the next screenshot or by the canvas's loop (a
+        notebook) when it gets to it, whichever comes first.  One queue,
+        so a screenshot in a busy cell draws the newest slice and the
+        loop applies nothing twice."""
         if self._owner.is_current:
             self._apply_slice_ready(event)
-        elif self._owner.can_hand_over:
-            self._owner.call(self._apply_slice_ready, event)
-        else:
-            self._pending_slices.append(event)
+            return
+        self._pending_slices.append(event)
+        if self._owner.can_hand_over:
+            self._owner.call(self._apply_pending_slices)
 
     def _apply_pending_slices(self) -> None:
         while self._pending_slices:
