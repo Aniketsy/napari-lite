@@ -24,6 +24,7 @@ no window at all (``backends.headless``), and by default whatever
 
 from __future__ import annotations
 
+import functools
 import importlib
 import os
 from collections.abc import Callable, Sequence
@@ -208,7 +209,11 @@ def resolve_gui(gui: str | None) -> str | None:
     return name
 
 
+@functools.cache
 def _registered(group: str) -> dict[str, Any]:
+    """The entry points of ``group`` by lower-case name, read once per
+    process (the scan of the installed distributions is the slow
+    part; ``_registered.cache_clear()`` after installing a package)."""
     return {
         entry_point.name.lower(): entry_point
         for entry_point in entry_points(group=group)

@@ -346,3 +346,100 @@ def test_off_screen_slices_wait_for_whichever_comes_first(qapp) -> None:
     finally:
         renderer._owner.loop = None
         renderer.close()
+
+
+class FakeWindow:
+    """A front end another package could register: what a Viewer asks of
+    its window, recorded."""
+
+    made: ClassVar[list[FakeWindow]] = []
+
+    def __init__(self, viewer, *, show=True, renderer=None):
+        self.viewer = viewer
+        self.shown = show
+        self.renderer = renderer
+        self.closed = False
+        FakeWindow.made.append(self)
+
+    def show(self, *, block=False):
+        self.shown = True
+
+    def close(self):
+        self.closed = True
+
+
+class _EntryPoint:
+    def __init__(self, name, target):
+        self.name = name
+        self._target = target
+
+    def load(self):
+        return self._target
+
+
+@pytest.fixture
+def registered(monkeypatch):
+    """A renderer and a front end registered under the entry-point groups,
+    as another package's metadata would."""
+    groups = {
+        backends.RENDERER_ENTRY_POINT_GROUP: [
+            _EntryPoint('Fake', FakeBackend)
+        ],
+        backends.ENTRY_POINT_GROUP: [_EntryPoint('fakegui', FakeWindow)],
+    }
+    monkeypatch.setattr(
+        backends, 'entry_points', lambda group: groups.get(group, [])
+    )
+    backends._registered.cache_clear()
+    FakeWindow.made.clear()
+    yield
+    backends._registered.cache_clear()
+    FakeWindow.made.clear()
+
+
+def test_registered_renderer_and_front_end(registered) -> None:
+    from napari_lite import Viewer
+
+    assert backends.available_renderers() == ['vispy', 'fake']
+    assert backends.available_guis() == ['qt', 'jupyter', 'fakegui']
+    assert backends.get_renderer('Fake') is FakeBackend
+    assert backends.get_renderer('fake') is FakeBackend
+    assert backends.get_gui('FakeGUI') is FakeWindow
+    with pytest.raises(ValueError, match="'fake'"):
+        backends.get_renderer('nope')  # the known names name the fake too
+
+    viewer = Viewer(gui=None, renderer='fake')
+    try:
+        (fake,) = FakeBackend.made
+        assert fake.gui is None
+        assert viewer.screenshot().shape == (10, 20, 4)
+    finally:
+        viewer.close()
+    assert fake.closed
+
+    viewer = Viewer(gui='fakegui', renderer='fake', show=False)
+    try:
+        (window,) = FakeWindow.made
+        assert viewer.window is window
+        assert window.renderer is FakeBackend
+        assert not window.shown
+        viewer.show()
+        assert window.shown
+    finally:
+        viewer.close()
+    assert window.closed
+
+
+def test_entry_points_are_read_once(registered, monkeypatch) -> None:
+    calls = []
+    original = backends.entry_points
+    monkeypatch.setattr(
+        backends,
+        'entry_points',
+        lambda group: calls.append(group) or original(group=group),
+    )
+    backends._registered.cache_clear()
+    backends.available_renderers()
+    backends.available_renderers()
+    backends.get_renderer('fake')
+    assert calls == [backends.RENDERER_ENTRY_POINT_GROUP]
