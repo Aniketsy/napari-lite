@@ -113,3 +113,8 @@ small pull request:
 - The brush circle overlay is two vispy `Ellipse` visuals with `agg`
   borders: 1.5 ms per frame on an integrated GPU while painting. A
   single line or markers visual would be cheaper.
+- `QtDims.closeEvent` schedules the widget's deletion without stopping
+  its animation thread. Qt ends the process when a running `QThread` is
+  deleted (pytest-qt closes a test's widgets before fixtures run, so a
+  failed playback test took the run down). napari-lite carries
+  `self.stop()` first as a rule; the same line would do in napari.

@@ -385,6 +385,9 @@ class QtDims(QWidget):
                 self.dims._play_ready = True
 
     def closeEvent(self, event):
+        # napari-lite: Qt ends the process when a QThread is deleted while
+        # it runs; the animation stops, and its thread is waited for, first
+        self.stop()
         [w.deleteLater() for w in self.slider_widgets]
         self.deleteLater()
         event.accept()

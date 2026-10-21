@@ -1597,3 +1597,23 @@ from napari_lite._vispy._qt_optional import FontInfo
 from napari_lite._vispy.visuals.text import Text
 from napari_lite.layers.shapes._shapes_utils import triangulate_ellipse
 '''
+
+# _qt/widgets/qt_dims.py: Qt ends the process when a QThread is deleted
+# while it runs, and a widget closed while it plays deletes its animation
+# thread; the animation stops, and its thread is waited for, first
+[[rewrite]]
+old = '''
+    def closeEvent(self, event):
+        [w.deleteLater() for w in self.slider_widgets]
+        self.deleteLater()
+        event.accept()
+'''
+new = '''
+    def closeEvent(self, event):
+        # napari-lite: Qt ends the process when a QThread is deleted while
+        # it runs; the animation stops, and its thread is waited for, first
+        self.stop()
+        [w.deleteLater() for w in self.slider_widgets]
+        self.deleteLater()
+        event.accept()
+'''
