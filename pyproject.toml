@@ -53,6 +53,7 @@ napari-lite = "napari_lite.__main__:cli"
 
 [project.urls]
 Source = "https://github.com/Aniketsy/napari-lite"
+Issues = "https://github.com/Aniketsy/napari-lite/issues"
 Changelog = "https://github.com/Aniketsy/napari-lite/blob/main/CHANGELOG.md"
 "Upstream (napari)" = "https://github.com/napari/napari"
 "napari issue 5940" = "https://github.com/napari/napari/issues/5940"
@@ -65,8 +66,8 @@ pyqt6 = [
 pyside6 = [
     "PySide6>=6.7,!=6.11.0,!=6.11.1",
 ]
-# viewing dask arrays (opportunistic cache, task fusion off while slicing)
 pygfx = ["pygfx>=0.17"]  # the second renderer of napari_lite.view; its tests need a GPU
+# viewing dask arrays (opportunistic cache, task fusion off while slicing)
 dask = ["dask[array]>=2022.1.1", "cachey>=0.2.1", "psutil>=5.9.4"]
 # spline interpolation of shapes (interpolation_order > 1)
 scipy = ["scipy>=1.14.0"]

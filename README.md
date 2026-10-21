@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/images/logo.png" width="560" alt="napari-lite">
+  <img src="https://raw.githubusercontent.com/Aniketsy/napari-lite/main/docs/images/logo.png" width="560" alt="napari-lite">
 </p>
 
 <p align="center"><b>The napari viewer without the application around it: small, fast, the same API.</b></p>
@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/images/readme_viewer.png" width="860" alt="The napari-lite window with scikit-image's cells3d sample as two image layers, nuclei and membrane, in 3D: napari's layer controls and layer list on the left, the canvas on the right.">
+  <img src="https://raw.githubusercontent.com/Aniketsy/napari-lite/main/docs/images/readme_viewer.png" width="860" alt="The napari-lite window with scikit-image's cells3d sample as two image layers, nuclei and membrane, in 3D: napari's layer controls and layer list on the left, the canvas on the right.">
 </p>
 
 [napari](https://napari.org)'s viewer core as its own package: the seven
@@ -20,8 +20,8 @@ layer types in 2D and 3D, napari's rendering, layer list, layer controls,
 sliders, key bindings and themes, in a window without menus, plugins or
 console. It installs without napari, and the same scripts run after
 `import napari_lite as napari`. The code is napari's, copied by a script
-from a pinned commit and kept in sync ([how](docs/development.md),
-[architecture](docs/architecture.md)); derived from napari under the
+from a pinned commit and kept in sync ([how](https://github.com/Aniketsy/napari-lite/blob/main/docs/development.md),
+[architecture](https://github.com/Aniketsy/napari-lite/blob/main/docs/architecture.md)); derived from napari under the
 BSD-3 licence. Experimental.
 
 ## Install
@@ -85,7 +85,7 @@ visible difference: it is not a `pint.Unit` instance). What remains, Qt, vispy a
 same in both, which is why the gap narrows from the import to a window
 on screen. How each row is measured, the first frame, first layers and
 interaction, and the CI numbers on three operating systems:
-[docs/benchmarks.md](docs/benchmarks.md).
+[docs/benchmarks.md](https://github.com/Aniketsy/napari-lite/blob/main/docs/benchmarks.md).
 
 ## Features
 
@@ -104,7 +104,7 @@ documentation page for the feature.
 | Shapes | rectangles, ellipses, lines, paths, polygons, lasso; draw, select, move, edit vertices, copy and paste | [Shapes](https://napari.org/stable/howtos/layers/shapes.html) |
 | Surface, Tracks, Vectors | shading, wireframe, normals; graph, tail and head, colour by feature; length, width, colour | [Surface](https://napari.org/stable/howtos/layers/surface.html), [Tracks](https://napari.org/stable/howtos/layers/tracks.html), [Vectors](https://napari.org/stable/howtos/layers/vectors.html) |
 | Dims and camera | sliders with playback, 2D/3D toggle, roll, transpose, reset view; `viewer.dims`, `viewer.scene.camera` | [Camera](https://napari.org/stable/guides/camera.html) |
-| Mouse and keyboard | pan, zoom, rotate, zoom box, wheel through slices; napari's key bindings ([list](docs/shortcuts.md)); `bind_key`, mouse callbacks | [Key bindings](https://napari.org/stable/gallery/custom_key_bindings.html) |
+| Mouse and keyboard | pan, zoom, rotate, zoom box, wheel through slices; napari's key bindings ([list](https://github.com/Aniketsy/napari-lite/blob/main/docs/shortcuts.md)); `bind_key`, mouse callbacks | [Key bindings](https://napari.org/stable/gallery/custom_key_bindings.html) |
 | Grid and overlays | grid mode; scale bar, axes, text, colorbar, current slice, layer name, bounding box | [Grid mode](https://napari.org/stable/gallery/grid_mode.html), [Overlays](https://napari.org/stable/getting_started/viewer.html#viewer-overlays) |
 | Screenshots | `viewer.screenshot`, `export_figure`, `window.clipboard`; `nbscreenshot` in Jupyter | [screenshot](https://napari.org/stable/api/napari.Viewer.html#napari.Viewer.screenshot) |
 | Open files and samples | `viewer.open`, drag and drop, `Ctrl+O`: png, jpg, bmp, gif, webp, tif, npy, npz; `open_sample`: imageio's standard images, a CT volume, a computed volume | [Viewer.open](https://napari.org/stable/api/napari.Viewer.html#napari.Viewer.open) |
@@ -116,7 +116,7 @@ documentation page for the feature.
 | dask, zarr, xarray | any array with `shape`, `dtype` and `__getitem__`; dask arrays with the `dask` extra; asynchronous slicing | [Dask and napari](https://napari.org/stable/tutorials/dask.html) |
 
 Data is interpreted exactly as napari interprets it, RGB and multiscale
-guessed, the channel axis never ([docs/design.md](docs/design.md)). Where
+guessed, the channel axis never ([docs/design.md](https://github.com/Aniketsy/napari-lite/blob/main/docs/design.md)). Where
 napari is installed, a test renders every layer type with both packages
 and compares the images.
 
@@ -127,18 +127,18 @@ palette, the IPython console, the preferences dialog and settings file,
 the welcome screen. `layer.save()` raises `NotImplementedError`; beyond
 the built-in reader and samples, load data with your own library and
 pass arrays to `add_image`. Planned: a monthly resync with napari's main
-branch ([SYNC.md](SYNC.md)) and a PyPI release once the name is settled
-with the napari maintainers ([docs/roadmap.md](docs/roadmap.md)).
+branch ([SYNC.md](https://github.com/Aniketsy/napari-lite/blob/main/SYNC.md)) and a PyPI release once the name is settled
+with the napari maintainers ([docs/roadmap.md](https://github.com/Aniketsy/napari-lite/blob/main/docs/roadmap.md)).
 
 ## More
 
-[Architecture](docs/architecture.md) ·
-[How the copy is made](docs/development.md) ·
-[Benchmarks](docs/benchmarks.md) ·
-[Patches for napari](docs/upstream.md) ·
-[Shortcuts](docs/shortcuts.md) ·
-[Changelog](CHANGELOG.md) ·
+[Architecture](https://github.com/Aniketsy/napari-lite/blob/main/docs/architecture.md) ·
+[How the copy is made](https://github.com/Aniketsy/napari-lite/blob/main/docs/development.md) ·
+[Benchmarks](https://github.com/Aniketsy/napari-lite/blob/main/docs/benchmarks.md) ·
+[Patches for napari](https://github.com/Aniketsy/napari-lite/blob/main/docs/upstream.md) ·
+[Shortcuts](https://github.com/Aniketsy/napari-lite/blob/main/docs/shortcuts.md) ·
+[Changelog](https://github.com/Aniketsy/napari-lite/blob/main/CHANGELOG.md) ·
 [napari issue 5940](https://github.com/napari/napari/issues/5940)
 
 Derived from napari under the BSD-3 licence; napari's copyright is kept
-in [LICENSE](LICENSE).
+in [LICENSE](https://github.com/Aniketsy/napari-lite/blob/main/LICENSE).

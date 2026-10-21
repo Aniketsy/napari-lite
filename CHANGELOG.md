@@ -1,10 +1,35 @@
 # Changelog
 
-## 0.1.0 (unreleased)
+## 0.1.0
 
 First release. The napari viewer core (layers, canvas, dims sliders),
 copied from napari commit `ebfc4a0a` (0.9.0.dev) by `tools/vendor.py`,
-importable as `napari_lite` without napari installed.
+importable as `napari_lite` without napari installed; around it a
+view-only canvas, a viewer without a window and a viewer in a notebook
+cell.
+
+### Highlights
+
+- **napari's viewer, without napari.** `Viewer`, `imshow` and all seven
+  layer types in 2D and 3D, with napari's rendering, layer list, layer
+  controls, dims sliders, key bindings and themes. The same scripts run
+  after `import napari_lite as napari`.
+- **Open data without plugins.** `viewer.open`, drag and drop and `Ctrl+O`
+  for common image and numpy files, built-in samples, and the
+  `napari-lite` command.
+- **A view-only canvas.** `napari_lite.view` shows images and points,
+  drawn by vispy or pygfx.
+- **No window, or a notebook.** `Viewer(gui=None)` draws off screen, with
+  no Qt at all on Linux with EGL. `Viewer(gui='jupyter')` shows the viewer
+  in a notebook cell.
+- **Pluggable backends.** Other packages can add renderers and front ends
+  by entry point.
+- **Lighter than napari.** About half the installed size, under a third of
+  the packages, and a faster start.
+
+The full feature list is in the README's
+[Features table](https://github.com/Aniketsy/napari-lite#features) and in
+the pinned [issue #10](https://github.com/Aniketsy/napari-lite/issues/10).
 
 ### Added
 

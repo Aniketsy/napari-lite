@@ -36,6 +36,9 @@ jobs:
             echo "tag v$tag but pyproject.toml says $version" >&2
             exit 1
           fi
+      - name: The version's CHANGELOG.md section, the release notes
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: python tools/release_notes.py "$GITHUB_REF_NAME"
       - run: python -m build
       - run: python -m twine check dist/*
       - name: The wheel installs and imports without napari
@@ -86,15 +89,17 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           name: dist
           path: dist/
-      - name: GitHub release with the sdist and the wheel
+      - name: GitHub release with the sdist, the wheel and the changelog's notes
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
+          python3 tools/release_notes.py "$GITHUB_REF_NAME" > release_notes.md
           gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" \
             --verify-tag --title "napari-lite $GITHUB_REF_NAME" \
-            --notes "See CHANGELOG.md for what is in this release."
+            --notes-file release_notes.md
