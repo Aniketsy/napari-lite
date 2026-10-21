@@ -125,7 +125,11 @@ class Window(Protocol):
     (``renderer``: the renderer class to draw with, None for the
     default) and gives these methods; the Qt one is
     ``napari_lite._qt.qt_main_window.Window``.  The two task-status
-    hooks are what thread workers report to.
+    hooks are what thread workers report to.  Two methods are optional:
+    ``show_shortcuts()`` and ``open_files()``, the window's own versions
+    of the actions behind Ctrl+Alt+/ and Ctrl+O
+    (``napari_lite.backends._actions``); without them a bare model in a
+    ``QtCanvas`` gets Qt dialogs and a window without Qt a status line.
     """
 
     def show(self, *, block: bool = False) -> None: ...

@@ -21,6 +21,7 @@ import sys
 import textwrap
 import threading
 import time
+from datetime import UTC
 from types import SimpleNamespace
 
 import numpy as np
@@ -28,6 +29,7 @@ import pytest
 
 pytest.importorskip('jupyter_rfb')
 widgets = pytest.importorskip('ipywidgets')
+
 
 from napari_lite import backends  # noqa: E402
 
@@ -587,3 +589,52 @@ def test_notebook_viewer_without_qt_in_the_process() -> None:
     assert info['requests'] > 0
     assert tuple(info['centre'])[:3] != (0, 0, 0)
     assert tuple(info['small_centre'])[:3] != (0, 0, 0)  # laid out anew
+
+
+def test_shortcuts_and_open_files_in_the_notebook(
+    make_notebook_viewer,
+) -> None:
+    """Ctrl+Alt+/ and Ctrl+O have no Qt dialog to open in a notebook: the
+    key bindings dock as a table, files come in through an upload box."""
+    import io
+    from datetime import datetime
+
+    import imageio.v3 as iio
+
+    viewer = make_notebook_viewer()
+    window = viewer.window
+    rfb = window.backend.native
+    rfb.get_frame()
+    for kind in ('key_down', 'key_up'):
+        rfb.handle_event(
+            {'type': kind, 'key': '/', 'modifiers': ['Control', 'Alt']}
+        )
+    table = window.dock_widgets['Key bindings']
+    assert isinstance(table, widgets.HTML)
+    assert 'Toggle 2D/3D view' in table.value
+    window.show_shortcuts()  # again: gone
+    assert 'Key bindings' not in window.dock_widgets
+
+    for kind in ('key_down', 'key_up'):
+        rfb.handle_event({'type': kind, 'key': 'o', 'modifiers': ['Control']})
+    upload = window.dock_widgets['Open files']
+    assert isinstance(upload, widgets.FileUpload)
+    red = np.zeros((8, 12, 3), np.uint8)
+    red[..., 0] = 255
+    buffer = io.BytesIO()
+    iio.imwrite(buffer, red, extension='.png')
+    png = buffer.getvalue()
+    upload.value = (
+        {
+            'name': 'red.png',
+            'type': 'image/png',
+            'size': len(png),
+            'content': memoryview(png),
+            'last_modified': datetime.now(UTC),
+        },
+    )
+    assert [layer.name for layer in viewer.layers] == ['red']
+    assert viewer.layers[0].data.shape == (8, 12, 3)
+    assert upload.value == ()  # ready for the next file
+    window.open_files()  # again: gone
+    assert 'Open files' not in window.dock_widgets

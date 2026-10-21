@@ -149,3 +149,31 @@ def test_closed_viewer_cannot_show(make_viewer) -> None:
     viewer.close()
     with pytest.raises(RuntimeError, match='already been closed'):
         viewer.show()
+
+
+def test_window_dialogs_belong_to_the_window(
+    make_viewer, monkeypatch, tmp_path
+) -> None:
+    """The Qt window answers Ctrl+Alt+/ and Ctrl+O with its own dialogs,
+    parented to it (a notebook window answers with docked widgets)."""
+    import numpy as np
+    from qtpy.QtWidgets import QFileDialog
+
+    from napari_lite.utils.action_manager import action_manager
+
+    viewer = make_viewer()
+    dialog = action_manager.trigger('napari:show_shortcuts', viewer)
+    assert dialog.parent() is viewer.window._qt_window
+    dialog.close()
+    path = tmp_path / 'noise.npy'
+    np.save(path, np.zeros((4, 6)))
+    parents = []
+
+    def choose(parent, *args):
+        parents.append(parent)
+        return [str(path)], ''
+
+    monkeypatch.setattr(QFileDialog, 'getOpenFileNames', staticmethod(choose))
+    action_manager.trigger('napari-lite:open_files', viewer)
+    assert parents == [viewer.window._qt_window]
+    assert [layer.name for layer in viewer.layers] == ['noise']

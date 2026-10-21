@@ -17,6 +17,7 @@ import sys
 from typing import TYPE_CHECKING, Any, ClassVar
 from weakref import WeakSet
 
+import napari_lite.backends._actions  # noqa: F401  (registers Ctrl+O and co.)
 from napari_lite.components.viewer_model import ViewerModel
 from napari_lite.utils.events.event_utils import disconnect_events
 

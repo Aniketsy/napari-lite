@@ -23,9 +23,11 @@ from __future__ import annotations
 
 import contextlib
 import html
+import tempfile
 import weakref
 from collections.abc import Callable, Iterator, Sequence
 from functools import partial
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar
 
 try:
@@ -468,6 +470,60 @@ class JupyterWindow:
         _close(self._slider_widgets + self._row_widgets + self._own_widgets)
         self.backend.close()
         self._forget()
+
+    # the two actions whose napari version opens a Qt dialog
+
+    def show_shortcuts(self) -> None:
+        """Ctrl+Alt+/: the key bindings as a table under the layer list;
+        pressed again, it goes away."""
+        if self._toggle_dock('Key bindings'):
+            return
+        from napari_lite.backends._actions import shortcuts_html
+
+        self.add_dock_widget(
+            widgets.HTML(shortcuts_html()), name='Key bindings', area='left'
+        )
+
+    def open_files(self) -> list[Layer]:
+        """Ctrl+O: an upload box under the layer list; every file
+        uploaded is opened with the built-in reader, one layer per file,
+        as a file dropped on the canvas would be.  Pressed again, the
+        box goes away.  Returns nothing: the layers come with the
+        uploads."""
+        if self._toggle_dock('Open files'):
+            return []
+        upload = widgets.FileUpload(
+            accept='.png,.jpg,.jpeg,.bmp,.gif,.webp,.tif,.tiff,.npy,.npz',
+            multiple=True,
+            description='Upload',
+        )
+        upload.observe(self._owned(self._on_upload), names='value')
+        self.add_dock_widget(upload, name='Open files', area='left')
+        return []
+
+    def _toggle_dock(self, name: str) -> bool:
+        """Remove the dock called ``name`` if it is there."""
+        if name in self._docks:
+            self.remove_dock_widget(name)
+            return True
+        return False
+
+    def _on_upload(self, change: dict[str, Any]) -> None:
+        """Uploaded files, written to a temporary folder and opened; the
+        box is emptied so that the same file can be chosen again."""
+        from napari_lite.backends._actions import open_paths
+
+        uploads = change['new']
+        if not uploads:
+            return
+        folder = Path(tempfile.mkdtemp(prefix='napari-lite-upload-'))
+        paths = []
+        for item in uploads:
+            path = folder / Path(item['name']).name
+            path.write_bytes(bytes(item['content']))
+            paths.append(str(path))
+        open_paths(self.viewer, paths)
+        change['owner'].value = ()
 
     def resize(self, width: int, height: int) -> None:
         """Size the canvas, in CSS pixels; the browser then reports the

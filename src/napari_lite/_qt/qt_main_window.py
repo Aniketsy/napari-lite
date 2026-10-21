@@ -52,6 +52,7 @@ if TYPE_CHECKING:
     from qtpy.QtGui import QCloseEvent, QImage, QKeyEvent
 
     from napari_lite.components import ViewerModel
+    from napari_lite.layers import Layer
     from napari_lite.utils.events import Event
 
 __all__ = ['Window']
@@ -462,6 +463,20 @@ class Window:
             name: dock.widget()
             for name, dock in self._wrapped_dock_widgets.items()
         }
+
+    # the two actions whose napari version opens a Qt dialog
+
+    def show_shortcuts(self) -> Any:
+        """Ctrl+Alt+/: a window listing the key bindings."""
+        from napari_lite.qt._viewer_actions import show_shortcuts_dialog
+
+        return show_shortcuts_dialog(self.viewer, self._qt_window)
+
+    def open_files(self) -> list[Layer]:
+        """Ctrl+O: a file dialog in front of the built-in reader."""
+        from napari_lite.qt._viewer_actions import open_files_dialog
+
+        return open_files_dialog(self.viewer, self._qt_window)
 
     # geometry, show, close
 
