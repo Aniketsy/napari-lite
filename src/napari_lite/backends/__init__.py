@@ -267,7 +267,10 @@ def resolve_renderer(
     set or empty.  ``gui`` is the toolkit the renderer will draw for: for
     a viewer without a Qt window (None, ``'jupyter'``) vispy may draw with
     its egl application, and PyOpenGL is readied for it before vispy is
-    first imported (``utils/_pyopengl.py``)."""
+    first imported (``utils/_pyopengl.py``).  That works for the name
+    only: importing the renderer class imports PyOpenGL, which settles
+    its platform then, so with the class Qt draws off the screen unless
+    ``PYOPENGL_PLATFORM=egl`` was set before the import."""
     if callable(renderer):
         return renderer
     name = renderer

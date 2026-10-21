@@ -28,7 +28,9 @@ importable as `napari_lite` without napari installed.
   `egl` application draws with no Qt in the process (text then needs
   freetype-py: the `headless` extra). napari's GL calls go through
   PyOpenGL, so napari-lite sets `PYOPENGL_PLATFORM=egl` for that, unless
-  the variable is set or PyOpenGL is imported already. Elsewhere the Qt
+  the variable is set or PyOpenGL is imported already (name the renderer
+  rather than passing its class: importing the class imports PyOpenGL
+  first). Elsewhere the Qt
   binding draws into a widget kept off the screen. `NAPARI_LITE_GUI=none`
   makes it the default, and `napari_lite.run()` returns at once when no
   viewer has a window.
