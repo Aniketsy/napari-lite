@@ -14,8 +14,9 @@ def test_closing_while_playing_stops_the_thread(qtbot) -> None:
     from napari_lite._qt.widgets.qt_dims import QtDims
     from napari_lite.components import Dims
 
+    # not qtbot.addWidget: closing a QtDims deletes it, and qtbot's own
+    # close at teardown would find it gone
     widget = QtDims(Dims(ndim=3))
-    qtbot.addWidget(widget)
     widget.play(0, fps=50)
     qtbot.waitUntil(lambda: widget.is_playing)
     thread = widget._animation_thread
@@ -23,4 +24,4 @@ def test_closing_while_playing_stops_the_thread(qtbot) -> None:
     widget.close()
     assert not widget.is_playing
     assert thread.isFinished()
-    widget.close()  # again, as pytest-qt will: nothing left to stop
+    qtbot.wait(50)  # the deferred deletion, as a window's event loop does
