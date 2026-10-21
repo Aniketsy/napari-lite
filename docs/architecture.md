@@ -74,7 +74,9 @@ and where the two meet.
   front end (`Window`; Qt) shows it. `Viewer(renderer=..., gui=...)`
   picks them, `gui='jupyter'` shows the viewer in a notebook cell,
   `gui=None` draws without a window, and another package adds its own
-  by entry point.
+  by entry point ([backends.md](backends.md)). The view-only canvas,
+  `napari_lite.view`, has renderers of its own (vispy, pygfx) for its
+  smaller model; they are not part of this registry.
 - **Shims** (own). Small modules at napari's import paths, where the
   copied code would call plugins or app-model. A built-in reader and a
   few samples stand in for reader plugins; writers raise a clear error;
@@ -128,8 +130,8 @@ and friends.
 ## Where to look next
 
 [design.md](design.md) for how data is interpreted,
-[`napari_lite.backends`](../src/napari_lite/backends/__init__.py) for the
-renderer and front-end contracts,
+[backends.md](backends.md) for the renderer and front-end contracts and
+how another package adds its own,
 [development.md](development.md) and [../SYNC.md](../SYNC.md) for the copy
 and the resync, [benchmarks.md](benchmarks.md) for the numbers,
 [upstream.md](upstream.md) for the patches napari-lite found for napari.
